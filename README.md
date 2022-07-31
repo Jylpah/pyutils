@@ -1,2 +1,2 @@
-# blitz-utils
-blitz-utils Python library
+# blitzutils
+Utils Python library for my Blitz projects
