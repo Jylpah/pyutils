@@ -10,23 +10,23 @@ from fnmatch import fnmatch
 
 logger = logging.getLogger(__name__)
 
-class FileQueue:
+# inherit from asyncio.Queue? 
+class FileQueue(asyncio.Queue):
 	"""
 	Class to create create a async queue of files based on given dirs files given as 
 	arguments. Filters based on file names. 
 	"""
 
-	def __init__(self, size: int = None, filter: str = '*', case_sensitive = False):
+	def __init__(self, maxsize=0, filter: str = '*', case_sensitive = False):
 		assert filter != None, "None provided as filter"
-
-		self.queue 	= asyncio.Queue(size)
-		self.done 	= False
+		super().__init__(maxsize)
+		self._done 	= False
 		
 		if case_sensitive:
 			self.case_sensitive = True
-			self.filter = filter.lower()
+			self._filter = filter.lower()
 		else:
-			self.filter = filter
+			self._filter = filter
 
 
 	async def mk_queue(self, files: list):
@@ -43,37 +43,31 @@ class FileQueue:
 					if not line: 
 						break
 					else:
-						await self.add(line)			
+						await self.put(line)			
 			else:
 				for file in files:
-					await self.add(file)
+					await self.put(file)
 			return True
 		except Exception as err:
 			logger.error(str(err))
 		return False
 
-
 	
-	async def add(self, filename, suffixes: list = None):
+	async def put(self, filename):
 		"""Recursive function to build process queueu. Sanitize filename"""
 		
 		if not filename.beginswith('/'):
-			filename = getcwd() + '/' + filename
-		filename = path.normpath(filename)
+			filename = path.normpath(path.join(getcwd(), filename))			
 
 		if  path.isdir(filename):
 			with scandir(filename) as dirEntry:
 				for entry in dirEntry:
-					await self.add(entry.path)		
-		elif path.isfile(filename) and self.match_suffix(filename):
-				await self.queue.put(filename)
+					await self.put(entry.path)		
+		elif path.isfile(filename) and self._match_suffix(filename):
+				await super.put(filename)
 
 
-	def all_added(self):
-		self.done = True
-		
-
-	def match_suffix(self, filename: str) -> bool:
+	def _match_suffix(self, filename: str) -> bool:
 		""""Match file name with filter
 		
 		https://docs.python.org/3/library/fnmatch.html
@@ -82,16 +76,6 @@ class FileQueue:
 
 		filename = path.basename(filename)
 		if self.case_sensitive:
-			return fnmatch(filename.lower(), self.filter)
+			return fnmatch(filename.lower(), self._filter)
 		else:
-			return fnmatch(filename, self.filter)
-
-	
-	async def get(self) -> str:
-		try:
-			if self.done and self.queue.empty():
-				return None
-			else:
-				await self.queue.get()
-		except Exception as err:
-			logger.error(str(err))
+			return fnmatch(filename, self._filter)
