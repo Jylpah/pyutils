@@ -11,6 +11,10 @@ from fnmatch import fnmatch
 logger = logging.getLogger(__name__)
 
 class FileQueue:
+	"""
+	Class to create create a async queue of files based on given dirs files given as 
+	arguments. Filters based on file names. 
+	"""
 
 	def __init__(self, filter: str = '*', size: int = None, case_sensitive = False):
 		assert filter != None, "None provided as filter"
@@ -25,18 +29,17 @@ class FileQueue:
 			self.filter = filter
 
 
-	async def add_file(self, filename, suffixes: list = None):
+	async def add(self, filename, suffixes: list = None):
 		"""Recursive function to build process queueu"""
 		if  path.isdir(filename):
 			with scandir(filename) as dirEntry:
 				for entry in dirEntry:
-					await self.add_file(entry.path)		
-		elif path.isfile(filename):
-			if self.match_suffix(filename):
+					await self.add(entry.path)		
+		elif path.isfile(filename) and self.match_suffix(filename):
 				await self.queue.put(filename)
 
 
-	def files_added(self):
+	def all_added(self):
 		self.done = True
 		
 
