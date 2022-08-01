@@ -5,7 +5,7 @@ from cmath import exp
 import logging
 import asyncio
 import aioconsole
-from os import scandir, path
+from os import scandir, getcwd, path
 from fnmatch import fnmatch
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class FileQueue:
 	arguments. Filters based on file names. 
 	"""
 
-	def __init__(self, filter: str = '*', size: int = None, case_sensitive = False):
+	def __init__(self, size: int = None, filter: str = '*', case_sensitive = False):
 		assert filter != None, "None provided as filter"
 
 		self.queue 	= asyncio.Queue(size)
@@ -29,8 +29,38 @@ class FileQueue:
 			self.filter = filter
 
 
+	async def mk_queue(self, files: list):
+		"""Create file queue from arguments given
+			'-' denotes for STDIN
+		"""
+		assert files != None and len(files) > 0, "No files given to process"
+
+		try:		
+			if files[0] == '-':
+				stdin, _ = await aioconsole.get_standard_streams()
+				while True:
+					line = (await stdin.readline()).decode('utf-8').removesuffix("\n")
+					if not line: 
+						break
+					else:
+						await self.add(line)			
+			else:
+				for file in files:
+					await self.add(file)
+			return True
+		except Exception as err:
+			logger.error(str(err))
+		return False
+
+
+	
 	async def add(self, filename, suffixes: list = None):
-		"""Recursive function to build process queueu"""
+		"""Recursive function to build process queueu. Sanitize filename"""
+		
+		if not filename.beginswith('/'):
+			filename = getcwd() + '/' + filename
+		filename = path.normpath(filename)
+
 		if  path.isdir(filename):
 			with scandir(filename) as dirEntry:
 				for entry in dirEntry:
