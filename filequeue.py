@@ -17,10 +17,12 @@ class FileQueue(asyncio.Queue):
 	arguments. Filters based on file names. 
 	"""
 
-	def __init__(self, maxsize=0, filter: str = '*', case_sensitive = False):
+	def __init__(self, maxsize=0, filter: str = '*', exclude: bool = False, 
+				case_sensitive = False):
 		assert filter != None, "None provided as filter"
 		super().__init__(maxsize)
-		self._done 	= False
+		self._done 			= False
+		self._exclude 		= exclude
 		self.case_sensitive = case_sensitive
 		if self.case_sensitive:			
 			self._filter = filter.lower()
@@ -81,10 +83,15 @@ class FileQueue(asyncio.Queue):
 		assert filename != None, "None provided as filename"
 		try:
 			filename = path.basename(filename)
+
 			if self.case_sensitive:
-				return fnmatch(filename.lower(), self._filter)
+				filename = filename.lower()
+			
+			m = fnmatch(filename, self._filter)
+			if self._exclude:
+				return not m
 			else:
-				return fnmatch(filename, self._filter)
+				return m
 		except Exception as err:
 			logger.error(str(err))
 		return False
