@@ -53,20 +53,25 @@ class FileQueue(asyncio.Queue):
 		return False
 
 	
-	async def put(self, filename):
+	async def put(self, filename) -> bool:
 		"""Recursive function to build process queueu. Sanitize filename"""
 		assert filename != None and len(filename) > 0, "None/zero-length filename given as input"
+		
+		try:
+			if not filename.beginswith('/'):
+				filename = path.normpath(path.join(getcwd(), filename))			
 
-		if not filename.beginswith('/'):
-			filename = path.normpath(path.join(getcwd(), filename))			
-
-		if  path.isdir(filename):
-			with scandir(filename) as dirEntry:
-				for entry in dirEntry:
-					await self.put(entry.path)		
-		elif path.isfile(filename) and self._match_suffix(filename):
-			logger.debug(f"Adding file to queue: {filename}")
-			await super.put(filename)
+			if  path.isdir(filename):
+				with scandir(filename) as dirEntry:
+					for entry in dirEntry:
+						await self.put(entry.path)		
+			elif path.isfile(filename) and self._match_suffix(filename):
+				logger.debug(f"Adding file to queue: {filename}")
+				await super.put(filename)
+				return True
+		except Exception as err:
+			logger.error(str(err))
+		return False
 
 
 	def _match_suffix(self, filename: str) -> bool:
@@ -75,9 +80,12 @@ class FileQueue(asyncio.Queue):
 		https://docs.python.org/3/library/fnmatch.html
 		"""
 		assert filename != None, "None provided as filename"
-
-		filename = path.basename(filename)
-		if self.case_sensitive:
-			return fnmatch(filename.lower(), self._filter)
-		else:
-			return fnmatch(filename, self._filter)
+		try:
+			filename = path.basename(filename)
+			if self.case_sensitive:
+				return fnmatch(filename.lower(), self._filter)
+			else:
+				return fnmatch(filename, self._filter)
+		except Exception as err:
+			logger.error(str(err))
+		return False
