@@ -66,7 +66,7 @@ class FileQueue(asyncio.Queue):
 						await self.put(entry.path)		
 			elif path.isfile(filename) and self._match_suffix(filename):
 				logger.debug(f"Adding file to queue: {filename}")
-				await super.put(filename)
+				await super().put(filename)
 				return True
 		except Exception as err:
 			logger.error(str(err))
