@@ -58,7 +58,7 @@ class FileQueue(asyncio.Queue):
 		assert filename != None and len(filename) > 0, "None/zero-length filename given as input"
 		
 		try:
-			if not filename.beginswith('/'):
+			if filename[0] == '/':
 				filename = path.normpath(path.join(getcwd(), filename))			
 
 			if  path.isdir(filename):
