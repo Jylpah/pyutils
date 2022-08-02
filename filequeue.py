@@ -66,7 +66,7 @@ class FileQueue(asyncio.Queue):
 				with scandir(filename) as dirEntry:
 					for entry in dirEntry:
 						await self.put(entry.path)		
-			elif path.isfile(filename) and self._match_suffix(filename):
+			elif path.isfile(filename) and self._match(filename):
 				logger.debug(f"Adding file to queue: {filename}")
 				await super().put(filename)
 				return True
@@ -75,7 +75,7 @@ class FileQueue(asyncio.Queue):
 		return False
 
 
-	def _match_suffix(self, filename: str) -> bool:
+	def _match(self, filename: str) -> bool:
 		""""Match file name with filter
 		
 		https://docs.python.org/3/library/fnmatch.html
