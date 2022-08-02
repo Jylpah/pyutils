@@ -20,6 +20,7 @@ class FileQueue(asyncio.Queue):
 	def __init__(self, maxsize=0, filter: str = '*', exclude: bool = False, 
 				case_sensitive = False):
 		assert filter != None, "None provided as filter"
+		logger.debug(f"maxsize={str(maxsize)}, filter='{filter}', exclude={str(exclude)}, case_sensitive={str(case_sensitive)}")
 		super().__init__(maxsize)
 		self._done 			= False
 		self._exclude 		= exclude
