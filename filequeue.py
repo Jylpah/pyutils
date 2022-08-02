@@ -55,7 +55,8 @@ class FileQueue(asyncio.Queue):
 	
 	async def put(self, filename):
 		"""Recursive function to build process queueu. Sanitize filename"""
-		
+		assert filename != None and len(filename) > 0, "None/zero-length filename given as input"
+
 		if not filename.beginswith('/'):
 			filename = path.normpath(path.join(getcwd(), filename))			
 
@@ -64,7 +65,8 @@ class FileQueue(asyncio.Queue):
 				for entry in dirEntry:
 					await self.put(entry.path)		
 		elif path.isfile(filename) and self._match_suffix(filename):
-				await super.put(filename)
+			logger.debug(f"Adding file to queue: {filename}")
+			await super.put(filename)
 
 
 	def _match_suffix(self, filename: str) -> bool:
