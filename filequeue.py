@@ -21,9 +21,8 @@ class FileQueue(asyncio.Queue):
 		assert filter != None, "None provided as filter"
 		super().__init__(maxsize)
 		self._done 	= False
-		
-		if case_sensitive:
-			self.case_sensitive = True
+		self.case_sensitive = case_sensitive
+		if self.case_sensitive:			
 			self._filter = filter.lower()
 		else:
 			self._filter = filter
