@@ -17,8 +17,8 @@ class FileQueue(asyncio.Queue):
 	arguments. Filters based on file names. 
 	"""
 
-	def __init__(self, maxsize=0, filter: str = '*', exclude: bool = False, 
-				case_sensitive = False):
+	def __init__(self, maxsize: int = 0, filter: str = '*', 
+				exclude: bool = False, case_sensitive: bool = False):
 		assert filter != None, "None provided as filter"
 		logger.debug(f"maxsize={str(maxsize)}, filter='{filter}', exclude={str(exclude)}, case_sensitive={str(case_sensitive)}")
 		super().__init__(maxsize)
@@ -31,7 +31,7 @@ class FileQueue(asyncio.Queue):
 			self._filter = filter
 
 
-	async def mk_queue(self, files: list):
+	async def mk_queue(self, files: list[str]) -> bool:
 		"""Create file queue from arguments given
 			'-' denotes for STDIN
 		"""
@@ -55,7 +55,7 @@ class FileQueue(asyncio.Queue):
 		return False
 
 	
-	async def put(self, filename) -> bool:
+	async def put(self, filename: str) -> None:
 		"""Recursive function to build process queueu. Sanitize filename"""
 		assert filename != None and len(filename) > 0, "None/zero-length filename given as input"
 		
@@ -68,10 +68,9 @@ class FileQueue(asyncio.Queue):
 			elif path.isfile(filename) and self._match(filename):
 				logger.debug(f"Adding file to queue: {filename}")
 				await super().put(filename)
-				return True
 		except Exception as err:
 			logger.error(str(err))
-		return False
+		return None
 
 
 	def _match(self, filename: str) -> bool:
