@@ -18,23 +18,20 @@ class ThrottledClientSession(aiohttp.ClientSession):
 
     def __init__(self, rate_limit: float = 0, *args,**kwargs) -> None: 
         super().__init__(*args,**kwargs)
-        self.rate_limit: float = 0
+        assert rate_limit is not None and rate_limit >= 0, "rate_limit is None or below zero"
+
+        self.rate_limit: float = rate_limit
         self._fillerTask = None
         self._queue = None
         self._start_time = time.time()
         self._count = 0   
 
-        if rate_limit is not None:
-            if rate_limit <= 0:
-                raise ValueError('rate_limit must be positive')
-            self.rate_limit = rate_limit
-            #(increment, sleep) = self._get_rate_increment()            
-            self._queue = asyncio.Queue(min(2, int(rate_limit)+1))
-            # self._fillerTask = asyncio.create_task(self._filler(rate_limit))
+        if rate_limit > 0:
+            self._queue = asyncio.Queue(min(2, int(rate_limit)+1))            
             self._fillerTask = asyncio.create_task(self._filler())
 
 
-    def _get_sleep(self) -> float:
+    def _get_sleep(self) -> float:        
         if self.rate_limit > 0:
             return max(1/self.rate_limit, self.MIN_SLEEP)
         return 0
@@ -65,8 +62,9 @@ class ThrottledClientSession(aiohttp.ClientSession):
         return res
 
 
-    def set_rate_limit(self, rate_limit: float = 1):
-        assert isinstance(rate_limit, float), "rate_limit has to be type of 'float'"
+    def set_rate_limit(self, rate_limit: float = 0):
+        assert rate_limit is not None, "rate_limit must not be None" 
+        assert isinstance(rate_limit, float) and rate_limit >= 0, "rate_limit has to be type of 'float' >= 0"
         self.rate_limit = rate_limit
         return self.rate_limit
         
