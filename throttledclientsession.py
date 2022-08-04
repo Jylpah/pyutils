@@ -7,7 +7,6 @@
 ## -----------------------------------------------------------
 
 from typing import Optional
-from typing import NoReturn
 import aiohttp
 import asyncio
 import time
