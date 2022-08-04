@@ -1,7 +1,11 @@
+## -----------------------------------------------------------
+#### Class FileQueue(asyncio.Queue)
+#
+#  Class to build async Queue of files based on arguments given. 
+#  Supports filtering
+#
+## -----------------------------------------------------------
 
-
-
-from cmath import exp
 import logging
 import asyncio
 import aioconsole
