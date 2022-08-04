@@ -39,7 +39,7 @@ class FileQueue(asyncio.Queue):
 		"""Create file queue from arguments given
 			'-' denotes for STDIN
 		"""
-		assert files != None and len(files) > 0, "No files given to process"
+		assert files is not None and len(files) > 0, "No files given to process"
 
 		try:		
 			if files[0] == '-':
