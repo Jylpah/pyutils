@@ -1,3 +1,2 @@
-
-aiofiles
+aiohttp
 aioconsole
