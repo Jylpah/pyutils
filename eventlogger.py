@@ -66,7 +66,7 @@ class EventLogger():
 
 	def get_long_cat(self, category: str) -> str:
 		assert category is not None, "param 'category' cannot be None"
-		return self.name + ': ' + category
+		return f"{self.name}: {category}"
 
 
 	def _get_str(self, category: str) -> str:
