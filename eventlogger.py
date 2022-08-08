@@ -125,17 +125,21 @@ class EventLogger():
 			logger.error(str(err))
 		return False
 		
-	def print(self, do_print : bool = True): 
+	def get_header(self) -> str:
+		return f"{self.name}: " + ('ERROR occured' if self.get_error_status() else '-----------')
+
+
+	def print(self, do_print : bool = True) -> Optional[str]: 
 		try:
 			if do_print:
-				logger.info(self.name + ': ' + ('ERROR occured' if self.get_error_status() else '-----------'))
+				logger.info(self.get_header())
 				for cat in sorted(self._log):
 					logger.info(self._get_str(cat))
 				return None
 			else:
-				ret = self.name + ': '
+				ret = self.get_header()
 				for cat in sorted(self._log):
-					ret = ret + '\n' + self._get_str(cat)
+					ret += f"\n{self._get_str(cat)}"
 				return ret
 		except Exception as err:
 			logger.error(str(err))
