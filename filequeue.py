@@ -9,8 +9,9 @@
 import logging
 import asyncio
 import aioconsole
-from os import scandir, getcwd, path
-from fnmatch import fnmatch
+from os 			import scandir, path
+from fnmatch 		import fnmatch
+from eventlogger 	import EventLogger
 
 logger = logging.getLogger(__name__)
 
