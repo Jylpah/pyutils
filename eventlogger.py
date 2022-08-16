@@ -4,12 +4,17 @@
 # and merge the results
 ## -----------------------------------------------------------
 
-from collections import defaultdict
-from typing import Callable, Optional, Union
+from collections 	import defaultdict
+from typing 		import Callable, Optional, Union
+
 import time
 import logging 
 
 logger = logging.getLogger(__name__)
+
+verbose = logger.warning
+message = logger.info
+logging.basicConfig(encoding='utf-8', format='%(levelname)s: %(funcName)s: %(message)s')
 
 FuncTypeFormatter 	= Callable[[str], str]
 FuncTypeFormatterParam = Optional[FuncTypeFormatter]
@@ -60,7 +65,7 @@ class EventLogger():
 
 		self._log[category] += count
 		if category in self._error_cats:
-			self.error_status = True
+			self._error_status = True
 		return None
 
 
@@ -99,7 +104,7 @@ class EventLogger():
 
 	
 	def get_error_status(self) -> bool:
-		return self.error_status
+		return self._error_status
 	
 
 	def merge(self, B: 'EventLogger', merge_cats: str = 'no', totals: str = 'Total') -> bool:
@@ -119,12 +124,30 @@ class EventLogger():
 					self.log(f"{totals}: {cat}", value)
 				else:
 					raise ValueError("merge_cats= is not 'yes', 'no' or 'both'")
-				self.error_status = self.error_status or B.get_error_status()
+				self._error_status = self._error_status or B.get_error_status()
 			return True
 		except Exception as err:
 			logger.error(str(err))
 		return False
 		
+
+	def merge_child(self, B: 'EventLogger', totals: Optional[str] = None) -> bool:
+		"""Merge two EventLogger instances together"""
+		assert isinstance(B, EventLogger), f"input is not type of 'EventLogger' but: {type(B)}"
+		
+		try:
+			for cat in B.get_categories():
+				value: int = B.get_value(cat)
+				self.log(B.get_long_cat(cat), value)
+				if totals is not None:
+					self.log(f"{totals}: {cat}", value)				
+			self._error_status = self._error_status or B.get_error_status()
+			return True
+		except Exception as err:
+			logger.error(str(err))
+		return False
+
+
 	def get_header(self) -> str:
 		return f"{self.name}: " + ('ERROR occured' if self.get_error_status() else '-----------')
 
