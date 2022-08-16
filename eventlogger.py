@@ -107,23 +107,19 @@ class EventLogger():
 		return self._error_status
 	
 
-	def merge(self, B: 'EventLogger', merge_cats: str = 'no', totals: str = 'Total') -> bool:
+	def merge(self, B: 'EventLogger', totals: str = 'Total') -> bool:
 		"""Merge two EventLogger instances together"""
+		assert isinstance(B, EventLogger), f"input is not type of 'EventLogger' but: {type(B)}"
+		
 		try:
 			if not isinstance(B, EventLogger):
 				logger.error(f"input is not type of 'EventLogger' but: {type(B)}")
 				return False			
 			for cat in B.get_categories():
 				value: int = B.get_value(cat)
-				if merge_cats == 'no':
-					self.log(B.get_long_cat(cat), value)
-				elif merge_cats == 'yes':
-					self.log(cat, value)
-				elif merge_cats == 'both':
-					self.log(B.get_long_cat(cat), value)
-					self.log(f"{totals}: {cat}", value)
-				else:
-					raise ValueError("merge_cats= is not 'yes', 'no' or 'both'")
+				self.log(cat, value)
+				if totals is not None:
+					self.log(f"{totals}: {cat}", value)				
 				self._error_status = self._error_status or B.get_error_status()
 			return True
 		except Exception as err:
@@ -131,7 +127,7 @@ class EventLogger():
 		return False
 		
 
-	def merge_child(self, B: 'EventLogger', totals: Optional[str] = None) -> bool:
+	def merge_child(self, B: 'EventLogger', totals: Optional[str] = 'Total') -> bool:
 		"""Merge two EventLogger instances together"""
 		assert isinstance(B, EventLogger), f"input is not type of 'EventLogger' but: {type(B)}"
 		
