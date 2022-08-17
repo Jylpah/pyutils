@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 message = logger.warning
 verbose = logger.info
-logging.basicConfig(encoding='utf-8', format='%(levelname)s: %(funcName)s: %(message)s')
+#logging.basicConfig(encoding='utf-8', format='%(levelname)s: %(funcName)s: %(message)s')
 
 FuncTypeFormatter 	= Callable[[str], str]
 FuncTypeFormatterParam = Optional[FuncTypeFormatter]
