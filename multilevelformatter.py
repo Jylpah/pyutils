@@ -16,7 +16,7 @@ class MultilevelFormatter(logging.Formatter):
 		for level in fmts.keys():
 			self._formatters[level] = logging.Formatter(fmt=fmts[level], style=style)
 		
-	def format(self,record: logging.LogRecord) -> str:
+	def format(self, record: logging.LogRecord) -> str:
 		try:
 			return self._formatters[record.levelno].format(record)			
 		except Exception as err:
