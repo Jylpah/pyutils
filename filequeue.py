@@ -79,7 +79,7 @@ class FileQueue(asyncio.Queue):
 		assert filename is not None and len(filename) > 0, "None/zero-length filename given as input"
 		
 		try:			
-			filename = path.normpath(filename)
+			# filename = path.normpath(filename)   # string operation
 			if  path.isdir(filename):
 				with scandir(filename) as dirEntry:
 					for entry in dirEntry:
