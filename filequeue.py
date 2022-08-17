@@ -32,6 +32,7 @@ class FileQueue(asyncio.Queue):
 		self._done: 			bool = False
 		self._case_sensitive: 	bool = False
 		self._exclude: 			bool = False
+		self._count:			int = 0
 		self.set_filter(filter=filter, exclude=exclude, case_sensitive=case_sensitive)
 
 
@@ -86,9 +87,15 @@ class FileQueue(asyncio.Queue):
 			elif path.isfile(filename) and self._match(filename):
 				logger.debug(f"Adding file to queue: {filename}")
 				await super().put(filename)
+				self._count += 1
 		except Exception as err:
 			logger.error(str(err))
 		return None
+
+
+	def count(self) -> int:
+		"""Return the number of items added to the queue"""
+		return self._count
 
 
 	def _match(self, filename: str) -> bool:
