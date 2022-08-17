@@ -9,8 +9,8 @@
 import logging
 import asyncio
 import aioconsole
-from os import scandir, getcwd, path
-from fnmatch import fnmatch
+from os 			import scandir, path
+from fnmatch 		import fnmatch
 
 logger = logging.getLogger(__name__)
 
@@ -23,16 +23,31 @@ class FileQueue(asyncio.Queue):
 
 	def __init__(self, maxsize: int = 0, filter: str = '*', 
 				exclude: bool = False, case_sensitive: bool = False):
-		assert filter != None, "None provided as filter"
-		logger.debug(f"maxsize={str(maxsize)}, filter='{filter}', exclude={str(exclude)}, case_sensitive={str(case_sensitive)}")
+		assert maxsize >= 0, "maxsize has to be >= 0"
+		assert case_sensitive is not None, "case_sensitive cannot be None"
+		assert filter is not None, "filter cannot be None"
+		
+		logger.debug(f"maxsize={str(maxsize)}, filter='{filter}'") 
 		super().__init__(maxsize)
-		self._done 			= False
-		self._exclude 		= exclude
-		self.case_sensitive = case_sensitive
-		if self.case_sensitive:			
-			self._filter = filter.lower()
-		else:
-			self._filter = filter
+		self._done: 			bool = False
+		self._case_sensitive: 	bool = False
+		self._exclude: 			bool = False
+		self._count:			int = 0
+		self.set_filter(filter=filter, exclude=exclude, case_sensitive=case_sensitive)
+
+
+	def set_filter(self, filter: str = None, exclude: bool = None, case_sensitive: bool = None ):
+		"""set filtering logic. Only set (!= None) params are changed"""
+		if case_sensitive is not None:
+			self._case_sensitive = case_sensitive
+		if exclude is not None:
+			self._exclude 		= exclude
+		if filter is not None:
+			if self._case_sensitive:
+				self._filter = filter.lower()
+			else:
+				self._filter = filter
+		logger.debug(f"filter={str(self._filter)} exclude={str(self._exclude)}, case_sensitive={str(self._case_sensitive)}")
 
 
 	async def mk_queue(self, files: list[str]) -> bool:
@@ -61,10 +76,10 @@ class FileQueue(asyncio.Queue):
 	
 	async def put(self, filename: str) -> None:
 		"""Recursive function to build process queueu. Sanitize filename"""
-		assert filename != None and len(filename) > 0, "None/zero-length filename given as input"
+		assert filename is not None and len(filename) > 0, "None/zero-length filename given as input"
 		
 		try:			
-			filename = path.normpath(filename)
+			# filename = path.normpath(filename)   # string operation
 			if  path.isdir(filename):
 				with scandir(filename) as dirEntry:
 					for entry in dirEntry:
@@ -72,9 +87,15 @@ class FileQueue(asyncio.Queue):
 			elif path.isfile(filename) and self._match(filename):
 				logger.debug(f"Adding file to queue: {filename}")
 				await super().put(filename)
+				self._count += 1
 		except Exception as err:
 			logger.error(str(err))
 		return None
+
+
+	def count(self) -> int:
+		"""Return the number of items added to the queue"""
+		return self._count
 
 
 	def _match(self, filename: str) -> bool:
@@ -82,11 +103,11 @@ class FileQueue(asyncio.Queue):
 		
 		https://docs.python.org/3/library/fnmatch.html
 		"""
-		assert filename != None, "None provided as filename"
+		assert filename is not None, "None provided as filename"
 		try:
 			filename = path.basename(filename)
 
-			if self.case_sensitive:
+			if self._case_sensitive:
 				filename = filename.lower()
 			
 			m = fnmatch(filename, self._filter)
