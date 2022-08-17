@@ -12,8 +12,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-verbose = logger.warning
-message = logger.info
+message = logger.warning
+verbose = logger.info
 logging.basicConfig(encoding='utf-8', format='%(levelname)s: %(funcName)s: %(message)s')
 
 FuncTypeFormatter 	= Callable[[str], str]
@@ -151,9 +151,9 @@ class EventLogger():
 	def print(self, do_print : bool = True) -> Optional[str]: 
 		try:
 			if do_print:
-				logger.info(self.get_header())
+				message(self.get_header())
 				for cat in sorted(self._log):
-					logger.info(self._get_str(cat))
+					message(self._get_str(cat))
 				return None
 			else:
 				ret = self.get_header()
