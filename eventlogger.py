@@ -20,7 +20,7 @@ FuncTypeFormatter 	= Callable[[str], str]
 FuncTypeFormatterParam = Optional[FuncTypeFormatter]
 class EventLogger():
 	"""Count events for categories"""
-	def __init__(self, name: str = '', categories: list[str] = list(), errors: list[str] = list(), 
+	def __init__(self, name: str = '', totals: Optional[str] = None, categories: list[str] = list(), errors: list[str] = list(), 
 				int_format: FuncTypeFormatterParam = None, float_format: FuncTypeFormatterParam = None):
 		assert name is not None, "param 'name' cannot be None"
 		assert categories is not None, "param 'categories' cannot be None"
@@ -30,6 +30,7 @@ class EventLogger():
 		self._log		: defaultdict[str, int] = defaultdict(self._def_value_zero)
 		self._error_cats: list[str] = errors
 		self._error_status: bool = False
+		self._totals = totals
 		
 		# formatters
 		self._format_int 	: FuncTypeFormatter = self._default_int_formatter
@@ -107,7 +108,7 @@ class EventLogger():
 		return self._error_status
 	
 
-	def merge(self, B: 'EventLogger', totals: str = 'Total') -> bool:
+	def merge(self, B: 'EventLogger') -> bool:
 		"""Merge two EventLogger instances together"""
 		assert isinstance(B, EventLogger), f"input is not type of 'EventLogger' but: {type(B)}"
 		
@@ -118,8 +119,8 @@ class EventLogger():
 			for cat in B.get_categories():
 				value: int = B.get_value(cat)
 				self.log(cat, value)
-				if totals is not None:
-					self.log(f"{totals}: {cat}", value)				
+				if self._totals is not None:
+					self.log(f"{self._totals}: {cat}", value)				
 				self._error_status = self._error_status or B.get_error_status()
 			return True
 		except Exception as err:
@@ -127,7 +128,7 @@ class EventLogger():
 		return False
 		
 
-	def merge_child(self, B: 'EventLogger', totals: Optional[str] = 'Total') -> bool:
+	def merge_child(self, B: 'EventLogger') -> bool:
 		"""Merge two EventLogger instances together"""
 		assert isinstance(B, EventLogger), f"input is not type of 'EventLogger' but: {type(B)}"
 		
@@ -135,8 +136,8 @@ class EventLogger():
 			for cat in B.get_categories():
 				value: int = B.get_value(cat)
 				self.log(B.get_long_cat(cat), value)
-				if totals is not None:
-					self.log(f"{totals}: {cat}", value)				
+				if self._totals is not None:
+					self.log(f"{self._totals}: {cat}", value)				
 			self._error_status = self._error_status or B.get_error_status()
 			return True
 		except Exception as err:
