@@ -146,7 +146,7 @@ class EventLogger():
 
 
 	def get_header(self) -> str:
-		return f"{self.name}: " + ('ERROR occured' if self.get_error_status() else '-----------')
+		return f"{self.name}" + (': ERROR occured' if self.get_error_status() else '')
 
 
 	def print(self, do_print : bool = True) -> Optional[str]: 
