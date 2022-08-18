@@ -1,17 +1,18 @@
 import logging, sys
 from typing import Literal, Optional
 
-def set_logging(logger: logging.Logger, mlevel_format: dict[int, str] = None, log_file: str = None):
+def set_mlevel_logging(logger: logging.Logger, fmts: dict[int, str]=None, fmt: Optional[str]=None, datefmt: Optional[str]=None, 
+					style:Literal['%', '{', '$'] ='%', validate: bool=True, log_file: str = None):
 	"""Setup logging"""
-	if mlevel_format is not None:
-		multi_formatter = MultilevelFormatter(fmts=mlevel_format)
+	if fmts is not None:
+		multi_formatter = MultilevelFormatter(fmt=fmt, fmts=fmts, datefmt=datefmt, style=style, validate=validate )
 		stream_handler = logging.StreamHandler(sys.stdout)
 		stream_handler.setFormatter(multi_formatter)		
 		logger.addHandler(stream_handler)
 
 	if log_file is not None:
-		file_handler = logging.FileHandler(log_file)			
-		log_formatter = logging.Formatter('%(levelname)s:: %(funcName)s: %(message)s')
+		file_handler 	= logging.FileHandler(log_file)			
+		log_formatter 	= logging.Formatter(fmt=fmt, style=style, validate=validate)
 		file_handler.setFormatter(log_formatter)
 		logger.addHandler(file_handler)
 
