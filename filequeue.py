@@ -11,6 +11,7 @@ import asyncio
 import aioconsole
 from os 			import scandir, path
 from fnmatch 		import fnmatch
+from typing			import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +22,15 @@ class FileQueue(asyncio.Queue):
 	arguments. Filters based on file names. 
 	"""
 
-	def __init__(self, maxsize: int = 0, filter: str = '*', 
+	def __init__(self, base: Optional[str] = None, maxsize: int = 0, filter: str = '*', 
 				exclude: bool = False, case_sensitive: bool = False):
 		assert maxsize >= 0, "maxsize has to be >= 0"
 		assert case_sensitive is not None, "case_sensitive cannot be None"
 		assert filter is not None, "filter cannot be None"
-		
+
 		logger.debug(f"maxsize={str(maxsize)}, filter='{filter}'") 
 		super().__init__(maxsize)
+		self._base:		Optional[str]= base
 		self._done: 			bool = False
 		self._case_sensitive: 	bool = False
 		self._exclude: 			bool = False
@@ -64,10 +66,17 @@ class FileQueue(asyncio.Queue):
 					if not line: 
 						break
 					else:
-						await self.put(line)			
+						if self._base is None:
+							await self.put(line)
+						else:
+							await self.put(path.join(self._base, line))
 			else:
 				for file in files:
-					await self.put(file)
+					if self._base is None:
+						await self.put(file)
+					else:
+						await self.put(path.join(self._base, file))
+					
 			return True
 		except Exception as err:
 			logger.error(str(err))
