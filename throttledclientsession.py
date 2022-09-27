@@ -6,23 +6,35 @@
 #  Inherits aiohttp.ClientSession 
 ## -----------------------------------------------------------
 
+from optparse import Option
 from typing import Optional
 import aiohttp
 import asyncio
 import time
 import logging
+import re
 
 class ThrottledClientSession(aiohttp.ClientSession):
     """Rate-throttled client session class inherited from aiohttp.ClientSession)""" 
 
-    def __init__(self, rate_limit: float = 0, *args,**kwargs) -> None: 
+    def __init__(self, rate_limit: float = 0, filters: list[str] = list() , 
+                limit_filtered: bool = False, *args,**kwargs) -> None: 
+        assert isinstance(rate_limit, float),   "rate_limit has to be float"
+        assert isinstance(filters, list),       "filters has to be list"
+        assert isinstance(limit_filtered, bool),     "whitelist has to be bool"
+
         super().__init__(*args,**kwargs)
         
         self.rate_limit: float
-        self._fillerTask    : Optional[asyncio.Task]= None
-        self._queue         : Optional[asyncio.Queue]               = None
-        self._start_time = time.time()
-        self._count = 0   
+        self._fillerTask    : Optional[asyncio.Task]    = None
+        self._queue         : Optional[asyncio.Queue]   = None
+        self._start_time    : float = time.time()
+        self._count         : int = 0
+        self._limit_filtered: bool = limit_filtered
+        self._filters       : list[re.Pattern] = list()
+        if filters is not None:            
+            for filter in filters:
+                self._filters.append(re.compile(filter))         
         self.set_rate_limit(rate_limit)
 
 
@@ -90,7 +102,6 @@ class ThrottledClientSession(aiohttp.ClientSession):
                 return None            
             logging.debug('SLEEP: ' + str(self._get_sleep()))
             updated_at = time.monotonic()
-            fraction        : float = 0
             extra_increment : float = 0
             for i in range(0, self._queue.maxsize):
                 await self._queue.put(i)
@@ -98,10 +109,8 @@ class ThrottledClientSession(aiohttp.ClientSession):
                 if not self._queue.full():
                     now = time.monotonic()
                     increment = self.rate_limit * (now - updated_at)
-                    fraction += increment % 1
-                    extra_increment = fraction // 1
-                    items_2_add = int(min(self._queue.maxsize - self._queue.qsize(), int(increment) + extra_increment))
-                    fraction = fraction % 1
+                    items_2_add = int(min(self._queue.maxsize - self._queue.qsize(), int(increment + extra_increment)))
+                    extra_increment = (increment + extra_increment) % 1
                     for i in range(0,items_2_add):
                         self._queue.put_nowait(i)
                     updated_at = now
@@ -115,8 +124,22 @@ class ThrottledClientSession(aiohttp.ClientSession):
 
     async def _request(self, *args,**kwargs) -> aiohttp.client_reqrep.ClientResponse:
         """Throttled _request()"""
-        if self._queue is not None:
+        if self._queue is not None and self.is_limited(*args):  
             await self._queue.get()
             self._queue.task_done()
         self._count += 1
         return await super()._request(*args,**kwargs)
+
+
+    def is_limited(self, *args: str) -> bool:
+        """Check wether the rate limit should be applied"""
+        try:
+            url: str = args[1]
+            for filter in self._filters:
+                if filter.match(url) is not None:
+                    return self._limit_filtered
+            return not self._limit_filtered
+        except Exception as err:
+            logging.error(str(err))
+        return True    
+
