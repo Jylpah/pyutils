@@ -7,7 +7,7 @@
 ## -----------------------------------------------------------
 
 from optparse import Option
-from typing import Optional
+from typing import Optional, Union
 import aiohttp
 import asyncio
 import time
@@ -18,10 +18,11 @@ class ThrottledClientSession(aiohttp.ClientSession):
     """Rate-throttled client session class inherited from aiohttp.ClientSession)""" 
 
     def __init__(self, rate_limit: float = 0, filters: list[str] = list() , 
-                limit_filtered: bool = False, *args,**kwargs) -> None: 
+                limit_filtered: bool = False, re_filter: bool = False, *args,**kwargs) -> None: 
         assert isinstance(rate_limit, float),   "rate_limit has to be float"
         assert isinstance(filters, list),       "filters has to be list"
-        assert isinstance(limit_filtered, bool),     "whitelist has to be bool"
+        assert isinstance(limit_filtered, bool),"limit_filtered has to be bool"
+        assert isinstance(re_filter, bool),     "re_filter has to be bool"
 
         super().__init__(*args,**kwargs)
         
@@ -31,10 +32,14 @@ class ThrottledClientSession(aiohttp.ClientSession):
         self._start_time    : float = time.time()
         self._count         : int = 0
         self._limit_filtered: bool = limit_filtered
-        self._filters       : list[re.Pattern] = list()
-        if filters is not None:            
-            for filter in filters:
-                self._filters.append(re.compile(filter))         
+        self._re_filter     : bool = re_filter
+        self._filters       : list[Union[str, re.Pattern]] = list()
+
+        for filter in filters:
+            if re_filter:
+                self._filters.append(re.compile(filter))
+            else:
+                self._filters.append(filter)
         self.set_rate_limit(rate_limit)
 
 
@@ -136,8 +141,11 @@ class ThrottledClientSession(aiohttp.ClientSession):
         try:
             url: str = args[1]
             for filter in self._filters:
-                if filter.match(url) is not None:
+                if isinstance(filter, re.Pattern) and filter.match(url) is not None:
                     return self._limit_filtered
+                elif isinstance(filter, str) and url.startswith(filter):
+                    return self._limit_filtered
+                    
             return not self._limit_filtered
         except Exception as err:
             logging.error(str(err))
