@@ -6,7 +6,6 @@
 #  Inherits aiohttp.ClientSession 
 ## -----------------------------------------------------------
 
-from optparse import Option
 from typing import Optional, Union
 import aiohttp
 import asyncio
@@ -26,7 +25,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 
         super().__init__(*args,**kwargs)
         
-        self.rate_limit: float
+        self.rate_limit     : float
         self._fillerTask    : Optional[asyncio.Task]    = None
         self._queue         : Optional[asyncio.Queue]   = None
         self._start_time    : float = time.time()
@@ -35,10 +34,11 @@ class ThrottledClientSession(aiohttp.ClientSession):
         self._re_filter     : bool = re_filter
         self._filters       : list[Union[str, re.Pattern]] = list()
 
-        for filter in filters:
-            if re_filter:
+        if re_filter:
+            for filter in filters:
                 self._filters.append(re.compile(filter))
-            else:
+        else:
+            for filter in filters:
                 self._filters.append(filter)
         self.set_rate_limit(rate_limit)
 
@@ -74,11 +74,11 @@ class ThrottledClientSession(aiohttp.ClientSession):
         return res
 
 
-    def set_rate_limit(self, rate_limit: float = 0):
+    def set_rate_limit(self, rate_limit: float = 0) -> float:
         assert rate_limit is not None, "rate_limit must not be None" 
         assert isinstance(rate_limit, float) and rate_limit >= 0, "rate_limit has to be type of 'float' >= 0"
+        
         self.rate_limit = rate_limit
-
         if rate_limit > 0:
             self._queue     = asyncio.Queue(int(rate_limit)+1) 
             if self._fillerTask is not None: 
