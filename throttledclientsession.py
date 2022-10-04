@@ -18,7 +18,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 
     def __init__(self, rate_limit: float = 0, filters: list[str] = list() , 
                 limit_filtered: bool = False, re_filter: bool = False, *args,**kwargs) -> None: 
-        assert isinstance(rate_limit, float),   "rate_limit has to be float"
+        assert isinstance(rate_limit, (int, float)),   "rate_limit has to be float"
         assert isinstance(filters, list),       "filters has to be list"
         assert isinstance(limit_filtered, bool),"limit_filtered has to be bool"
         assert isinstance(re_filter, bool),     "re_filter has to be bool"
@@ -76,7 +76,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 
     def set_rate_limit(self, rate_limit: float = 0) -> float:
         assert rate_limit is not None, "rate_limit must not be None" 
-        assert isinstance(rate_limit, float) and rate_limit >= 0, "rate_limit has to be type of 'float' >= 0"
+        assert isinstance(rate_limit, (int,float)) and rate_limit >= 0, "rate_limit has to be type of 'float' >= 0"
         
         self.rate_limit = rate_limit
         if rate_limit > 0:
