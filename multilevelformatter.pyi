@@ -1,8 +1,13 @@
 import logging
 from typing import Optional, Literal
 
-def set_mlevel_logging(logger: logging.Logger, fmts: dict[int, str]=None, fmt: Optional[str]=None, datefmt: Optional[str]=None, 
-					style:Literal['%', '{', '$'] ='%', validate: bool=True, log_file: str = None): ...
+def set_mlevel_logging(logger: logging.Logger, 
+						fmts: Optional[dict[int, str]]=None, 
+						fmt: Optional[str]=None, 
+						datefmt: Optional[str]=None,
+						style:Literal['%', '{', '$'] ='%', 
+						validate: bool=True, 
+						log_file: Optional[str] = None): ...
 
 
 class MultilevelFormatter(logging.Formatter): 
