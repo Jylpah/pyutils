@@ -11,7 +11,7 @@ def set_mlevel_logging(logger: logging.Logger,
 	"""Setup logging"""
 	if fmts is not None:
 		multi_formatter = MultilevelFormatter(fmt=fmt, fmts=fmts, datefmt=datefmt, style=style, validate=validate )
-		stream_handler = logging.StreamHandler(sys.stdout)
+		stream_handler  = logging.StreamHandler(sys.stdout)
 		stream_handler.setFormatter(multi_formatter)		
 		logger.addHandler(stream_handler)
 
