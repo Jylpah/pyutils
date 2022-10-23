@@ -21,10 +21,6 @@ def set_mlevel_logging(logger: 	logging.Logger,
 		file_handler.setFormatter(log_formatter)
 		logger.addHandler(file_handler)
 
-error 	= logging.error
-message	= logging.warning
-verbose	= logging.info
-debug	= logging.debug
 
 class MultilevelFormatter(logging.Formatter):
 		
