@@ -91,10 +91,10 @@ class ThrottledClientSession(aiohttp.ClientSession):
         """Close rate-limiter's "bucket filler" task"""
         # DEBUG 
         logging.debug(self.get_stats_str())
-        if self._fillerTask is not None:
-            self._fillerTask.cancel()
         try:
-            await asyncio.wait_for(self._fillerTask, timeout=0.5)
+            if self._fillerTask is not None:
+                self._fillerTask.cancel()
+                await asyncio.wait_for(self._fillerTask, timeout=0.5)
         except asyncio.TimeoutError as err:
             logging.error(str(err))
         await super().close()
@@ -127,7 +127,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
         return None
 
 
-    async def _request(self, *args,**kwargs) -> aiohttp.client_reqrep.ClientResponse:
+    async def _request(self, *args,**kwargs) -> aiohttp.ClientResponse:
         """Throttled _request()"""
         if self._queue is not None and self.is_limited(*args):  
             await self._queue.get()
