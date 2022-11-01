@@ -87,7 +87,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
         return self.rate_limit
         
 
-    async def close(self):
+    async def close(self) -> None:
         """Close rate-limiter's "bucket filler" task"""
         # DEBUG 
         logging.debug(self.get_stats_str())
