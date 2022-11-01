@@ -38,7 +38,7 @@ class FileQueue(asyncio.Queue):
 		self.set_filter(filter=filter, exclude=exclude, case_sensitive=case_sensitive)
 
 
-	def set_filter(self, filter: str = None, exclude: bool = None, case_sensitive: bool = None ):
+	def set_filter(self, filter: str | None = None, exclude: bool | None  = None, case_sensitive: bool | None = None ):
 		"""set filtering logic. Only set (!= None) params are changed"""
 		if case_sensitive is not None:
 			self._case_sensitive = case_sensitive
