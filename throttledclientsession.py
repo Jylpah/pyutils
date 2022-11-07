@@ -13,6 +13,12 @@ import time
 import logging
 import re
 
+logger	= logging.getLogger()
+error 	= logger.error
+message	= logger.warning
+verbose	= logger.info
+debug	= logger.debug
+
 class ThrottledClientSession(aiohttp.ClientSession):
     """Rate-throttled client session class inherited from aiohttp.ClientSession)""" 
 
@@ -62,8 +68,8 @@ class ThrottledClientSession(aiohttp.ClientSession):
 
     def get_stats_str(self) -> str:
         """Print session statistics"""
-        return f"rate limit: {str(self.rate_limit if self.rate_limit != None else '-')} \
-                rate:   {0:.1f}.format(self.get_rate()) requests: {str(self._count)}"
+        return f"rate limit: {self.rate_limit if self.rate_limit != None else '-'} \
+                rate:   {self.get_rate():.1f} requests: {self._count}"
 
 
     def reset_counters(self) -> dict[str, float]:
@@ -90,13 +96,13 @@ class ThrottledClientSession(aiohttp.ClientSession):
     async def close(self) -> None:
         """Close rate-limiter's "bucket filler" task"""
         # DEBUG 
-        logging.debug(self.get_stats_str())
+        debug(self.get_stats_str())
         try:
             if self._fillerTask is not None:
                 self._fillerTask.cancel()
                 await asyncio.wait_for(self._fillerTask, timeout=0.5)
         except asyncio.TimeoutError as err:
-            logging.error(str(err))
+            error(str(err))
         await super().close()
 
     
@@ -105,7 +111,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
         try:
             if self._queue is None:
                 return None            
-            logging.debug('SLEEP: ' + str(self._get_sleep()))
+            debug('SLEEP: ' + str(self._get_sleep()))
             updated_at = time.monotonic()
             extra_increment : float = 0
             for i in range(0, self._queue.maxsize):
@@ -121,17 +127,20 @@ class ThrottledClientSession(aiohttp.ClientSession):
                     updated_at = now
                 await asyncio.sleep(self._get_sleep())
         except asyncio.CancelledError:
-            logging.debug('Cancelled')
+            debug('Cancelled')
         except Exception as err:
-            logging.error(str(err))
+            error(str(err))
         return None
 
 
     async def _request(self, *args,**kwargs) -> aiohttp.ClientResponse:
         """Throttled _request()"""
-        if self._queue is not None and self.is_limited(*args):  
+        if self._queue is not None and self.is_limited(*args): 
+            debug(f'URL is rate-limited: {args[1]}') 
             await self._queue.get()
             self._queue.task_done()
+        else:
+            debug(f'URL is not rate-limited: {args[1]}') 
         self._count += 1
         return await super()._request(*args,**kwargs)
 
@@ -148,6 +157,6 @@ class ThrottledClientSession(aiohttp.ClientSession):
                     
             return not self._limit_filtered
         except Exception as err:
-            logging.error(str(err))
+            error(str(err))
         return True    
 
