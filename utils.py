@@ -2,6 +2,7 @@ import logging
 from bson import ObjectId
 from datetime import datetime, timedelta
 from typing import Optional, Any, cast
+import json
 from time import time
 from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
@@ -66,7 +67,7 @@ class UrlQueue(Queue):
 			return cast(UrlQueueItemType, item)
 		
 
-async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETRIES) -> ClientResponse | None:
+async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETRIES) -> str | None:
 	"""Retrieve (GET) an URL and return JSON object"""
 
 	assert session is not None, 'Session must be initialized first'
@@ -80,12 +81,12 @@ async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETR
 			async with session.get(url) as resp:
 				if resp.status == 200:
 					debug(f'HTTP request OK: {url}')
-					return resp
+					return await resp.text()
 				else:
-					error(f'HTTP error {str(resp.status)}: {url}')
+					error(f'HTTP error {resp.status}: {url}')
 				if retry == max_retries:
 					break
-				debug(f'Retrying URL [ {str(retry)}/{str(max_retries)} ]: {url}')
+				debug(f'Retrying URL [ {retry}/{max_retries} ]: {url}')
 			await sleep(SLEEP)
 
 		except ClientError as err:
@@ -106,10 +107,10 @@ async def get_url_JSON(session: ClientSession, url: str, retries : int = MAX_RET
 	assert url is not None, "url cannot be None"
 
 	try:
-		resp : ClientResponse | None = await get_url(session, url, retries)
-		if resp is None:
+		content : str | None = await get_url(session, url, retries)
+		if content is None:
 			return None		
-		return await resp.json()
+		return await json.loads(content)
 	except ClientResponseError  as err:
 		error(f'Client response error: {url}: {str(err)}')
 	except Exception as err:
@@ -124,10 +125,10 @@ async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type
 	assert url is not None, "url cannot be None"
 
 	try:
-		resp : ClientResponse | None = await get_url(session, url, retries)
-		if resp is None:
+		content : str | None = await get_url(session, url, retries)
+		if content is None:
 			return None
-		return resp_model.parse_raw(await resp.text())		
+		return resp_model.parse_raw(content)		
 	except ValidationError as err:
 		error(f'Failed to validate response from URL: {url}: {str(err)}')
 	except Exception as err:
@@ -136,7 +137,7 @@ async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type
 
 
 async def get_urls(session: ClientSession, queue : UrlQueue, stats : EventCounter = EventCounter(),
-					max_retries : int = MAX_RETRIES) -> AsyncGenerator[tuple[ClientResponse, str], None]:
+					max_retries : int = MAX_RETRIES) -> AsyncGenerator[tuple[str, str], None]:
 	"""Async Generator to retrieve URLs read from an async Queue"""
 
 	assert session is not None, 'Session must be initialized first'
@@ -144,7 +145,7 @@ async def get_urls(session: ClientSession, queue : UrlQueue, stats : EventCounte
 
 	while True:
 		try:
-			url_item : UrlQueueItemType = await queue.get()
+			url_item : UrlQueueItemType = await queue.get()					
 			url 	: str = url_item[0]
 			retry 	: int = url_item[1]  
 			if retry > max_retries:
@@ -154,19 +155,22 @@ async def get_urls(session: ClientSession, queue : UrlQueue, stats : EventCounte
 				debug(f'Retrying URL ({retry}/{max_retries}): {url}')
 			else:
 				debug(f'Retrieving URL: {url}')
-			resp : ClientResponse = await session.get(url)
-			if resp.status == 200:
-				logging.debug(f'HTTP request OK: {url}')
-				stats.log('OK')
-				yield resp, url
-			else:
-				logging.error(f'HTTP error {str(resp.status)}: {url}')
-				if retry < max_retries:
-					retry += 1				
-					await queue.put(url, retry)
+			
+			async with session.get(url) as resp:
+				if resp.status == 200:
+					debug(f'HTTP request OK/{resp.status}: {url}')
+					stats.log('OK')
+					yield await resp.text(), url
 				else:
-					error(f'Could not retrieve URL: {url}')
-					stats.log('failed')
+					error(f'HTTP error {resp.status}: {url}')
+					if retry < max_retries:
+						retry += 1
+						stats.log('retries')				
+						await queue.put(url, retry)
+					else:
+						error(f'Could not retrieve URL: {url}')
+						stats.log('failed')
+
 		except CancelledError as err:
 			debug(f'Async operation has been cancelled. Ending loop.')
 			break
@@ -179,9 +183,9 @@ async def get_urls_JSON(session: ClientSession, queue : UrlQueue, stats : EventC
 	assert session is not None, 'Session must be initialized first'
 	assert queue is not None, 'Queue must be initialized first'
 	
-	async for resp, url in get_urls(session, queue=queue, stats=stats, max_retries=max_retries):
+	async for content, url in get_urls(session, queue=queue, stats=stats, max_retries=max_retries):
 		try:
-			yield await resp.json(), url
+			yield await json.loads(content), url
 		except ClientResponseError as err:
 			error(f'Client response error: {url}: {str(err)}')
 		except Exception as err:
@@ -196,9 +200,9 @@ async def get_urls_JSON_models(session: ClientSession, queue : UrlQueue, resp_mo
 	assert session is not None, 'Session must be initialized first'
 	assert queue is not None, 'Queue must be initialized first'
 	
-	async for resp, url in get_urls(session, queue=queue, stats=stats, max_retries=max_retries):
+	async for content, url in get_urls(session, queue=queue, stats=stats, max_retries=max_retries):
 		try:
-			yield resp_model.parse_raw(await resp.text()), url
+			yield resp_model.parse_raw(content), url
 		except ValidationError as err:
 			error(f'Failed to validate response from URL: {url}: {str(err)}')		
 		except Exception as err:
