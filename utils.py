@@ -81,6 +81,8 @@ async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETR
 			async with session.get(url) as resp:
 				if resp.status == 200:
 					debug(f'HTTP request OK: {url}')
+					if logger.level == logging.DEBUG:
+						debug(await resp.text())
 					return await resp.text()
 				else:
 					error(f'HTTP error {resp.status}: {url}')
