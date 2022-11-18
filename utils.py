@@ -85,7 +85,7 @@ async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETR
 					# 	debug(await resp.text())
 					return await resp.text()
 				else:
-					error(f'HTTP error {resp.status}: {url}')
+					debug(f'HTTP error {resp.status}: {url}')
 				if retry == max_retries:
 					break
 				debug(f'Retrying URL [ {retry}/{max_retries} ]: {url}')
@@ -125,14 +125,16 @@ async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type
 	"""Get JSON from URL and return object. Validate JSON against resp_model, if given."""
 	assert session is not None, "session cannot be None"
 	assert url is not None, "url cannot be None"
-
+	content : str | None = None
 	try:
-		content : str | None = await get_url(session, url, retries)
+		content = await get_url(session, url, retries)
 		if content is None:
 			return None
 		return resp_model.parse_raw(content)		
 	except ValidationError as err:
-		error(f'Failed to validate response from URL: {url}: {str(err)}')
+		debug(f'Failed to validate response from URL: {url}: {str(err)}')
+		if content is not None:
+			debug(f'{content}')
 	except Exception as err:
 		error(f'Unexpected error: {str(err)}') 
 	return None
