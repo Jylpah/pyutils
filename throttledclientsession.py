@@ -8,8 +8,7 @@
 
 from typing import Optional, Union
 import aiohttp
-from asyncio import CancelledError, TimeoutError
-import asyncio
+from asyncio import Queue, Task, CancelledError, TimeoutError, sleep, create_task, wait_for
 import time
 import logging
 import re
@@ -33,8 +32,8 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		super().__init__(*args,**kwargs)
 		
 		self.rate_limit     : float
-		self._fillerTask    : Optional[asyncio.Task]    = None
-		self._queue         : Optional[asyncio.Queue]   = None
+		self._fillerTask    : Optional[Task]    = None
+		self._queue         : Optional[Queue]   = None
 		self._start_time    : float = time.time()
 		self._count         : int = 0
 		self._limit_filtered: bool = limit_filtered
@@ -50,7 +49,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		self.set_rate_limit(rate_limit)
 
 
-	def _get_sleep(self) -> float:        
+	def _get_sleep(self) -> float:
 		if self.rate_limit > 0:
 			return 1/self.rate_limit
 		return 0
@@ -87,10 +86,11 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		
 		self.rate_limit = rate_limit
 		if rate_limit > 0:
-			self._queue     = asyncio.Queue(int(rate_limit)+1) 
+			# self._queue     = asyncio.Queue(max(int(rate_limit),1)) 
+			self._queue     = Queue(1) 
 			if self._fillerTask is not None: 
 				self._fillerTask.cancel()  
-			self._fillerTask = asyncio.create_task(self._filler())
+			self._fillerTask = create_task(self._filler())
 		return self.rate_limit
 		
 
@@ -101,7 +101,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		try:
 			if self._fillerTask is not None:
 				self._fillerTask.cancel()
-				await asyncio.wait_for(self._fillerTask, timeout=0.5)
+				await wait_for(self._fillerTask, timeout=0.5)
 		except (TimeoutError, CancelledError) as err:
 			pass
 			# error(str(err))
@@ -113,23 +113,12 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		try:
 			if self._queue is None:
 				return None            
-			debug('SLEEP: ' + str(self._get_sleep()))
-			updated_at = time.monotonic()
-			extra_increment : float = 0
-			for i in range(0, self._queue.maxsize):
-				await self._queue.put(i)
+			debug(f'SLEEP: {self._get_sleep()}')						
 			while True:
-				await asyncio.sleep(self._get_sleep())
-				if not self._queue.full():
-					now = time.monotonic()
-					increment = self.rate_limit * (now - updated_at)
-					items_2_add = int(min(self._queue.maxsize - self._queue.qsize(), int(increment + extra_increment)))
-					extra_increment = (increment + extra_increment) % 1
-					for i in range(0,items_2_add):
-						self._queue.put_nowait(i)
-					updated_at = now
-				
-		except asyncio.CancelledError:
+				await self._queue.put(None)
+				await sleep(self._get_sleep())
+	
+		except CancelledError:
 			debug('Cancelled')
 		except Exception as err:
 			error(str(err))
