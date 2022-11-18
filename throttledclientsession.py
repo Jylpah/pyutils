@@ -8,6 +8,7 @@
 
 from typing import Optional, Union
 import aiohttp
+from asyncio import CancelledError, TimeoutError
 import asyncio
 import time
 import logging
@@ -101,8 +102,9 @@ class ThrottledClientSession(aiohttp.ClientSession):
 			if self._fillerTask is not None:
 				self._fillerTask.cancel()
 				await asyncio.wait_for(self._fillerTask, timeout=0.5)
-		except asyncio.TimeoutError as err:
-			error(str(err))
+		except (TimeoutError, CancelledError) as err:
+			pass
+			# error(str(err))
 		await super().close()
 
 	
