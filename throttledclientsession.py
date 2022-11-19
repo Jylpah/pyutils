@@ -12,6 +12,7 @@ from asyncio import Queue, Task, CancelledError, TimeoutError, sleep, create_tas
 import time
 import logging
 import re
+from math import ceil, log
 
 logger	= logging.getLogger()
 error 	= logger.error
@@ -31,7 +32,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 
 		super().__init__(*args,**kwargs)
 		
-		self.rate_limit     : float
+		self.rate_limit     : float = 0
 		self._fillerTask    : Optional[Task]    = None
 		self._queue         : Optional[Queue]   = None
 		self._start_time    : float = time.time()
@@ -49,12 +50,6 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		self.set_rate_limit(rate_limit)
 
 
-	def _get_sleep(self) -> float:
-		if self.rate_limit > 0:
-			return 1/self.rate_limit
-		return 0
-
-
 	def get_rate(self) -> float:
 		"""Return rate of requests"""
 		return self._count / (time.time() - self._start_time)
@@ -68,8 +63,27 @@ class ThrottledClientSession(aiohttp.ClientSession):
 
 	def get_stats_str(self) -> str:
 		"""Print session statistics"""
-		return f"rate limit: {self.rate_limit if self.rate_limit != None else '-'} \
-				rate:   {self.get_rate():.1f} requests: {self._count}"
+		return self.print_stats(self.get_stats())
+
+
+	@classmethod
+	def print_stats(cls, stats: dict[str, float]) -> str:
+		try:
+			rate_limit 	: float = stats['rate_limit']
+			rate 		: float = stats['rate']
+			count		: float = stats['count']
+			
+			rate_limit_str : str 
+			if rate_limit >= 1 or rate_limit == 0:
+				rate_limit_str = f'{rate_limit:.1f} requests/sec'
+			else:
+				rate_limit_str = f'{1/rate_limit:.1f} secs/request'
+
+			return f"rate limit: {rate_limit_str}, rate: {rate:.1f} request/sec, requests: {count:.0f}"
+		except KeyError as err:
+			return f'Incorrect stats format: {err}'
+		except Exception as err:
+			return f'Unexpected error: {err}'
 
 
 	def reset_counters(self) -> dict[str, float]:
@@ -84,44 +98,71 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		assert rate_limit is not None, "rate_limit must not be None" 
 		assert isinstance(rate_limit, (int,float)) and rate_limit >= 0, "rate_limit has to be type of 'float' >= 0"
 		
+		if self._fillerTask is not None: 
+			self._fillerTask.cancel()  
+			self._fillerTask = None
+
 		self.rate_limit = rate_limit
+
 		if rate_limit > 0:
-			# self._queue     = asyncio.Queue(max(int(rate_limit),1)) 
-			self._queue     = Queue(1) 
-			if self._fillerTask is not None: 
-				self._fillerTask.cancel()  
-			self._fillerTask = create_task(self._filler())
+			self._fillerTask = create_task(self._filler_log())
+		
 		return self.rate_limit
 		
 
 	async def close(self) -> None:
 		"""Close rate-limiter's "bucket filler" task"""
-		# DEBUG 
 		debug(self.get_stats_str())
 		try:
 			if self._fillerTask is not None:
 				self._fillerTask.cancel()
 				await wait_for(self._fillerTask, timeout=0.5)
-		except (TimeoutError, CancelledError) as err:
-			pass
-			# error(str(err))
+		except TimeoutError as err:
+			debug(f'Timeout while cancelling bucket filler: {err}')
+		except CancelledError as err:
+			debug('Cancelled')
 		await super().close()
 
 	
 	async def _filler(self) -> None:
 		"""Filler task to fill the leaky bucket algo"""
+		assert self.rate_limit > 0, "_filler cannot be started without rate limit"
 		try:
-			if self._queue is None:
-				return None            
-			debug(f'SLEEP: {self._get_sleep()}')						
+			self._queue = Queue(1)
+			debug(f'SLEEP: {1/self.rate_limit}')
 			while True:
 				await self._queue.put(None)
-				await sleep(self._get_sleep())
-	
+				await sleep(1/self.rate_limit)
 		except CancelledError:
 			debug('Cancelled')
 		except Exception as err:
 			error(str(err))
+		finally:
+			self._queue = None
+		return None
+
+
+	async def _filler_log(self) -> None:
+		"""Filler task to fill the leaky bucket algo.
+			Uses longer queue for performance (maybe) :-)"""
+		assert self.rate_limit > 0, "_filler cannot be started without rate limit"
+		try:
+			qlen : int = 1
+			if self.rate_limit > 1:
+				qlen = ceil(log(self.rate_limit))
+			wait : float = qlen / self.rate_limit
+			self._queue = Queue(qlen)
+			debug(f'SLEEP: {wait}')
+			while True:
+				for _ in range(qlen):
+					await self._queue.put(None)
+				await sleep(wait)			
+		except CancelledError:
+			debug('Cancelled')
+		except Exception as err:
+			error(str(err))
+		finally:
+			self._queue = None
 		return None
 
 
