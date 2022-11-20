@@ -1,7 +1,13 @@
 import logging
 from bson import ObjectId
 from datetime import datetime, timedelta
-from typing import Optional, Any, cast
+from typing import Optional, Any, cast, Type, Literal
+from abc import ABCMeta, abstractmethod
+from csv import DictWriter, DictReader, Dialect, Sniffer, excel
+from sys import stdout
+from os.path import isfile, exists
+from os import linesep
+from aiofiles import open
 import json
 from time import time
 from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
@@ -22,12 +28,56 @@ debug	= logger.debug
 MAX_RETRIES : int   = 3
 SLEEP       : float = 1
 
+
+class CSVexportable(metaclass=ABCMeta):
+	"""Abstract class to provide CSV export"""
+
+	@abstractmethod
+	def csv_headers(self) -> list[str]:
+		"""Provide CSV headers as list"""
+		raise NotImplementedError
+
+	
+	@abstractmethod
+	def csv_row(self) -> dict[str, str | int | float | bool]:
+		"""Provide CSV row as a dict for csv.DictWriter"""
+		raise NotImplementedError
+
+
+class JSONexportable(metaclass=ABCMeta):
+	"""Abstract class to provide JSON export"""
+	
+	@classmethod
+	def json_formats(cls) -> list[str]:
+		return []
+
+
+	@abstractmethod
+	def json_str(self, format: str = 'src') -> str:
+		"""Export data as JSON string"""
+		raise NotImplementedError
+
+	
+	@abstractmethod
+	def json_obj(self, format: str = 'src') -> Any:
+		"""Export object as JSON object"""
+		raise NotImplementedError
+		
+
+class TXTexportable(metaclass=ABCMeta):
+	"""Abstract class to provide TXT export"""
+	
+	@abstractmethod
+	def txt_row(self, format : str = '') -> str:
+		"""export data as single row of text	"""
+		raise NotImplementedError
+
+
 ##############################################
 #
 ## Functions
 #
 ##############################################
-
 
 def get_datestr(_datetime: datetime = datetime.now()) -> str:
 	return _datetime.strftime('%Y%m%d_%H%M')
@@ -213,5 +263,179 @@ async def get_urls_JSON_models(session: ClientSession, queue : UrlQueue, resp_mo
 			error(f'Unexpected error: {str(err)}') 
 
 
-def mk_id(account_id: int, last_battle_time: int, tank_id: int = 0) -> ObjectId:
-	return ObjectId(hex(account_id)[2:].zfill(10) + hex(tank_id)[2:].zfill(6) + hex(last_battle_time)[2:].zfill(8))
+# def mk_id(account_id: int, last_battle_time: int, tank_id: int = 0) -> ObjectId:
+# 	return ObjectId(hex(account_id)[2:].zfill(10) + hex(tank_id)[2:].zfill(6) + hex(last_battle_time)[2:].zfill(8))
+
+FORMAT = Literal['txt', 'json', 'csv']
+
+async def export(Q: Queue[CSVexportable] | Queue[TXTexportable] | Queue[JSONexportable], 
+				format : FORMAT, filename: str, force: bool = False, 
+				append : bool = False) -> EventCounter:
+	"""Export data to file or STDOUT"""
+	stats : EventCounter = EventCounter('write')
+	try:
+		
+		if format == 'txt':
+			stats.merge_child(await export_txt(Q=cast(Queue[TXTexportable], Q), 
+											filename=filename, force=force, append=append))
+		elif format == 'json':
+			stats.merge_child(await export_json(Q=cast(Queue[JSONexportable], Q), 
+											filename=filename, force=force, append=append))
+		elif format == 'csv':
+			stats.merge_child(await export_csv(Q=cast(Queue[CSVexportable], Q), 
+											filename=filename, force=force, append=append))
+		else:			
+			raise ValueError(f'Unknown format: {format}')			
+	except Exception as err:
+		stats.log('errors')
+		error(str(err))
+	finally:
+		return stats
+
+
+
+async def export_csv(Q: Queue[CSVexportable], filename: str, 
+						force: bool = False, append : bool = False) -> EventCounter:
+	"""Export data to a CSVfile"""
+	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[CSVexportable]'
+	assert type(filename) is str and len(filename) > 0, 'filename has to be str'
+	stats : EventCounter = EventCounter('CSV')	
+	try:
+		dialect : Type[Dialect] = excel
+		exportable 	: CSVexportable = await Q.get()
+		fields 		: list[str] = exportable.csv_headers()
+		# account : BSAccount
+		if filename == '-':	
+			with stdout as out:				
+				writer = DictWriter(out, fieldnames=fields, dialect=dialect)
+				writer.writeheader()				
+				while True:					
+					try:
+						writer.writerow(exportable.csv_row())
+					except Exception as err:
+						error(str(err))
+					finally:
+						Q.task_done()
+					exportable = await Q.get()
+		else:
+			filename += '.csv'
+			file_exists : bool = isfile(filename)
+			if exists(filename) and (not file_exists or not (force or append)):
+				raise FileExistsError(f'Cannot export accounts to {filename }')
+
+			mode : Literal['w', 'a'] = 'w'
+			if append and file_exists:
+				mode = 'a'				
+				async with open(filename, newline='') as csvfile:
+					dialect = Sniffer().sniff(await csvfile.read(1024))
+			else:
+				append = False
+
+			async with open(filename, mode=mode) as csvfile:
+				writer = DictWriter(csvfile, fieldnames=fields, dialect=dialect)
+				if not append:
+					writer.writeheader()
+				while True:					
+					try:
+						writer.writerow(exportable.csv_row())
+						stats.log('Rows')
+					except Exception as err:
+						error(str(err))
+						stats.log('errors')
+					finally:
+						Q.task_done()
+					exportable = await Q.get()
+
+	except CancelledError as err:
+		debug(f'Cancelled')
+	except Exception as err:
+		error(str(err))
+	return stats
+
+
+async def export_json(Q: Queue[JSONexportable], filename: str, 
+						force: bool = False, append : bool = False) -> EventCounter:
+	"""Export data to a JSON file"""
+	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[JSONexportable]'
+	assert type(filename) is str and len(filename) > 0, 'filename has to be str'
+	stats : EventCounter = EventCounter('JSON')
+	try:
+		exportable 	: JSONexportable
+		if filename == '-':			
+			while True:
+				exportable = await Q.get()
+				try:
+					print(exportable.json_str())
+				except Exception as err:
+					error(str(err))
+				finally:
+					Q.task_done()
+		else:
+			filename += '.json'
+			file_exists : bool = isfile(filename)
+			if exists(filename) and (not file_exists or not (force or append)):
+				raise FileExistsError(f'Cannot export accounts to {filename }')
+			mode : Literal['w', 'a'] = 'w'
+			if append and file_exists:
+				mode = 'a'
+			async with open(filename, mode=mode) as txtfile:
+				while True:
+					exportable = await Q.get()
+					try:
+						await txtfile.write(exportable.json_str() + linesep)
+						stats.log('Rows')
+					except Exception as err:
+						error(str(err))
+						stats.log('errors')
+					finally:
+						Q.task_done()
+
+	except CancelledError as err:
+		debug(f'Cancelled')
+	except Exception as err:
+		error(str(err))
+	return stats
+
+
+async def export_txt(Q: Queue[TXTexportable], filename: str, 
+						force: bool = False, append : bool = False) -> EventCounter:
+	"""Export data to a text file"""
+	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue'
+	assert type(filename) is str and len(filename) > 0, 'filename has to be str'
+	stats : EventCounter = EventCounter('Text')
+	try:
+		exportable 	: TXTexportable
+		if filename == '-':			
+			while True:
+				exportable = await Q.get()
+				try:
+					print(exportable.txt_row())
+				except Exception as err:
+					error(str(err))
+				finally:
+					Q.task_done()
+		else:
+			filename += '.txt'
+			file_exists : bool = isfile(filename)
+			if exists(filename) and (not file_exists or not (force or append)):
+				raise FileExistsError(f'Cannot export accounts to {filename }')
+			mode : Literal['w', 'a'] = 'w'
+			if append and file_exists:
+				mode = 'a'
+			async with open(filename, mode=mode) as txtfile:
+				while True:
+					exportable = await Q.get()
+					try:
+						await txtfile.write(exportable.txt_row() + linesep)
+						stats.log('Rows')
+					except Exception as err:
+						error(str(err))
+						stats.log('errors')
+					finally:
+						Q.task_done()
+
+	except CancelledError as err:
+		debug(f'Cancelled')
+	except Exception as err:
+		error(str(err))
+	return stats
