@@ -3,7 +3,8 @@ from bson import ObjectId
 from datetime import datetime, timedelta
 from typing import Optional, Any, cast, Type, Literal
 from abc import ABCMeta, abstractmethod
-from csv import DictWriter, DictReader, Dialect, Sniffer, excel
+from aiocsv.writers import AsyncDictWriter
+from csv import Dialect, Sniffer, excel
 from sys import stdout
 from os.path import isfile, exists
 from os import linesep
@@ -40,6 +41,15 @@ class CSVexportable(metaclass=ABCMeta):
 	
 	@abstractmethod
 	def csv_row(self) -> dict[str, str | int | float | bool]:
+		"""Provide CSV row as a dict for csv.DictWriter"""
+		raise NotImplementedError
+
+
+class CSVimportable(metaclass=ABCMeta):
+	"""Abstract class to provide CSV export"""
+	
+	@abstractmethod
+	def from_csv(self, row: dict[str, Any]) -> Any:
 		"""Provide CSV row as a dict for csv.DictWriter"""
 		raise NotImplementedError
 
@@ -273,6 +283,7 @@ async def export(Q: Queue[CSVexportable] | Queue[TXTexportable] | Queue[JSONexpo
 				format : FORMAT, filename: str, force: bool = False, 
 				append : bool = False) -> EventCounter:
 	"""Export data to file or STDOUT"""
+	debug('starting')
 	stats : EventCounter = EventCounter('write')
 	try:
 		
@@ -298,27 +309,34 @@ async def export(Q: Queue[CSVexportable] | Queue[TXTexportable] | Queue[JSONexpo
 async def export_csv(Q: Queue[CSVexportable], filename: str, 
 						force: bool = False, append : bool = False) -> EventCounter:
 	"""Export data to a CSVfile"""
+	debug('starting')
 	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[CSVexportable]'
 	assert type(filename) is str and len(filename) > 0, 'filename has to be str'
 	stats : EventCounter = EventCounter('CSV')	
 	try:
-		dialect : Type[Dialect] = excel
-		exportable 	: CSVexportable = await Q.get()
-		fields 		: list[str] = exportable.csv_headers()
-		# account : BSAccount
-		if filename == '-':	
-			with stdout as out:				
-				writer = DictWriter(out, fieldnames=fields, dialect=dialect)
-				writer.writeheader()				
-				while True:					
+		dialect 	: Type[Dialect] = excel
+		exportable 	: CSVexportable	= await Q.get()
+		fields 		: list[str]		= exportable.csv_headers()
+		
+		if filename == '-':				# STDOUT
+			try:
+				# print header
+				print(dialect.delimiter.join(fields))
+				while True:
 					try:
-						writer.writerow(exportable.csv_row())
+						row : dict[str, str |int |float | bool] = exportable.csv_row()
+						print(dialect.delimiter.join([ str(row[key]) for key in fields]))
+					except KeyError as err:
+						error(f'CSVexportable object does not have field: {err}')
 					except Exception as err:
 						error(str(err))
 					finally:
 						Q.task_done()
 					exportable = await Q.get()
-		else:
+			except CancelledError as err:
+				debug(f'Cancelled')
+			
+		else:							# File
 			filename += '.csv'
 			file_exists : bool = isfile(filename)
 			if exists(filename) and (not file_exists or not (force or append)):
@@ -327,28 +345,31 @@ async def export_csv(Q: Queue[CSVexportable], filename: str,
 			mode : Literal['w', 'a'] = 'w'
 			if append and file_exists:
 				mode = 'a'				
-				async with open(filename, newline='') as csvfile:
-					dialect = Sniffer().sniff(await csvfile.read(1024))
 			else:
 				append = False
-
+			debug(f'opening {filename} for writing in mode={mode}')
 			async with open(filename, mode=mode) as csvfile:
-				writer = DictWriter(csvfile, fieldnames=fields, dialect=dialect)
-				if not append:
-					writer.writeheader()
-				while True:					
-					try:
-						writer.writerow(exportable.csv_row())
-						stats.log('Rows')
-					except Exception as err:
-						error(str(err))
-						stats.log('errors')
-					finally:
-						Q.task_done()
-					exportable = await Q.get()
-
-	except CancelledError as err:
-		debug(f'Cancelled')
+				try:
+					writer = AsyncDictWriter(csvfile, fieldnames=fields, dialect=dialect)
+					if not append:
+						await writer.writeheader()
+					while True:					
+						try:
+							# debug(f'Writing row: {exportable.csv_row()}')
+							await writer.writerow(exportable.csv_row())
+							stats.log('Rows')
+						except Exception as err:
+							error(str(err))
+							stats.log('errors')
+						finally:
+							Q.task_done()
+						exportable = await Q.get()
+				except CancelledError as err:
+					debug(f'Cancelled')
+				finally:
+					pass
+					#await csvfile.flush()
+	
 	except Exception as err:
 		error(str(err))
 	return stats
