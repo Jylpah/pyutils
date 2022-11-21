@@ -72,6 +72,7 @@ class TXTexportable(metaclass=ABCMeta):
 		"""export data as single row of text	"""
 		raise NotImplementedError
 
+Exportable = CSVexportable | TXTexportable | JSONexportable
 
 ##############################################
 #
@@ -427,7 +428,7 @@ async def export_txt(Q: Queue[TXTexportable], filename: str,
 					exportable = await Q.get()
 					try:
 						await txtfile.write(exportable.txt_row() + linesep)
-						stats.log('Rows')
+						stats.log('rows')
 					except Exception as err:
 						error(str(err))
 						stats.log('errors')
