@@ -1,7 +1,7 @@
 import logging
-from bson import ObjectId
+from bson.objectid import ObjectId
 from datetime import datetime, timedelta
-from typing import Optional, Any, cast, Type, Literal
+from typing import Optional, Any, cast, Type, Literal, TypeVar, Self
 from abc import ABCMeta, abstractmethod
 from aiocsv.writers import AsyncDictWriter
 from csv import Dialect, Sniffer, excel
@@ -45,15 +45,6 @@ class CSVexportable(metaclass=ABCMeta):
 		raise NotImplementedError
 
 
-class CSVimportable(metaclass=ABCMeta):
-	"""Abstract class to provide CSV export"""
-	
-	@abstractmethod
-	def from_csv(self, row: dict[str, Any]) -> Any:
-		"""Provide CSV row as a dict for csv.DictWriter"""
-		raise NotImplementedError
-
-
 class JSONexportable(metaclass=ABCMeta):
 	"""Abstract class to provide JSON export"""
 	
@@ -82,7 +73,41 @@ class TXTexportable(metaclass=ABCMeta):
 		"""export data as single row of text	"""
 		raise NotImplementedError
 
+
 Exportable = CSVexportable | TXTexportable | JSONexportable
+
+CSVimportableSelf = TypeVar('CSVimportableSelf', bound='CSVimportable')
+class CSVimportable(metaclass=ABCMeta):
+	"""Abstract class to provide CSV export"""
+	
+	@classmethod
+	def from_csv(cls: type[CSVimportableSelf], row: dict[str, Any]) -> CSVimportableSelf:
+		"""Provide CSV row as a dict for csv.DictWriter"""
+		raise NotImplementedError
+
+
+JSONimportableSelf = TypeVar('JSONimportableSelf', bound='JSONimportable')
+class JSONimportable(metaclass=ABCMeta):
+	"""Abstract class to provide JSON import"""
+	
+	@classmethod
+	def from_txt(cls: type[JSONimportableSelf], line: str) -> JSONimportableSelf:
+		"""Provide CSV row as a dict for csv.DictWriter"""
+		raise NotImplementedError
+
+
+TXTimportableSelf = TypeVar('TXTimportableSelf', bound='TXTimportable')
+class TXTimportable(metaclass=ABCMeta):
+	"""Abstract class to provide TXT import"""
+	
+	@classmethod
+	def from_txt(cls: type[TXTimportableSelf], line: str) -> TXTimportableSelf:
+		"""Provide CSV row as a dict for csv.DictWriter"""
+		raise NotImplementedError
+
+
+Importable = CSVimportable | JSONimportable | TXTimportable
+
 
 ##############################################
 #
