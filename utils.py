@@ -1,8 +1,9 @@
 import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
-from typing import Optional, Any, cast, Type, Literal, TypeVar, Self
+from typing import Optional, Any, cast, Type, Literal, TypeVar, ClassVar, Self, Mapping
 from abc import ABCMeta, abstractmethod
+from aiofiles import open
 from aiocsv.writers import AsyncDictWriter
 from csv import Dialect, Sniffer, excel
 from sys import stdout
@@ -30,7 +31,7 @@ MAX_RETRIES : int   = 3
 SLEEP       : float = 1
 
 
-class CSVexportable(metaclass=ABCMeta):
+class CSVExportable(metaclass=ABCMeta):
 	"""Abstract class to provide CSV export"""
 
 	@abstractmethod
@@ -45,27 +46,93 @@ class CSVexportable(metaclass=ABCMeta):
 		raise NotImplementedError
 
 
-class JSONexportable(metaclass=ABCMeta):
-	"""Abstract class to provide JSON export"""
+CSVImportableSelf = TypeVar('CSVImportableSelf', bound='CSVImportable')
+class CSVImportable(metaclass=ABCMeta):
+	"""Abstract class to provide CSV export"""
 	
 	@classmethod
-	def json_formats(cls) -> list[str]:
-		return []
-
-
-	@abstractmethod
-	def json_str(self, format: str = 'src') -> str:
-		"""Export data as JSON string"""
+	def from_csv(cls: type[CSVImportableSelf], row: dict[str, Any]) -> CSVImportableSelf:
+		"""Provide CSV row as a dict for csv.DictWriter"""
 		raise NotImplementedError
 
-	
-	@abstractmethod
-	def json_obj(self, format: str = 'src') -> Any:
-		"""Export object as JSON object"""
-		raise NotImplementedError
+
+
+TypeExcludeDict = Mapping[int | str, Any]
+
+
+class JSONExportable(BaseModel):
+	_exclude_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
+	_exclude_export_src_fields	: ClassVar[Optional[TypeExcludeDict]] = None
+
+	def obj_db(self, **kwargs) -> dict:
+		return self.dict(exclude=self._exclude_export_DB_fields, exclude_defaults=True, 
+							by_alias=True, **kwargs)
 		
 
-class TXTexportable(metaclass=ABCMeta):
+	def obj_src(self, **kwargs) -> dict:
+		return self.dict(exclude=self._exclude_export_src_fields, 
+							exclude_unset=True, by_alias=False, **kwargs)
+
+
+	def json_db(self, **kwargs) -> str:
+		return self.json(exclude=self._exclude_export_DB_fields, exclude_defaults=True, 
+							by_alias=True, **kwargs)
+		
+
+	def json_src(self, **kwargs) -> str:
+		return self.json(exclude=self._exclude_export_src_fields, 
+							exclude_unset=True, by_alias=False, **kwargs)
+
+
+	async def save(self, filename: str) -> int:
+		"""Save object JSON into a file"""
+		try:
+			async with open(filename, 'w') as rf:
+				return await rf.write(self.json_src())
+		except Exception as err:
+			error(f'Error writing replay {filename}: {str(err)}')
+		return -1
+
+
+JSONImportableSelf = TypeVar('JSONImportableSelf', bound='JSONImportable')
+class JSONImportable(BaseModel):
+
+	@classmethod
+	async def open(cls: type[JSONImportableSelf], filename: str) -> JSONImportableSelf | None:
+		"""Open replay JSON file and return WoTBlitzReplayJSON instance"""
+		try:
+			async with open(filename, 'r') as rf:
+				return cls.parse_raw(await rf.read())
+		except Exception as err:
+			error(f'Error reading replay: {str(err)}')
+		return None
+
+
+	@classmethod
+	def from_str(cls: type[JSONImportableSelf], content: str) -> JSONImportableSelf | None:
+		"""Open replay JSON file and return WoTBlitzReplayJSON instance"""
+		try:
+			return cls.parse_raw(content)
+		except ValidationError as err:
+			error(f'Invalid replay format: {str(err)}')
+		except Exception as err:
+			error(f'Could not read replay: {str(err)}')
+		return None
+
+
+	@classmethod
+	def from_obj(cls: type[JSONImportableSelf], content: Any) -> JSONImportableSelf | None:
+		"""Open replay JSON file and return WoTBlitzReplayJSON instance"""
+		try:
+			return cls.parse_obj(content)
+		except ValidationError as err:
+			error(f'Invalid format: {err}')
+		except Exception as err:
+			error(f'{err}')
+		return None
+		
+
+class TXTExportable(metaclass=ABCMeta):
 	"""Abstract class to provide TXT export"""
 	
 	@abstractmethod
@@ -74,40 +141,19 @@ class TXTexportable(metaclass=ABCMeta):
 		raise NotImplementedError
 
 
-Exportable = CSVexportable | TXTexportable | JSONexportable
-
-CSVimportableSelf = TypeVar('CSVimportableSelf', bound='CSVimportable')
-class CSVimportable(metaclass=ABCMeta):
-	"""Abstract class to provide CSV export"""
-	
-	@classmethod
-	def from_csv(cls: type[CSVimportableSelf], row: dict[str, Any]) -> CSVimportableSelf:
-		"""Provide CSV row as a dict for csv.DictWriter"""
-		raise NotImplementedError
-
-
-JSONimportableSelf = TypeVar('JSONimportableSelf', bound='JSONimportable')
-class JSONimportable(metaclass=ABCMeta):
-	"""Abstract class to provide JSON import"""
-	
-	@classmethod
-	def from_txt(cls: type[JSONimportableSelf], line: str) -> JSONimportableSelf:
-		"""Provide CSV row as a dict for csv.DictWriter"""
-		raise NotImplementedError
-
-
-TXTimportableSelf = TypeVar('TXTimportableSelf', bound='TXTimportable')
-class TXTimportable(metaclass=ABCMeta):
+TXTImportableSelf = TypeVar('TXTImportableSelf', bound='TXTImportable')
+class TXTImportable(metaclass=ABCMeta):
 	"""Abstract class to provide TXT import"""
 	
 	@classmethod
-	def from_txt(cls: type[TXTimportableSelf], line: str) -> TXTimportableSelf:
+	def from_txt(cls: type[TXTImportableSelf], text: str) -> TXTImportableSelf:
 		"""Provide CSV row as a dict for csv.DictWriter"""
 		raise NotImplementedError
 
 
-Importable = CSVimportable | JSONimportable | TXTimportable
-
+Exportable = CSVExportable | TXTExportable | JSONExportable
+Importable = CSVImportable | JSONImportable | TXTImportable
+	
 
 ##############################################
 #
@@ -304,7 +350,7 @@ async def get_urls_JSON_models(session: ClientSession, queue : UrlQueue, resp_mo
 
 FORMAT = Literal['txt', 'json', 'csv']
 
-async def export(Q: Queue[CSVexportable] | Queue[TXTexportable] | Queue[JSONexportable], 
+async def export(Q: Queue[CSVExportable] | Queue[TXTExportable] | Queue[JSONExportable], 
 				format : FORMAT, filename: str, force: bool = False, 
 				append : bool = False) -> EventCounter:
 	"""Export data to file or STDOUT"""
@@ -313,13 +359,13 @@ async def export(Q: Queue[CSVexportable] | Queue[TXTexportable] | Queue[JSONexpo
 	try:
 		
 		if format == 'txt':
-			stats.merge_child(await export_txt(Q=cast(Queue[TXTexportable], Q), 
+			stats.merge_child(await export_txt(Q=cast(Queue[TXTExportable], Q), 
 											filename=filename, force=force, append=append))
 		elif format == 'json':
-			stats.merge_child(await export_json(Q=cast(Queue[JSONexportable], Q), 
+			stats.merge_child(await export_json(Q=cast(Queue[JSONExportable], Q), 
 											filename=filename, force=force, append=append))
 		elif format == 'csv':
-			stats.merge_child(await export_csv(Q=cast(Queue[CSVexportable], Q), 
+			stats.merge_child(await export_csv(Q=cast(Queue[CSVExportable], Q), 
 											filename=filename, force=force, append=append))
 		else:			
 			raise ValueError(f'Unknown format: {format}')			
@@ -331,16 +377,16 @@ async def export(Q: Queue[CSVexportable] | Queue[TXTexportable] | Queue[JSONexpo
 
 
 
-async def export_csv(Q: Queue[CSVexportable], filename: str, 
+async def export_csv(Q: Queue[CSVExportable], filename: str, 
 						force: bool = False, append : bool = False) -> EventCounter:
 	"""Export data to a CSVfile"""
 	debug('starting')
-	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[CSVexportable]'
+	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[CSVExportable]'
 	assert type(filename) is str and len(filename) > 0, 'filename has to be str'
 	stats : EventCounter = EventCounter('CSV')	
 	try:
 		dialect 	: Type[Dialect] = excel
-		exportable 	: CSVexportable	= await Q.get()
+		exportable 	: CSVExportable	= await Q.get()
 		fields 		: list[str]		= exportable.csv_headers()
 		
 		if filename == '-':				# STDOUT
@@ -352,7 +398,7 @@ async def export_csv(Q: Queue[CSVexportable], filename: str,
 						row : dict[str, str |int |float | bool] = exportable.csv_row()
 						print(dialect.delimiter.join([ str(row[key]) for key in fields]))
 					except KeyError as err:
-						error(f'CSVexportable object does not have field: {err}')
+						error(f'CSVExportable object does not have field: {err}')
 					except Exception as err:
 						error(str(err))
 					finally:
@@ -400,19 +446,19 @@ async def export_csv(Q: Queue[CSVexportable], filename: str,
 	return stats
 
 
-async def export_json(Q: Queue[JSONexportable], filename: str, 
+async def export_json(Q: Queue[JSONExportable], filename: str, 
 						force: bool = False, append : bool = False) -> EventCounter:
 	"""Export data to a JSON file"""
-	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[JSONexportable]'
+	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[JSONExportable]'
 	assert type(filename) is str and len(filename) > 0, 'filename has to be str'
 	stats : EventCounter = EventCounter('JSON')
 	try:
-		exportable 	: JSONexportable
+		exportable 	: JSONExportable
 		if filename == '-':			
 			while True:
 				exportable = await Q.get()
 				try:
-					print(exportable.json_str())
+					print(exportable.json_src())
 				except Exception as err:
 					error(str(err))
 				finally:
@@ -429,7 +475,7 @@ async def export_json(Q: Queue[JSONexportable], filename: str,
 				while True:
 					exportable = await Q.get()
 					try:
-						await txtfile.write(exportable.json_str() + linesep)
+						await txtfile.write(exportable.json_src() + linesep)
 						stats.log('Rows')
 					except Exception as err:
 						error(str(err))
@@ -444,14 +490,14 @@ async def export_json(Q: Queue[JSONexportable], filename: str,
 	return stats
 
 
-async def export_txt(Q: Queue[TXTexportable], filename: str, 
+async def export_txt(Q: Queue[TXTExportable], filename: str, 
 						force: bool = False, append : bool = False) -> EventCounter:
 	"""Export data to a text file"""
 	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue'
 	assert type(filename) is str and len(filename) > 0, 'filename has to be str'
 	stats : EventCounter = EventCounter('Text')
 	try:
-		exportable 	: TXTexportable
+		exportable 	: TXTExportable
 		if filename == '-':			
 			while True:
 				exportable = await Q.get()
