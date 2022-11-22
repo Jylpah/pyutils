@@ -5,7 +5,8 @@ from typing import Optional, Any, cast, Type, Literal, TypeVar, ClassVar, Self, 
 from abc import ABCMeta, abstractmethod
 from aiofiles import open
 from aiocsv.writers import AsyncDictWriter
-from csv import Dialect, Sniffer, excel
+from aiocsv.readers import AsyncDictReader
+from csv import Dialect, Sniffer, excel, QUOTE_NONNUMERIC
 from sys import stdout
 from os.path import isfile, exists
 from os import linesep
@@ -56,6 +57,39 @@ class CSVImportable(metaclass=ABCMeta):
 		raise NotImplementedError
 
 
+	@classmethod
+	def _set_field_types(cls,row: dict[str, Any], fields: list[str], value_type: type ) -> dict[str, Any]:
+		for field in fields:
+			if field in row:
+				if row[field] == '':
+					del row[field]
+				else:
+					row[field] = value_type(row[field])
+					KESKEN
+		return row
+
+
+	@classmethod
+	async def import_csv(cls : type[CSVImportableSelf], 
+					filename : str) -> AsyncGenerator[CSVImportableSelf, None]:
+		"""Import from filename, one model per line"""
+		try:
+			dialect 	: Type[Dialect] = excel
+			importable 	: CSVImportableSelf | None
+			async with open(filename, mode='r', newline='') as f:
+				async for row in AsyncDictReader(f, dialect=dialect):
+					try:						
+						importable = cls.from_csv(row)
+						if importable is not None:
+							yield importable
+					except ValidationError as err:
+						error(f'Could not validate mode: {err}')
+					except Exception as err:
+						error(f'{err}')				
+		except Exception as err:
+			error(f'Error importing file {filename}: {err}')
+
+
 
 TypeExcludeDict = Mapping[int | str, Any]
 
@@ -90,7 +124,7 @@ class JSONExportable(BaseModel):
 			async with open(filename, 'w') as rf:
 				return await rf.write(self.json_src())
 		except Exception as err:
-			error(f'Error writing replay {filename}: {str(err)}')
+			error(f'Error writing replay {filename}: {err}')
 		return -1
 
 
@@ -101,10 +135,10 @@ class JSONImportable(BaseModel):
 	async def open(cls: type[JSONImportableSelf], filename: str) -> JSONImportableSelf | None:
 		"""Open replay JSON file and return WoTBlitzReplayJSON instance"""
 		try:
-			async with open(filename, 'r') as rf:
-				return cls.parse_raw(await rf.read())
+			async with open(filename, 'r') as f:
+				return cls.parse_raw(await f.read())
 		except Exception as err:
-			error(f'Error reading replay: {str(err)}')
+			error(f'Error reading replay: {err}')
 		return None
 
 
@@ -114,9 +148,9 @@ class JSONImportable(BaseModel):
 		try:
 			return cls.parse_raw(content)
 		except ValidationError as err:
-			error(f'Invalid replay format: {str(err)}')
+			error(f'Invalid replay format: {err}')
 		except Exception as err:
-			error(f'Could not read replay: {str(err)}')
+			error(f'{err}')
 		return None
 
 
@@ -130,6 +164,27 @@ class JSONImportable(BaseModel):
 		except Exception as err:
 			error(f'{err}')
 		return None
+
+
+	@classmethod
+	async def import_json(cls : type[JSONImportableSelf], 
+					filename : str) -> AsyncGenerator[JSONImportableSelf, None]:
+		"""Import from filename, one model per line"""
+		try:
+			importable : JSONImportableSelf | None
+			async with open(filename, 'r') as f:
+				async for line in f:
+					try:
+						importable = cls.from_str(line)
+						if importable is not None:
+							yield importable
+					except ValidationError as err:
+						error(f'Could not validate mode: {err}')
+					except Exception as err:
+						error(f'{err}')				
+		except Exception as err:
+			error(f'Error importing file {filename}: {err}')
+
 		
 
 class TXTExportable(metaclass=ABCMeta):
@@ -150,6 +205,25 @@ class TXTImportable(metaclass=ABCMeta):
 		"""Provide CSV row as a dict for csv.DictWriter"""
 		raise NotImplementedError
 
+
+	@classmethod
+	async def import_txt(cls : type[TXTImportableSelf], 
+					filename : str) -> AsyncGenerator[TXTImportableSelf, None]:
+		"""Import from filename, one model per line"""
+		try:
+			importable : TXTImportableSelf | None
+			async with open(filename, 'r') as f:
+				async for line in f:
+					try:
+						importable = cls.from_txt(line)
+						if importable is not None:
+							yield importable
+					except ValidationError as err:
+						error(f'Could not validate mode: {err}')
+					except Exception as err:
+						error(f'{err}')				
+		except Exception as err:
+			error(f'Error importing file {filename}: {err}')
 
 Exportable = CSVExportable | TXTExportable | JSONExportable
 Importable = CSVImportable | JSONImportable | TXTImportable
@@ -224,12 +298,12 @@ async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETR
 			await sleep(SLEEP)
 
 		except ClientError as err:
-			debug(f"Could not retrieve URL: {url} : {str(err)}")
+			debug(f"Could not retrieve URL: {url} : {err}")
 		except CancelledError as err:
-			debug(f'Queue gets cancelled while still working: {str(err)}')
+			debug(f'Queue gets cancelled while still working: {err}')
 			break
 		except Exception as err:
-			debug(f'Unexpected error {str(err)}')
+			debug(f'Unexpected error {err}')
 	debug(f"Could not retrieve URL: {url}")
 	return None
 
@@ -246,9 +320,9 @@ async def get_url_JSON(session: ClientSession, url: str, retries : int = MAX_RET
 			return None		
 		return await json.loads(content)
 	except ClientResponseError  as err:
-		error(f'Client response error: {url}: {str(err)}')
+		error(f'Client response error: {url}: {err}')
 	except Exception as err:
-		error(f'Unexpected error: {str(err)}') 
+		error(f'Unexpected error: {err}') 
 	return None
 
 
@@ -264,11 +338,11 @@ async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type
 			return None
 		return resp_model.parse_raw(content)		
 	except ValidationError as err:
-		debug(f'Failed to validate response from URL: {url}: {str(err)}')
+		debug(f'Failed to validate response from URL: {url}: {err}')
 		if content is not None:
 			debug(f'{content}')
 	except Exception as err:
-		error(f'Unexpected error: {str(err)}') 
+		error(f'Unexpected error: {err}') 
 	return None
 
 
@@ -323,9 +397,9 @@ async def get_urls_JSON(session: ClientSession, queue : UrlQueue, stats : EventC
 		try:
 			yield await json.loads(content), url
 		except ClientResponseError as err:
-			error(f'Client response error: {url}: {str(err)}')
+			error(f'Client response error: {url}: {err}')
 		except Exception as err:
-			error(f'Unexpected error: {str(err)}') 
+			error(f'Unexpected error: {err}') 
 
 
 async def get_urls_JSON_models(session: ClientSession, queue : UrlQueue, resp_model : type[BaseModel], 
@@ -340,9 +414,9 @@ async def get_urls_JSON_models(session: ClientSession, queue : UrlQueue, resp_mo
 		try:
 			yield resp_model.parse_raw(content), url
 		except ValidationError as err:
-			error(f'Failed to validate response from URL: {url}: {str(err)}')		
+			error(f'Failed to validate response from URL: {url}: {err}')		
 		except Exception as err:
-			error(f'Unexpected error: {str(err)}') 
+			error(f'Unexpected error: {err}') 
 
 
 # def mk_id(account_id: int, last_battle_time: int, tank_id: int = 0) -> ObjectId:
@@ -374,7 +448,6 @@ async def export(Q: Queue[CSVExportable] | Queue[TXTExportable] | Queue[JSONExpo
 		error(str(err))
 	finally:
 		return stats
-
 
 
 async def export_csv(Q: Queue[CSVExportable], filename: str, 
@@ -419,7 +492,7 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 			else:
 				append = False
 			debug(f'opening {filename} for writing in mode={mode}')
-			async with open(filename, mode=mode) as csvfile:
+			async with open(filename, mode=mode, newline='') as csvfile:
 				try:
 					writer = AsyncDictWriter(csvfile, fieldnames=fields, dialect=dialect)
 					if not append:
