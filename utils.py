@@ -67,16 +67,19 @@ class CSVImportable(BaseModel):
 	def _set_field_types(cls, row: dict[str, Any]) -> dict[str, Any]:
 		assert type(row) is dict, 'row has to be type dict()'
 		res : dict[str, Any] = dict()
-		for field in row:
-			if field not in cls.__fields__.keys():
-				continue
+		for field in row:			
 			if row[field] != '':
 				try:
-					res[field] = (cls.__fields__[field].type_)(row[field])
-				except (TypeError, ValueError) as err:
+					field_type = cls.__fields__[field].type_
+					res[field] = (field_type)(eval(row[field]))
+				except KeyError:												# field not in cls
+					continue
+				except (TypeError, ValueError, NameError) as err:
 					res[field] = row[field]
 				except AttributeError as err:
 					error(f'Class {cls.__name__}() does not have attribute: {field}')
+				except Exception as err:
+					error(f'Could not parse field {field}: {type(err)}: {err}')
 		return res
 
 
@@ -90,8 +93,7 @@ class CSVImportable(BaseModel):
 			async with open(filename, mode='r', newline='') as f:
 				async for row in AsyncDictReader(f, dialect=dialect):
 					try:						
-						importable = cls.from_csv(row)
-						if importable is not None:
+						if (importable := cls.from_csv(row)) is not None:
 							yield importable
 					except ValidationError as err:
 						error(f'Could not validate mode: {err}')
@@ -282,7 +284,7 @@ class UrlQueue(Queue):
 				error('Queue item is not type of Tuple[str, int]')
 				continue
 			return cast(UrlQueueItemType, item)
-		
+
 
 async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETRIES) -> str | None:
 	"""Retrieve (GET) an URL and return JSON object"""
@@ -523,7 +525,6 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 					debug(f'Cancelled')
 				finally:
 					pass
-					#await csvfile.flush()
 	
 	except Exception as err:
 		error(str(err))
