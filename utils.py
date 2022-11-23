@@ -7,7 +7,7 @@ from aiofiles import open
 from aiocsv.writers import AsyncDictWriter
 from aiocsv.readers import AsyncDictReader
 from csv import Dialect, Sniffer, excel, QUOTE_NONNUMERIC
-from sys import stdout
+from ast import literal_eval
 from os.path import isfile, exists
 from os import linesep
 from aiofiles import open
@@ -48,25 +48,36 @@ class CSVExportable(metaclass=ABCMeta):
 
 
 CSVImportableSelf = TypeVar('CSVImportableSelf', bound='CSVImportable')
-class CSVImportable(metaclass=ABCMeta):
+class CSVImportable(BaseModel):
 	"""Abstract class to provide CSV export"""
 	
 	@classmethod
-	def from_csv(cls: type[CSVImportableSelf], row: dict[str, Any]) -> CSVImportableSelf:
+	def from_csv(cls: type[CSVImportableSelf], row: dict[str, Any]) -> CSVImportableSelf | None:
 		"""Provide CSV row as a dict for csv.DictWriter"""
-		raise NotImplementedError
+		try:
+			row = cls._set_field_types(row)
+			debug(str(row))
+			return cls.parse_obj(row)
+		except Exception as err:
+			error(f'Could not parse row ({row}): {err}')
+		return None
 
 
 	@classmethod
-	def _set_field_types(cls,row: dict[str, Any], fields: list[str], value_type: type ) -> dict[str, Any]:
-		for field in fields:
-			if field in row:
-				if row[field] == '':
-					del row[field]
-				else:
-					row[field] = value_type(row[field])
-					KESKEN
-		return row
+	def _set_field_types(cls, row: dict[str, Any]) -> dict[str, Any]:
+		assert type(row) is dict, 'row has to be type dict()'
+		res : dict[str, Any] = dict()
+		for field in row:
+			if field not in cls.__fields__.keys():
+				continue
+			if row[field] != '':
+				try:
+					res[field] = (cls.__fields__[field].type_)(row[field])
+				except (TypeError, ValueError) as err:
+					res[field] = row[field]
+				except AttributeError as err:
+					error(f'Class {cls.__name__}() does not have attribute: {field}')
+		return res
 
 
 	@classmethod
