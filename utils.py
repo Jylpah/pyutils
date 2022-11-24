@@ -108,26 +108,36 @@ TypeExcludeDict = Mapping[int | str, Any]
 
 
 class JSONExportable(BaseModel):
+
 	_exclude_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_exclude_export_src_fields	: ClassVar[Optional[TypeExcludeDict]] = None
+	_include_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
+	_include_export_src_fields	: ClassVar[Optional[TypeExcludeDict]] = None
+
 
 	def obj_db(self, **kwargs) -> dict:
-		return self.dict(exclude=self._exclude_export_DB_fields, exclude_defaults=True, 
+		return self.dict(exclude=self._exclude_export_DB_fields, 
+							include=self._include_export_DB_fields,
+							exclude_defaults=True, 
 							by_alias=True, **kwargs)
 		
 
 	def obj_src(self, **kwargs) -> dict:
 		return self.dict(exclude=self._exclude_export_src_fields, 
+							include=self._include_export_src_fields,
 							exclude_unset=True, by_alias=False, **kwargs)
 
 
 	def json_db(self, **kwargs) -> str:
-		return self.json(exclude=self._exclude_export_DB_fields, exclude_defaults=True, 
+		return self.json(exclude=self._exclude_export_DB_fields, 
+							include=self._include_export_DB_fields,
+							exclude_defaults=True, 
 							by_alias=True, **kwargs)
 		
 
 	def json_src(self, **kwargs) -> str:
 		return self.json(exclude=self._exclude_export_src_fields, 
+							include=self._include_export_src_fields,
 							exclude_unset=True, by_alias=False, **kwargs)
 
 
