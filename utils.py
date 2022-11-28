@@ -468,7 +468,7 @@ async def export(Q: Queue[CSVExportable] | Queue[TXTExportable] | Queue[JSONExpo
 			raise ValueError(f'Unknown format: {format}')			
 	except Exception as err:
 		stats.log('errors')
-		error(str(err))
+		error(f'{err}')
 	finally:
 		return stats
 
@@ -496,7 +496,7 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 					except KeyError as err:
 						error(f'CSVExportable object does not have field: {err}')
 					except Exception as err:
-						error(str(err))
+						error(f'{err}')
 					finally:
 						Q.task_done()
 					exportable = await Q.get()
@@ -526,7 +526,7 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 							await writer.writerow(exportable.csv_row())
 							stats.log('Rows')
 						except Exception as err:
-							error(str(err))
+							error(f'{err}')
 							stats.log('errors')
 						finally:
 							Q.task_done()
@@ -537,7 +537,7 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 					pass
 	
 	except Exception as err:
-		error(str(err))
+		error(f'{err}')
 	return stats
 
 
@@ -555,7 +555,7 @@ async def export_json(Q: Queue[JSONExportable], filename: str,
 				try:
 					print(exportable.json_src())
 				except Exception as err:
-					error(str(err))
+					error(f'{err}')
 				finally:
 					Q.task_done()
 		else:
@@ -573,7 +573,7 @@ async def export_json(Q: Queue[JSONExportable], filename: str,
 						await txtfile.write(exportable.json_src() + linesep)
 						stats.log('Rows')
 					except Exception as err:
-						error(str(err))
+						error(f'{err}')
 						stats.log('errors')
 					finally:
 						Q.task_done()
@@ -581,7 +581,7 @@ async def export_json(Q: Queue[JSONExportable], filename: str,
 	except CancelledError as err:
 		debug(f'Cancelled')
 	except Exception as err:
-		error(str(err))
+		error(f'{err}')
 	return stats
 
 
@@ -599,7 +599,7 @@ async def export_txt(Q: Queue[TXTExportable], filename: str,
 				try:
 					print(exportable.txt_row())
 				except Exception as err:
-					error(str(err))
+					error(f'{err}')
 				finally:
 					Q.task_done()
 		else:
@@ -617,7 +617,7 @@ async def export_txt(Q: Queue[TXTExportable], filename: str,
 						await txtfile.write(exportable.txt_row() + linesep)
 						stats.log('rows')
 					except Exception as err:
-						error(str(err))
+						error(f'{err}')
 						stats.log('errors')
 					finally:
 						Q.task_done()
@@ -625,5 +625,5 @@ async def export_txt(Q: Queue[TXTExportable], filename: str,
 	except CancelledError as err:
 		debug(f'Cancelled')
 	except Exception as err:
-		error(str(err))
+		error(f'{err}')
 	return stats

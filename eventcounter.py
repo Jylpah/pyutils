@@ -125,7 +125,7 @@ class EventCounter():
 				self._error_status = self._error_status or B.get_error_status()
 			return True
 		except Exception as err:
-			logger.error(str(err))
+			logger.error(f'{err}')
 		return False
 		
 
@@ -142,7 +142,7 @@ class EventCounter():
 			self._error_status = self._error_status or B.get_error_status()
 			return True
 		except Exception as err:
-			logger.error(str(err))
+			logger.error(f'{err}')
 		return False
 
 
@@ -163,5 +163,5 @@ class EventCounter():
 					ret += f"\n{self._get_str(cat)}"
 				return ret
 		except Exception as err:
-			logger.error(str(err))
+			logger.error(f'{err}')
 		return None 

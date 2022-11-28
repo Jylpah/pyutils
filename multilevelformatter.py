@@ -42,13 +42,13 @@ class MultilevelFormatter(logging.Formatter):
 		try:
 			return self._formatters[record.levelno].format(record)			
 		except Exception as err:
-			logging.error(str(err))
-			return str(err)
+			logging.error(f'{err}')
+			return f'{err}'
 
 
 	def formatTime(self, record: logging.LogRecord, datefmt: Optional[str]=None):
 		try:
 			return self._formatters[record.levelno].formatTime(record = record, datefmt=datefmt)			
 		except Exception as err:
-			logging.error(str(err))
-			return str(err)
+			logging.error(f'{err}')
+			return f'{err}'

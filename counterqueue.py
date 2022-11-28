@@ -66,5 +66,5 @@ async def alive_queue_bar(queues : Iterable[CounterQueue], title : str,
 						bar(current - prev)
 					prev = current
 	except Exception as err:
-		error(str(err))
+		error(f'{err}')
 	return None

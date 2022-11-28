@@ -79,7 +79,7 @@ class FileQueue(asyncio.Queue):
 					
 			return True
 		except Exception as err:
-			logger.error(str(err))
+			logger.error(f'{err}')
 		return False
 
 	
@@ -98,7 +98,7 @@ class FileQueue(asyncio.Queue):
 				await super().put(filename)
 				self._count += 1
 		except Exception as err:
-			logger.error(str(err))
+			logger.error(f'{err}')
 		return None
 
 
@@ -125,5 +125,5 @@ class FileQueue(asyncio.Queue):
 			else:
 				return m
 		except Exception as err:
-			logger.error(str(err))
+			logger.error(f'{err}')
 		return False

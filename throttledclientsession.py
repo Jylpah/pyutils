@@ -136,7 +136,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		except CancelledError:
 			debug('Cancelled')
 		except Exception as err:
-			error(str(err))
+			error(f'{err}')
 		finally:
 			self._queue = None
 		return None
@@ -160,7 +160,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		except CancelledError:
 			debug('Cancelled')
 		except Exception as err:
-			error(str(err))
+			error(f'{err}')
 		finally:
 			self._queue = None
 		return None
@@ -190,6 +190,6 @@ class ThrottledClientSession(aiohttp.ClientSession):
 					
 			return not self._limit_filtered
 		except Exception as err:
-			error(str(err))
+			error(f'{err}')
 		return True    
 
