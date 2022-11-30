@@ -327,7 +327,7 @@ async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETR
 			break
 		except Exception as err:
 			debug(f'Unexpected error {err}')
-	debug(f"Could not retrieve URL: {url}")
+	verbose(f"Could not retrieve URL: {url}")
 	return None
 
 
@@ -361,7 +361,7 @@ async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type
 			return None
 		return resp_model.parse_raw(content)		
 	except ValidationError as err:
-		debug(f'Failed to validate response from URL: {url}: {err}')
+		verbose(f'Could not validate response from {url}: {err}')
 		if content is not None:
 			debug(f'{content}')
 	except Exception as err:
