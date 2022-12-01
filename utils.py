@@ -114,7 +114,6 @@ class JSONExportable(BaseModel):
 	_include_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_include_export_src_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 
-
 	def obj_db(self, **kwargs) -> dict:
 		return self.dict(exclude=self._exclude_export_DB_fields, 
 							include=self._include_export_DB_fields,
