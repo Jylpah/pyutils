@@ -265,6 +265,24 @@ def epoch_now() -> int:
 	return int(time())
 
 
+# def get_timestamp(value: str) -> int:
+# 	cut_off : int = -1
+# 	try:
+# 		cut_off = int(datetime.fromisoformat(value).timestamp())
+# 	except:
+# 		debug(f'--cut-off={value} is not in ISO 8601 format')
+# 	if cut_off >= 0:
+# 		return cut_off
+	
+# 	try:
+# 		cut_off = int(datetime.utcfromtimestamp(int(value)).timestamp())
+# 	except:
+# 		debug(f'--cut-off={value} is not in epoch/int format')
+# 	if cut_off >= 0:
+# 		return cut_off
+# 	raise ValueError(f'could not read datetime from: {value}')
+
+
 def is_url(url) -> bool:
 	try:
 		result = urlparse(url)
