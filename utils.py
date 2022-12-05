@@ -20,7 +20,7 @@ from asyncio import sleep, CancelledError, Queue, AbstractEventLoop
 from urllib.parse import urlparse
 from collections.abc import AsyncGenerator
 
-from . import CounterQueue, EventCounter
+from . import CounterQueue, EventCounter, UrlQueue, UrlQueueItemType
 
 # Setup logging
 logger	= logging.getLogger()
@@ -291,28 +291,6 @@ def is_url(url) -> bool:
 		return all([result.scheme, result.netloc])
 	except ValueError:
 		return False
-
-
-from asyncio import Queue
-
-UrlQueueItemType = tuple[str, int]
-
-class UrlQueue(Queue):
-
-	async def put(self, url : str, retry : int = 0):
-		assert type(retry) is int, f"retry has to be int, {type(retry)} given"
-		if is_url(url):
-			return super().put((url, retry))
-		raise ValueError(f'malformed URL given: {url}')
-		
-
-	async def get(self) -> UrlQueueItemType:
-		while True:
-			item = await super().get()
-			if type(item) is not UrlQueueItemType:
-				error('Queue item is not type of Tuple[str, int]')
-				continue
-			return cast(UrlQueueItemType, item)
 
 
 async def alive_queue_bar(queues : Iterable[CounterQueue], title : str, 
