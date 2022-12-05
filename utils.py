@@ -1,11 +1,12 @@
 import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
-from typing import Optional, Any, cast, Type, Literal, TypeVar, ClassVar, Self, Mapping
+from typing import Optional, Any, cast, Type, Literal, TypeVar, ClassVar, Self, Mapping, Iterable
 from abc import ABCMeta, abstractmethod
 from aiofiles import open
 from aiocsv.writers import AsyncDictWriter
 from aiocsv.readers import AsyncDictReader
+from alive_progress import alive_bar 							# type: ignore
 from csv import Dialect, Sniffer, excel, QUOTE_NONNUMERIC
 from ast import literal_eval
 from os.path import isfile, exists
@@ -16,9 +17,10 @@ from time import time
 from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
 from asyncio import sleep, CancelledError, Queue, AbstractEventLoop
-from pyutils.eventcounter import EventCounter
 from urllib.parse import urlparse
 from collections.abc import AsyncGenerator
+
+from . import CounterQueue, EventCounter
 
 # Setup logging
 logger	= logging.getLogger()
@@ -312,6 +314,32 @@ class UrlQueue(Queue):
 				continue
 			return cast(UrlQueueItemType, item)
 
+
+async def alive_queue_bar(queues : Iterable[CounterQueue], title : str, 
+							total : int | None = None, wait: float = 0.1, 
+							*args, **kwargs) -> None:
+	try:
+		prev : int = 0
+		current : int = 0
+		with alive_bar(total, *args, title=title, **kwargs) as bar:
+			while True:
+				try:
+					# if total is not None and current >= total:
+					#	break
+					await sleep(wait)
+				except CancelledError:
+					debug('cancelled')	
+					break
+				finally:
+					current = 0
+					for q in queues:
+						current += q.count
+					if current - prev > 0:
+						bar(current - prev)
+					prev = current
+	except Exception as err:
+		error(f'{err}')
+	return None
 
 async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETRIES) -> str | None:
 	"""Retrieve (GET) an URL and return JSON object"""
