@@ -17,10 +17,10 @@ from time import time
 from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
 from asyncio import sleep, CancelledError, Queue, AbstractEventLoop
-from urllib.parse import urlparse
 from collections.abc import AsyncGenerator
 
-from . import CounterQueue, EventCounter, UrlQueue, UrlQueueItemType
+from . import CounterQueue, EventCounter, UrlQueue, UrlQueueItemType, is_url
+
 
 # Setup logging
 logger	= logging.getLogger()
@@ -283,15 +283,6 @@ def epoch_now() -> int:
 # 	if cut_off >= 0:
 # 		return cut_off
 # 	raise ValueError(f'could not read datetime from: {value}')
-
-
-def is_url(url) -> bool:
-	try:
-		result = urlparse(url)
-		return all([result.scheme, result.netloc])
-	except ValueError:
-		return False
-
 
 async def alive_queue_bar(queues : Iterable[CounterQueue], title : str, 
 							total : int | None = None, wait: float = 0.1, 

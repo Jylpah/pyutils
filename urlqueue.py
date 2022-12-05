@@ -1,8 +1,7 @@
 from asyncio import Queue
 from typing import cast
+from urllib.parse import urlparse
 import logging
-
-from .utils import is_url
 
 # Setup logging
 logger	= logging.getLogger()
@@ -10,6 +9,15 @@ error 	= logger.error
 message	= logger.warning
 verbose	= logger.info
 debug	= logger.debug
+
+
+def is_url(url) -> bool:
+	try:
+		result = urlparse(url)
+		return all([result.scheme, result.netloc])
+	except ValueError:
+		return False
+
 
 UrlQueueItemType = tuple[str, int]
 
