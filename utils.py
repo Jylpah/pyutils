@@ -47,6 +47,16 @@ class CSVExportable(metaclass=ABCMeta):
 	def csv_row(self) -> dict[str, str | int | float | bool]:
 		"""Provide CSV row as a dict for csv.DictWriter"""
 		raise NotImplementedError
+	
+	
+	def clear_None(self, res: dict[str, str | int | float | bool | None]) -> dict[str, str | int | float | bool]:
+		out : dict[str, str | int | float | bool] = dict()
+		for key, value in res.items():
+			if value is None:
+				out[key]  = ''
+			else:
+				out[key] = value
+		return out
 
 
 CSVImportableSelf = TypeVar('CSVImportableSelf', bound='CSVImportable')
