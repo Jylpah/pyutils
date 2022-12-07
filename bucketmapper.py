@@ -18,7 +18,11 @@ class BucketItem(Generic[T]):
 	item: T
 	key: int | float
 
+
 class BucketMapper(Generic[T]):
+	"""BucketMapper() is a generic class for mapping object based on a 
+		numeric, discrete key and retrieving objects by value that is 
+		less that the key. see python bisect module"""
 	
 	def __init__(self, attr: str):
 		self.by_key = attrgetter(attr)
@@ -30,17 +34,21 @@ class BucketMapper(Generic[T]):
 		return None
 	
 
-	def get(self, key: int | float) -> Optional[T]:
+	def get(self, key: int | float, shift: int = 0) -> Optional[T]:
+		"""Get item that has the smallest key larger than key. Use shift to offset"""
 		try:
-			return self.data[bisect(self.data, key, key=self.by_key)]
+			return self.data[bisect(self.data, key, key=self.by_key) + shift]
 		except Exception as err:
-			error(f'{err}')
+			debug(f'{err}')
 		return None
 
 
-	def pop(self, item : T) -> Optional[T]:
+	def pop(self, item : T|None = None, key : Optional[int|float] = None, shift: int = 0) -> Optional[T]:
 		try:
-			return self.data.pop(bisect_left(self.data, self.by_key(item), key=self.by_key))
+			if item is not None:
+				key = self.by_key(item)
+			if key is not None:
+				return self.data.pop(bisect_left(self.data, key, key=self.by_key) + shift)
 		except Exception as err:
 			error(f'{err}')
 		return None
