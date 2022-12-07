@@ -1,3 +1,4 @@
+from .bucketmapper			import BucketItem, BucketMapper
 from .counterqueue 			import CounterQueue
 from .eventcounter 			import EventCounter
 from .filequeue 			import FileQueue
@@ -8,7 +9,8 @@ from .utils					import TXTExportable, CSVExportable, JSONExportable, \
 									CSVImportable, JSONImportable, TXTImportable
 
 
-__all__ = [ 'counterqueue', 
+__all__ = [ 'bucketmapper', 
+			'counterqueue', 
 			'eventcounter', 
 			'filequeue', 
 			'multilevelformatter', 
