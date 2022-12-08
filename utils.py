@@ -3,6 +3,7 @@ from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 from typing import Optional, Any, cast, Type, Literal, TypeVar, ClassVar, Self, Mapping, Iterable
 from abc import ABCMeta, abstractmethod
+from re import compile
 from aiofiles import open
 from aiocsv.writers import AsyncDictWriter
 from aiocsv.readers import AsyncDictReader
@@ -278,6 +279,13 @@ def epoch_now() -> int:
 	return int(time())
 
 
+def is_alphanum_(string: str) -> bool:
+	try:
+		return not compile(r'[^a-zA-Z0-9_]').search(string)
+	except:
+		error(f'Illegal characters in the table name: {string}')
+	return False
+
 # def get_timestamp(value: str) -> int:
 # 	cut_off : int = -1
 # 	try:
@@ -320,6 +328,7 @@ async def alive_queue_bar(queues : Iterable[CounterQueue], title : str,
 	except Exception as err:
 		error(f'{err}')
 	return None
+
 
 async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETRIES) -> str | None:
 	"""Retrieve (GET) an URL and return JSON object"""
