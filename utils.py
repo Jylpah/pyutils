@@ -129,29 +129,43 @@ class JSONExportable(BaseModel):
 	_export_DB_by_alias			: bool = True
 
 	def obj_db(self, **kwargs) -> dict:
-		return self.dict(exclude=self._exclude_export_DB_fields, 
-							include=self._include_export_DB_fields,
-							exclude_defaults=True, 
-							by_alias=self._export_DB_by_alias, **kwargs)
+		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
+									'include'	: self._include_export_DB_fields,
+									'exclude_defaults': True, 
+									'by_alias'	: self._export_DB_by_alias 
+									}
+		params.update(kwargs)
+		return self.dict(**params)
 		
 
 	def obj_src(self, **kwargs) -> dict:
-		return self.dict(exclude=self._exclude_export_src_fields, 
-							include=self._include_export_src_fields,
-							exclude_unset=True, by_alias=not self._export_DB_by_alias, **kwargs)
+		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
+									'include'	: self._include_export_src_fields,
+									'exclude_unset' : True, 
+									'by_alias'	: not self._export_DB_by_alias 
+									}
+		params.update(kwargs)
+		return self.dict(**params)
 
 
 	def json_db(self, **kwargs) -> str:
-		return self.json(exclude=self._exclude_export_DB_fields, 
-							include=self._include_export_DB_fields,
-							exclude_defaults=True, 
-							by_alias=self._export_DB_by_alias, **kwargs)
+		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
+									'include'	: self._include_export_DB_fields,
+									'exclude_defaults': True, 
+									'by_alias'	: self._export_DB_by_alias 
+									}
+		params.update(kwargs)
+		return self.json(**params)
 		
 
 	def json_src(self, **kwargs) -> str:
-		return self.json(exclude=self._exclude_export_src_fields, 
-							include=self._include_export_src_fields,
-							exclude_unset=True, by_alias=not self._export_DB_by_alias, **kwargs)
+		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
+									'include'	: self._include_export_src_fields,
+									'exclude_unset' : True, 
+									'by_alias'	: not self._export_DB_by_alias 
+									}
+		params.update(kwargs)
+		return self.json(**params)
 
 
 	async def save(self, filename: str) -> int:
