@@ -128,43 +128,68 @@ class JSONExportable(BaseModel):
 	_include_export_src_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_export_DB_by_alias			: bool = True
 
-	def obj_db(self, **kwargs) -> dict:
+
+	def _export_helper(self, params: dict[str, Any], 
+						fields: list[str] | None = None, **kwargs) -> dict:
+		"""Helper func to process params for obj/src export funcs"""
+		if fields is not None:
+			_exclude : dict[str, bool] = dict()
+			_include : dict[str, bool] = dict()
+			for f in fields:
+				_exclude[f] = False
+				_include[f] = True
+			params['exclude'] = _exclude
+			params['include'] = _include
+			params['exclude_defaults'] 	= False
+			params['exclude_unset'] 	= False
+		else:
+			for f in  ['exclude', 'include']:
+				try:
+					params[f].update(kwargs[f]) 
+					del kwargs[f]
+				except:
+					pass
+			params.update(kwargs)
+		return params
+		
+
+	def obj_db(self, fields: list[str] | None = None, **kwargs) -> dict:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
 									'include'	: self._include_export_DB_fields,
 									'exclude_defaults': True, 
 									'by_alias'	: self._export_DB_by_alias 
 									}
-		params.update(kwargs)
+		params = self._export_helper(params=params, fields=fields, **kwargs)
 		return self.dict(**params)
 		
 
-	def obj_src(self, **kwargs) -> dict:
+	def obj_src(self, fields: list[str] | None = None, **kwargs) -> dict:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
 									'include'	: self._include_export_src_fields,
 									'exclude_unset' : True, 
 									'by_alias'	: not self._export_DB_by_alias 
 									}
-		params.update(kwargs)
+		params = self._export_helper(params=params, fields=fields, **kwargs)
 		return self.dict(**params)
 
 
-	def json_db(self, **kwargs) -> str:
+	def json_db(self, fields: list[str] | None = None, **kwargs) -> str:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
 									'include'	: self._include_export_DB_fields,
 									'exclude_defaults': True, 
 									'by_alias'	: self._export_DB_by_alias 
 									}
-		params.update(kwargs)
+		params = self._export_helper(params=params, fields=fields, **kwargs)
 		return self.json(**params)
 		
 
-	def json_src(self, **kwargs) -> str:
+	def json_src(self, fields: list[str] | None = None,**kwargs) -> str:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
 									'include'	: self._include_export_src_fields,
 									'exclude_unset' : True, 
 									'by_alias'	: not self._export_DB_by_alias 
 									}
-		params.update(kwargs)
+		params = self._export_helper(params=params, fields=fields, **kwargs)
 		return self.json(**params)
 
 
@@ -396,9 +421,10 @@ async def get_url_JSON(session: ClientSession, url: str, retries : int = MAX_RET
 		error(f'Unexpected error: {err}') 
 	return None
 
+M = TypeVar('M', bound=BaseModel)
 
-async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type[BaseModel], 
-						retries : int = MAX_RETRIES) -> BaseModel | None:
+async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type[M], 
+						retries : int = MAX_RETRIES) -> Optional[M]:
 	"""Get JSON from URL and return object. Validate JSON against resp_model, if given."""
 	assert session is not None, "session cannot be None"
 	assert url is not None, "url cannot be None"
@@ -473,9 +499,9 @@ async def get_urls_JSON(session: ClientSession, queue : UrlQueue, stats : EventC
 			error(f'Unexpected error: {err}') 
 
 
-async def get_urls_JSON_models(session: ClientSession, queue : UrlQueue, resp_model : type[BaseModel], 
+async def get_urls_JSON_models(session: ClientSession, queue : UrlQueue, resp_model : type[M], 
 								stats : EventCounter = EventCounter(),
-								max_retries : int = MAX_RETRIES) -> AsyncGenerator[tuple[BaseModel, str], None]:
+								max_retries : int = MAX_RETRIES) -> AsyncGenerator[tuple[M, str], None]:
 	"""Async Generator to retrieve JSON from URLs read from an async Queue"""
 	
 	assert session is not None, 'Session must be initialized first'
