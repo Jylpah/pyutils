@@ -38,8 +38,10 @@ class BucketMapper(Generic[T]):
 		"""Get item that has the smallest key larger than key. Use shift to offset"""
 		try:
 			return self.data[bisect(self.data, key, key=self.by_key) + shift]
+		except IndexError as err:
+			error(f'key={key} is outside of the key range: {err}')
 		except Exception as err:
-			debug(f'{err}')
+			debug(f'Unknown error getting the value for key={key}: {err}')
 		return None
 
 
