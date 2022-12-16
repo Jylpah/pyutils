@@ -318,7 +318,7 @@ def epoch_now() -> int:
 	return int(time())
 
 
-def is_alphanum_(string: str) -> bool:
+def is_alphanum(string: str) -> bool:
 	try:
 		return not compile(r'[^a-zA-Z0-9_]').search(string)
 	except:
