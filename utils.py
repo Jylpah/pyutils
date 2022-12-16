@@ -1,7 +1,7 @@
 import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
-from typing import Optional, Any, cast, Type, Literal, TypeVar, ClassVar, Self, Mapping, Iterable
+from typing import Optional, Any, cast, Type, Literal, TypeVar, ClassVar, Self, Mapping, Iterable, Generic
 from abc import ABCMeta, abstractmethod
 from re import compile
 from aiofiles import open
@@ -343,11 +343,17 @@ def is_alphanum_(string: str) -> bool:
 # 	raise ValueError(f'could not read datetime from: {value}')
 
 async def alive_queue_bar(queues : Iterable[CounterQueue], title : str, 
-							total : int | None = None, wait: float = 0.1, 
+							total : int | None = None, wait: float = 0.5, 
 							*args, **kwargs) -> None:
+	"""Create a alive_progress bar for Iterable[CounterQueues]"""
 	try:
 		prev : int = 0
 		current : int = 0
+		l : int = 0
+		for _ in queues:
+			l += 1
+		if l == 0:
+			raise ValueError("'queues' does not have items")
 		with alive_bar(total, *args, title=title, **kwargs) as bar:
 			while True:
 				try:
@@ -371,7 +377,6 @@ async def alive_queue_bar(queues : Iterable[CounterQueue], title : str,
 
 async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETRIES) -> str | None:
 	"""Retrieve (GET) an URL and return JSON object"""
-
 	assert session is not None, 'Session must be initialized first'
 	assert url is not None, 'url cannot be None'
 
