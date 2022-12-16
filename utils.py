@@ -676,7 +676,7 @@ async def export_txt(Q: Queue[TXTExportable], filename: str,
 			while True:
 				exportable = await Q.get()
 				try:
-					print(exportable.txt_row())
+					print(exportable.txt_row(format='rich'))
 				except Exception as err:
 					error(f'{err}')
 				finally:
