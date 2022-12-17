@@ -149,7 +149,7 @@ class JSONExportable(BaseModel):
 					del kwargs[f]
 				except:
 					pass
-			params.update(kwargs)
+		params.update(kwargs)
 		return params
 		
 
