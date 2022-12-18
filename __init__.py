@@ -1,7 +1,7 @@
 from .aliasmapper 			import AliasMapper, alias_mapper
 from .bucketmapper			import BucketItem, BucketMapper
 from .counterqueue 			import CounterQueue
-from .eventcounter 			import EventCounter
+from .eventcounter 			import EventCounter, gather_stats
 from .filequeue 			import FileQueue
 from .multilevelformatter 	import MultilevelFormatter
 from .throttledclientsession import ThrottledClientSession

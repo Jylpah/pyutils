@@ -1,6 +1,7 @@
 # static typing for EventCounter
 
 from typing import Optional, Callable
+from asyncio import Task
 
 FuncTypeFormatter 	= Callable[[str], str]
 FuncTypeFormatterParam = Optional[FuncTypeFormatter]
@@ -39,3 +40,5 @@ class EventCounter():
 	def get_header(self) -> str: ...
 
 	def print(self, do_print : bool = True) -> Optional[str]:  ...
+
+async def gather_stats(tasks: list[Task], stats: EventCounter) -> EventCounter: ...
