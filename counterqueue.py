@@ -1,6 +1,5 @@
 from asyncio import Queue, CancelledError, sleep
 from typing import TypeVar, Iterable
-from alive_progress import alive_bar 		# type: ignore
 import logging
 
 logger 	= logging.getLogger()
