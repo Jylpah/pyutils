@@ -3,6 +3,7 @@ from .bucketmapper			import BucketItem, BucketMapper
 from .counterqueue 			import CounterQueue
 from .eventcounter 			import EventCounter, gather_stats
 from .filequeue 			import FileQueue
+from .iterablequeue 			import IterableQueue, QueueDone
 from .multilevelformatter 	import MultilevelFormatter
 from .throttledclientsession import ThrottledClientSession
 from .urlqueue 				import UrlQueue, UrlQueueItemType, is_url
@@ -18,6 +19,7 @@ __all__ = [ 'aliasmapper',
 			'counterqueue', 
 			'eventcounter', 
 			'filequeue', 
+			'iterablequeue',
 			'multilevelformatter', 
 			'throttledclientsession',
 			'urlqueue', 
