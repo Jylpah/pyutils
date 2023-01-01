@@ -2,7 +2,7 @@ import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 from typing import Optional, Any, cast, Type, Literal, TypeVar, ClassVar, Self, Mapping, Iterable, Generic
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, ABC, abstractmethod
 from re import compile
 from aiofiles import open
 from aiocsv.writers import AsyncDictWriter
@@ -33,6 +33,14 @@ debug	= logger.debug
 # Constants
 MAX_RETRIES : int   = 3
 SLEEP       : float = 1
+
+
+class Countable(ABC):
+	
+	@property
+	@abstractmethod
+	def count(self) -> int: 
+		raise NotImplementedError		
 
 
 class CSVExportable(metaclass=ABCMeta):
