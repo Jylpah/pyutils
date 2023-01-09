@@ -333,7 +333,7 @@ def is_alphanum(string: str) -> bool:
 	return False
 
 
-async def alive_queue_bar(queues : Iterable[CounterQueue], title : str, 
+async def alive_queue_bar(queues : Iterable[Countable], title : str, 
 							total : int | None = None, wait: float = 0.5, 
 							*args, **kwargs) -> None:
 	"""Create a alive_progress bar for Iterable[CounterQueues]"""
