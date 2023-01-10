@@ -9,75 +9,120 @@ class QueueDone(Exception):
 	pass
 
 
-class IterableQueue(Queue[T], AsyncIterable, Countable):
+class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	"""Async.Queue subclass to support async iteration and QueueDone"""
 
-	def __init__(self, producers: int = 1, total: int = 0, 
+	def __init__(self, total: int = 0, 
 					count_items: bool = True, **kwargs):
-		super(Queue[Optional[T]], self).__init__(**kwargs)
-		self._producers 	: int 	= producers
-		self._done 			: bool 	= False
+		self._Q : Queue[Optional[T]] = Queue(**kwargs)
+		self._producers 	: int 	= 0
+		self._finished 		: bool 	= False
+		# self._done 			: bool 	= False	# neeeded? 
 		self._total 		: int 	= total
 		self._count 		: int 	= 0
-		self._count_items 	: bool 	= count_items
-		self._registered_producers : bool = producers > 1
+		self._count_items 	: bool 	= count_items		
 
 
-	def register_producer(self, N : int = 1) -> int:
+	def add_producer(self, N : int = 1) -> int:
+		"""Add producer(s) to the queue"""		
 		assert N > 0, 'N has to be positive'
-		if self.is_done:
-			raise ValueError('Cannot register a producer to a queue that is done')
-		if self._registered_producers:
-			self._producers += N
-		else:
-			self._registered_producers = True
+
+		if self.is_finished:
+			raise ValueError('Cannot add a producer. Queue has finished filling')
+		self._producers += N		
 		return self._producers
 
 
-	async def done(self) -> bool:
-		self._producers -= 1
-		if self._producers <= 0:
-			self._producers = 0
-			self._done = True
-			await super().put(None)
-		return self._done
+	async def finish(self) -> bool:
+		if self._producers > 0:			
+			self._producers -= 1
+		
+		if self._producers == 0 and not self.is_finished:
+			self._finished = True
+			await self._Q.put(None)   # add None only once
+		return self._finished
 
 
 	async def shutdown(self) -> None:
 		self._producers = 0
-		await self.done()
+		await self.finish()
+
+
+	# @property
+	# def is_done(self) -> bool:
+	# 	return self._done
+
+	
+	@property
+	def is_finished(self) -> bool:
+		return self._finished
 
 
 	@property
-	def is_done(self) -> bool:
-		return self._done
-
-
-	async def put(self, item: T) -> None:
-		if self.is_done:
-			raise QueueDone
-		else:
-			if item is None:
-				raise ValueError('Cannot add None to IterableQueue')
-			await super().put(item=item)
+	def maxsize(self) -> int:
+		return self._Q.maxsize
 
 	
-	# async def last(self) -> None:
-	# 	"""Put marker to the queue signaling the last item has 
-	# 		been put to the queue"""
-	# 	await super().put(None)
+	def full(self) -> bool:
+		return self._Q.full()
 
 
 	async def get(self) -> T:
-		item = await super().get()
+		item = await self._Q.get()
 		if item is None:
-			super().task_done()
-			await super().put(None)			
+			self._Q.task_done()
+			await self._Q.put(None)			
 			raise QueueDone
 		else:
 			if self._count_items:
 				self._count += 1
 			return item
+
+
+	def get_nowait(self) -> T:
+		item = self._Q.get_nowait()
+		if item is None:
+			self._Q.task_done()
+			self._Q.put_nowait(None)			
+			raise QueueDone
+		else:
+			if self._count_items:
+				self._count += 1
+			return item
+
+
+	async def put(self, item: T) -> None:
+		if self._finished:
+			raise QueueDone
+		elif self._producers > 0:		
+			if item is None:
+				raise ValueError('Cannot add None to IterableQueue')
+			await self._Q.put(item=item)
+			return None
+		raise ValueError('No producers registered')
+
+
+	def put_nowait(self, item: T) -> None:
+		if self._finished:
+			raise QueueDone
+		elif self._producers > 0:		
+			if item is None:
+				raise ValueError('Cannot add None to IterableQueue')
+			self._Q.put_nowait(item=item)
+			return None
+		raise ValueError('No producers registered')
+
+
+	def qsize(self) -> int:
+		if self.is_finished:
+			return self._Q.qsize() - 1
+		else:
+			return self._Q.qsize()
+	
+
+	def task_done(self) -> None:
+		self._Q.task_done()
+
 
 	@property
 	def count(self) -> int:
