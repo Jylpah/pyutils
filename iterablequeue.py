@@ -1,7 +1,6 @@
-from asyncio import Queue
+from asyncio import Queue, Event
 from typing import Any, AsyncIterable, Generic, TypeVar, Optional
 from .utils import Countable
-
 
 T= TypeVar('T')
 
@@ -20,7 +19,9 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		# self._done 			: bool 	= False	# neeeded? 
 		self._total 		: int 	= total
 		self._count 		: int 	= 0
-		self._count_items 	: bool 	= count_items		
+		self._count_items 	: bool 	= count_items
+		self._done 			: Event = Event()
+		self._done.set()	
 
 
 	def add_producer(self, N : int = 1) -> int:
@@ -35,8 +36,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 	async def finish(self) -> bool:
 		if self._producers > 0:			
-			self._producers -= 1
-		
+			self._producers -= 1		
 		if self._producers == 0 and not self.is_finished:
 			self._finished = True
 			await self._Q.put(None)   # add None only once
@@ -66,12 +66,21 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	def full(self) -> bool:
 		return self._Q.full()
 
+	
+	def empty(self) -> bool:
+		if self._finished:
+			return self._done.is_set()
+		return self._Q.empty()
+
+
+
 
 	async def get(self) -> T:
 		item = await self._Q.get()
 		if item is None:
 			self._Q.task_done()
-			await self._Q.put(None)			
+			self._done.set()
+			await self._Q.put(None)					
 			raise QueueDone
 		else:
 			if self._count_items:
@@ -83,7 +92,8 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		item = self._Q.get_nowait()
 		if item is None:
 			self._Q.task_done()
-			self._Q.put_nowait(None)			
+			self._done.set()
+			self._Q.put_nowait(None)
 			raise QueueDone
 		else:
 			if self._count_items:
@@ -94,9 +104,11 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	async def put(self, item: T) -> None:
 		if self._finished:
 			raise QueueDone
-		elif self._producers > 0:		
+		elif self._producers > 0:
 			if item is None:
 				raise ValueError('Cannot add None to IterableQueue')
+			if self._done.is_set():
+				self._done.clear()
 			await self._Q.put(item=item)
 			return None
 		raise ValueError('No producers registered')
@@ -108,9 +120,16 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		elif self._producers > 0:		
 			if item is None:
 				raise ValueError('Cannot add None to IterableQueue')
+			if self._done.is_set():
+				self._done.clear()
 			self._Q.put_nowait(item=item)
 			return None
 		raise ValueError('No producers registered')
+
+
+	async def join(self) -> None:
+		await self._done.wait()
+		return None
 
 
 	def qsize(self) -> int:
