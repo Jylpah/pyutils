@@ -20,7 +20,8 @@ from pydantic import BaseModel, ValidationError
 from asyncio import sleep, CancelledError, Queue, AbstractEventLoop, Task, gather
 from collections.abc import AsyncGenerator
 
-from . import CounterQueue, EventCounter, UrlQueue, UrlQueueItemType, is_url
+from .eventcounter import EventCounter
+from .urlqueue import UrlQueue, UrlQueueItemType, is_url
 
 
 # Setup logging
@@ -333,18 +334,16 @@ def is_alphanum(string: str) -> bool:
 	return False
 
 
-async def alive_queue_bar(queues : Iterable[Countable], title : str, 
+async def alive_bar_monitor(monitor : list[Countable], title : str, 
 							total : int | None = None, wait: float = 0.5, 
 							*args, **kwargs) -> None:
-	"""Create a alive_progress bar for Iterable[CounterQueues]"""
+	"""Create a alive_progress bar for List[Countable]"""
 	try:
+		assert len(monitor) > 0, "'monitor' cannot be empty"
+		
 		prev : int = 0
 		current : int = 0
-		l : int = 0
-		for _ in queues:
-			l += 1
-		if l == 0:
-			raise ValueError("'queues' does not have items")
+				
 		with alive_bar(total, *args, title=title, **kwargs) as bar:
 			while True:
 				try:
@@ -356,8 +355,8 @@ async def alive_queue_bar(queues : Iterable[Countable], title : str,
 					break
 				finally:
 					current = 0
-					for q in queues:
-						current += q.count
+					for m in monitor:
+						current += m.count
 					if current - prev > 0:
 						bar(current - prev)
 					prev = current

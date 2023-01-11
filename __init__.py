@@ -9,7 +9,8 @@ from .throttledclientsession import ThrottledClientSession
 from .urlqueue 				import UrlQueue, UrlQueueItemType, is_url
 from .utils					import TXTExportable, CSVExportable, JSONExportable, \
 									CSVImportable, JSONImportable, TXTImportable, \
-									export, epoch_now, alive_queue_bar, is_alphanum, \
+									Countable, \
+									export, epoch_now, alive_bar_monitor, is_alphanum, \
 									get_url, get_urls, get_url_JSON_model, get_url_JSON, \
 									get_urls_JSON, get_urls_JSON_models, get_datestr
 
