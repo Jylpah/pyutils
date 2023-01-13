@@ -338,30 +338,28 @@ async def alive_bar_monitor(monitor : list[Countable], title : str,
 							total : int | None = None, wait: float = 0.5, 
 							*args, **kwargs) -> None:
 	"""Create a alive_progress bar for List[Countable]"""
-	try:
-		assert len(monitor) > 0, "'monitor' cannot be empty"
-		
-		prev : int = 0
-		current : int = 0
-				
-		with alive_bar(total, *args, title=title, **kwargs) as bar:
-			while True:
-				try:
-					# if total is not None and current >= total:
-					#	break
-					await sleep(wait)
-				except CancelledError:
-					debug('cancelled')	
+	
+	assert len(monitor) > 0, "'monitor' cannot be empty"
+	
+	prev 	: int = 0
+	current : int = 0
+			
+	with alive_bar(total, *args, title=title, **kwargs) as bar:
+		while total is None or current <= total:
+			try:
+				await sleep(wait)
+				# debug(f'current={current}')
+				current = 0
+				for m in monitor:
+					current += m.count
+				if current != prev:
+					bar(current - prev)
+				prev = current
+				if current == total:
 					break
-				finally:
-					current = 0
-					for m in monitor:
-						current += m.count
-					if current - prev > 0:
-						bar(current - prev)
-					prev = current
-	except Exception as err:
-		error(f'{err}')
+			except CancelledError:
+				break
+	
 	return None
 
 
@@ -391,7 +389,7 @@ async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETR
 		except ClientError as err:
 			debug(f"Could not retrieve URL: {url} : {err}")
 		except CancelledError as err:
-			debug(f'Queue gets cancelled while still working: {err}')
+			debug(f'Cancelled while still working: {err}')
 			break
 		except Exception as err:
 			debug(f'Unexpected error {err}')
