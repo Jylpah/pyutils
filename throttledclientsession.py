@@ -169,11 +169,11 @@ class ThrottledClientSession(aiohttp.ClientSession):
 	async def _request(self, *args,**kwargs) -> aiohttp.ClientResponse:
 		"""Throttled _request()"""
 		if self._queue is not None and self.is_limited(*args): 
-			debug(f'URL is rate-limited: {args[1]}') 
+			#debug(f'URL is rate-limited: {args[1]}') 
 			await self._queue.get()
 			self._queue.task_done()
-		else:
-			debug(f'URL is not rate-limited: {args[1]}') 
+		#else:
+			#debug(f'URL is not rate-limited: {args[1]}') 
 		self._count += 1
 		return await super()._request(*args,**kwargs)
 
