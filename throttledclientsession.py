@@ -219,11 +219,8 @@ class ThrottledClientSession(ClientSession):
 	async def _request(self, *args,**kwargs) -> ClientResponse:
 		"""Throttled _request()"""
 		if self._queue is not None and self.is_limited(*args): 
-			#debug(f'URL is rate-limited: {args[1]}') 
 			await self._queue.get()
 			self._queue.task_done()
-		#else:
-			#debug(f'URL is not rate-limited: {args[1]}') 
 		resp : ClientResponse = await super()._request(*args,**kwargs)
 		self._count += 1
 		if not resp.ok:
