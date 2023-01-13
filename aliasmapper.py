@@ -26,7 +26,7 @@ def alias_mapper(model: type[BaseModel], fields: dict[str, Any]) -> dict[str, An
 		for f, v in fields.items():
 			res[alias(f)] = v
 	except KeyError as err:
-		error(f'Field not found: {err}')
+		error(f'{type(model).__name__}() Field not found: {err}')
 	except Exception as err:		
-		raise ValueError(f'Could not map field aliases: {err}')
+		raise ValueError(f'{type(model).__name__}(): Could not map field aliases: {err}')
 	return res
