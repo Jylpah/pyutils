@@ -211,9 +211,8 @@ class ThrottledClientSession(ClientSession):
 			#debug(f'URL is not rate-limited: {args[1]}') 
 		resp : ClientResponse = await super()._request(*args,**kwargs)
 		self._count += 1
-		async with resp:
-			if not resp.ok:
-				self._errors += 1
+		if not resp.ok:
+			self._errors += 1
 		return resp
 
 
