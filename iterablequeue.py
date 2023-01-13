@@ -70,11 +70,14 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	async def get(self) -> T:
+		if self._done.is_set():
+			raise QueueDone
+		
 		item = await self._Q.get()
 		if item is None:
-			self._Q.task_done()
-			await self._Q.put(None)	
 			self._done.set()
+			self._Q.task_done()
+			await self._Q.put(None)				
 			raise QueueDone
 		elif self._count_items:
 			async with self._modify:
@@ -84,6 +87,8 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	def get_nowait(self) -> T:
+		if self._done.is_set():
+			raise QueueDone
 		item = self._Q.get_nowait()
 		if item is None:
 			self._Q.task_done()
