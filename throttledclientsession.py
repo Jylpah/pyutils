@@ -68,7 +68,7 @@ class ThrottledClientSession(ClientSession):
 
 	@property
 	def errors(self) -> int:
-		return self.errors
+		return self._errors
 
 
 	def get_stats(self) -> dict[str, float]:
@@ -76,22 +76,37 @@ class ThrottledClientSession(ClientSession):
 		res = {'rate' : self.rate, 'rate_limit': self.rate_limit, 'count' : self.count, 'errors': self.errors }
 		return res
 		
+
 	@property
 	def stats_dict(self) -> dict[str, float]:
 		"""Get session statistics as dict"""
-		res = {'rate' : self.rate, 'rate_limit': self.rate_limit, 'count' : self.count, 'errors': self.errors }
+		res = {
+				'rate' 		: self.rate, 
+				'rate_limit': self.rate_limit, 
+				'count' 	: self.count, 
+				'errors'	: self.errors 
+			  }
 		return res
 
 
 	@property
 	def stats(self) -> str:
 		"""Get session statistics as string"""
-		rate_limit_str : str 
+		rate_limit : str 
 		if self.rate_limit >= 1 or self.rate_limit == 0:
-			rate_limit_str = f'{self.rate_limit:.1f} requests/sec'
+			rate_limit = f'{self.rate_limit:.1f} requests/sec'
 		else:
-			rate_limit_str = f'{1/self.rate_limit:.1f} secs/request'
-		return f"rate limit: {self.rate_limit}, rate: {rate_limit_str}, requests: {self.count}, errors: {self.errors}"
+			rate_limit = f'{1/self.rate_limit:.1f} secs/request'
+
+		rate : str
+		r : float = self.rate 
+		if r >= 1 or r == 0:
+			rate = f'{r:.1f} requests/sec'
+		else:
+			rate = f'{1/r:.1f} secs/request'
+
+
+		return f"rate limit: {rate_limit}, rate: {rate}, requests: {self.count}, errors: {self.errors}"
 
 
 	def get_stats_str(self) -> str:
@@ -147,7 +162,7 @@ class ThrottledClientSession(ClientSession):
 
 	async def close(self) -> None:
 		"""Close rate-limiter's "bucket filler" task"""
-		debug(self.get_stats_str())
+		debug(self.stats)
 		try:
 			if self._fillerTask is not None:
 				self._fillerTask.cancel()
