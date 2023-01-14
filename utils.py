@@ -425,10 +425,11 @@ async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type
 	try:
 		content = await get_url(session, url, retries)
 		if content is None:
+			error('get_url() returned None')
 			return None
 		return resp_model.parse_raw(content)		
 	except ValidationError as err:
-		verbose(f'Could not validate response from {url}: {err}')
+		error(f'{resp_model.__name__}: Validation error {url}: {err}')
 		if content is not None:
 			debug(f'{content}')
 	except Exception as err:
@@ -504,7 +505,7 @@ async def get_urls_JSON_models(session: ClientSession, queue : UrlQueue, resp_mo
 		try:
 			yield resp_model.parse_raw(content), url
 		except ValidationError as err:
-			error(f'Failed to validate response from URL: {url}: {err}')		
+			error(f'{resp_model.__name__}(): Validation error: {url}: {err}')		
 		except Exception as err:
 			error(f'Unexpected error: {err}') 
 
