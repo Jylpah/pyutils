@@ -41,7 +41,12 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		async with self._modify:
 			if self._producers == 1:
 				self._producers = 0
+				if self._Q.empty():
+					self._empty.set()
+					if not self.has_wip:
+						self._done.set()				
 				await self._Q.put(None)
+				# print(f'{type(self).__name__}: finished')
 			elif self._producers > 1:
 				self._producers -= 1
 		return self.is_finished
@@ -132,6 +137,16 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		else:
 			return self._Q.qsize()
 
+	
+	@property
+	def wip(self) -> int:
+		return self._wip
+
+
+	@property
+	def has_wip(self) -> bool:
+		return self._wip > 0
+	
 
 	def task_done(self) -> None:
 		self._Q.task_done()
