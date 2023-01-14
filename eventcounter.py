@@ -6,14 +6,16 @@
 
 from collections 	import defaultdict
 from typing 		import Callable, Optional, Union
-
+from asyncio 		import gather, Task
 import time
 import logging 
 
 logger = logging.getLogger(__name__)
 
+debug	= logger.debug
 message = logger.warning
 verbose = logger.info
+error 	= logger.error
 
 FuncTypeFormatter 	= Callable[[str], str]
 FuncTypeFormatterParam = Optional[FuncTypeFormatter]
@@ -125,7 +127,7 @@ class EventCounter():
 				self._error_status = self._error_status or B.get_error_status()
 			return True
 		except Exception as err:
-			logger.error(str(err))
+			logger.error(f'{err}')
 		return False
 		
 
@@ -142,7 +144,7 @@ class EventCounter():
 			self._error_status = self._error_status or B.get_error_status()
 			return True
 		except Exception as err:
-			logger.error(str(err))
+			logger.error(f'{err}')
 		return False
 
 
@@ -163,5 +165,17 @@ class EventCounter():
 					ret += f"\n{self._get_str(cat)}"
 				return ret
 		except Exception as err:
-			logger.error(str(err))
+			logger.error(f'{err}')
 		return None 
+
+
+async def gather_stats(tasks: list[Task], stats: EventCounter) -> EventCounter:
+	"""Wrapper to gather results from tasks and return the stats and the LAST exception """
+	for task in tasks:
+		task.cancel()
+	for res in await gather(*tasks, return_exceptions=True):
+		if isinstance(res, EventCounter):
+			stats.merge_child(res)
+		elif type(res) is BaseException:
+			error(f'Task raised an exception: {res}')
+	return stats

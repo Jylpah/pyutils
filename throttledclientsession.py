@@ -7,7 +7,7 @@
 ## -----------------------------------------------------------
 
 from typing import Optional, Union
-import aiohttp
+from aiohttp import ClientSession, ClientResponse
 from asyncio import Queue, Task, CancelledError, TimeoutError, sleep, create_task, wait_for
 import time
 import logging
@@ -20,7 +20,7 @@ message	= logger.warning
 verbose	= logger.info
 debug	= logger.debug
 
-class ThrottledClientSession(aiohttp.ClientSession):
+class ThrottledClientSession(ClientSession):
 	"""Rate-throttled client session class inherited from aiohttp.ClientSession)""" 
 
 	def __init__(self, rate_limit: float = 0, filters: list[str] = list() , 
@@ -37,6 +37,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		self._queue         : Optional[Queue]   = None
 		self._start_time    : float = time.time()
 		self._count         : int = 0
+		self._errors		: int = 0
 		self._limit_filtered: bool = limit_filtered
 		self._re_filter     : bool = re_filter
 		self._filters       : list[Union[str, re.Pattern]] = list()
@@ -49,20 +50,68 @@ class ThrottledClientSession(aiohttp.ClientSession):
 				self._filters.append(filter)
 		self.set_rate_limit(rate_limit)
 
-
+	
 	def get_rate(self) -> float:
 		"""Return rate of requests"""
 		return self._count / (time.time() - self._start_time)
+	
+
+	@property
+	def rate(self) -> float:
+		return self._count / (time.time() - self._start_time)
+
+
+	@property
+	def count(self) -> int:
+		return self._count
+
+
+	@property
+	def errors(self) -> int:
+		return self._errors
 
 
 	def get_stats(self) -> dict[str, float]:
 		"""Get session statistics"""
-		res = {'rate' : self.get_rate(), 'rate_limit': self.rate_limit, 'count' : self._count }
+		res = {'rate' : self.rate, 'rate_limit': self.rate_limit, 'count' : self.count, 'errors': self.errors }
 		return res
 		
 
+	@property
+	def stats_dict(self) -> dict[str, float]:
+		"""Get session statistics as dict"""
+		res = {
+				'rate' 		: self.rate, 
+				'rate_limit': self.rate_limit, 
+				'count' 	: self.count, 
+				'errors'	: self.errors 
+			  }
+		return res
+
+
+	@property
+	def stats(self) -> str:
+		"""Get session statistics as string"""
+		rate_limit : str 
+		if self.rate_limit >= 1 or self.rate_limit == 0:
+			rate_limit = f'{self.rate_limit:.1f} requests/sec'
+		else:
+			rate_limit = f'{1/self.rate_limit:.1f} secs/request'
+
+		rate : str
+		r : float = self.rate 
+		if r >= 1 or r == 0:
+			rate = f'{r:.1f} requests/sec'
+		else:
+			rate = f'{1/r:.1f} secs/request'
+
+
+		return f"rate limit: {rate_limit}, rate: {rate}, requests: {self.count}, errors: {self.errors}"
+
+
 	def get_stats_str(self) -> str:
 		"""Print session statistics"""
+		error('DEPRECIATED: use self.stats')
 		return self.print_stats(self.get_stats())
 
 
@@ -71,15 +120,16 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		try:
 			rate_limit 	: float = stats['rate_limit']
 			rate 		: float = stats['rate']
-			count		: float = stats['count']
-			
+			count		: float	= stats['count']
+			errors		: float = stats['errors']
+
 			rate_limit_str : str 
 			if rate_limit >= 1 or rate_limit == 0:
 				rate_limit_str = f'{rate_limit:.1f} requests/sec'
 			else:
 				rate_limit_str = f'{1/rate_limit:.1f} secs/request'
 
-			return f"rate limit: {rate_limit_str}, rate: {rate:.1f} request/sec, requests: {count:.0f}"
+			return f"rate limit: {rate_limit_str}, rate: {rate:.1f} request/sec, requests: {count:.0f}, errors: {errors:.0f}"
 		except KeyError as err:
 			return f'Incorrect stats format: {err}'
 		except Exception as err:
@@ -112,7 +162,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 
 	async def close(self) -> None:
 		"""Close rate-limiter's "bucket filler" task"""
-		debug(self.get_stats_str())
+		debug(self.stats)
 		try:
 			if self._fillerTask is not None:
 				self._fillerTask.cancel()
@@ -136,7 +186,7 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		except CancelledError:
 			debug('Cancelled')
 		except Exception as err:
-			error(str(err))
+			error(f'{err}')
 		finally:
 			self._queue = None
 		return None
@@ -160,22 +210,22 @@ class ThrottledClientSession(aiohttp.ClientSession):
 		except CancelledError:
 			debug('Cancelled')
 		except Exception as err:
-			error(str(err))
+			error(f'{err}')
 		finally:
 			self._queue = None
 		return None
 
 
-	async def _request(self, *args,**kwargs) -> aiohttp.ClientResponse:
+	async def _request(self, *args,**kwargs) -> ClientResponse:
 		"""Throttled _request()"""
 		if self._queue is not None and self.is_limited(*args): 
-			debug(f'URL is rate-limited: {args[1]}') 
 			await self._queue.get()
 			self._queue.task_done()
-		else:
-			debug(f'URL is not rate-limited: {args[1]}') 
+		resp : ClientResponse = await super()._request(*args,**kwargs)
 		self._count += 1
-		return await super()._request(*args,**kwargs)
+		if not resp.ok:
+			self._errors += 1
+		return resp
 
 
 	def is_limited(self, *args: str) -> bool:
@@ -190,6 +240,6 @@ class ThrottledClientSession(aiohttp.ClientSession):
 					
 			return not self._limit_filtered
 		except Exception as err:
-			error(str(err))
+			error(f'{err}')
 		return True    
 

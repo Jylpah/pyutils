@@ -37,18 +37,40 @@ class MultilevelFormatter(logging.Formatter):
 		for level in fmts.keys():
 			self._formatters[level] = logging.Formatter(fmt=fmts[level], style=style)
 
+	@classmethod
+	def setLevels(cls, 
+					logger: 	logging.Logger, 
+					fmts: 		Optional[dict[int, str]]	= None, 
+					fmt: 		Optional[str] 				= None, 
+					datefmt: 	Optional[str]				= None,
+					style:		Literal['%', '{', '$']		= '%', 
+					validate:	bool						= True, 
+					log_file: 	Optional[str] 				= None) -> None:
+		"""Setup logging"""
+		if fmts is not None:
+			multi_formatter = MultilevelFormatter(fmt=fmt, fmts=fmts, datefmt=datefmt, style=style, validate=validate )
+			stream_handler  = logging.StreamHandler(sys.stdout)
+			stream_handler.setFormatter(multi_formatter)		
+			logger.addHandler(stream_handler)
+
+		if log_file is not None:
+			file_handler 	= logging.FileHandler(log_file)			
+			log_formatter 	= logging.Formatter(fmt=fmt, style=style, validate=validate)
+			file_handler.setFormatter(log_formatter)
+			logger.addHandler(file_handler)
+
 		
 	def format(self, record: logging.LogRecord) -> str:
 		try:
 			return self._formatters[record.levelno].format(record)			
 		except Exception as err:
-			logging.error(str(err))
-			return str(err)
+			logging.error(f'{err}')
+			return f'{err}'
 
 
 	def formatTime(self, record: logging.LogRecord, datefmt: Optional[str]=None):
 		try:
 			return self._formatters[record.levelno].formatTime(record = record, datefmt=datefmt)			
 		except Exception as err:
-			logging.error(str(err))
-			return str(err)
+			logging.error(f'{err}')
+			return f'{err}'
