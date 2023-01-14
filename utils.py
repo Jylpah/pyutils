@@ -345,10 +345,9 @@ async def alive_bar_monitor(monitor : list[Countable], title : str,
 	current : int = 0
 			
 	with alive_bar(total, *args, title=title, **kwargs) as bar:
-		while total is None or current <= total:
-			try:
+		try:
+			while total is None or current <= total:
 				await sleep(wait)
-				# debug(f'current={current}')
 				current = 0
 				for m in monitor:
 					current += m.count
@@ -357,8 +356,8 @@ async def alive_bar_monitor(monitor : list[Countable], title : str,
 				prev = current
 				if current == total:
 					break
-			except CancelledError:
-				break
+		except CancelledError:
+			pass
 	
 	return None
 
