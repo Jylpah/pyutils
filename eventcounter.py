@@ -152,16 +152,20 @@ class EventCounter():
 		return f"{self.name}" + (': ERROR occured' if self.get_error_status() else '')
 
 
-	def print(self, do_print : bool = True) -> Optional[str]: 
+	def print(self, do_print : bool = True, clean: bool = False) -> Optional[str]: 
 		try:
 			if do_print:
 				message(self.get_header())
 				for cat in sorted(self._log):
+					if clean and self.get_value(cat) == 0:
+						continue
 					message(self._get_str(cat))
 				return None
 			else:
 				ret = self.get_header()
 				for cat in sorted(self._log):
+					if clean and self.get_value(cat) == 0:
+						continue
 					ret += f"\n{self._get_str(cat)}"
 				return ret
 		except Exception as err:
