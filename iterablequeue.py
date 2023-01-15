@@ -24,43 +24,101 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		self._count_items 	: bool 	= count_items
 		self._count 		: int 	= 0
 		self._wip 			: int 	= 0
+		
 		self._modify 		: Lock	= Lock()
+		self._put_lock 		: Lock	= Lock()
+
+		self._filled 		: Event = Event()
 		self._empty 		: Event = Event()
 		self._done			: Event = Event()
+
+		self._empty.set()
 
 
 	async def add_producer(self, N : int = 1) -> int:
 		"""Add producer(s) to the queue"""
-		assert N > 0, 'N has to be positive'
+		assert N > 0, 'N has to be positive'		
 		async with self._modify:
+			if self.is_finished:
+				raise QueueDone
 			self._producers += N
 		return self._producers
 
 
 	async def finish(self) -> bool:
-		async with self._modify:
-			if self._producers == 1:
-				self._producers = 0
-				if self._Q.empty():
-					self._empty.set()
-					if not self.has_wip:
-						self._done.set()				
-				await self._Q.put(None)
-				# print(f'{type(self).__name__}: finished')
-			elif self._producers > 1:
-				self._producers -= 1
-		return self.is_finished
+		"""Producer has finished adding items to the queue"""
+		async with self._put_lock, self._modify:
+			self._producers -= 1
+			if self._producers < 0:
+				raise ValueError('finish() called more than the is producers')
+			elif self._producers == 0:
+				self._filled.set()
+				if self.empty() and not self.has_wip:
+					self._done.set()
+				await self._Q.put(None)						
+				return True
+		return False
 
 
 	async def shutdown(self) -> None:
 		async with self._modify:
 			self._producers = 1   # since finish() deducts 1 producer
-		await self.finish()
+			await self.finish()
 
 
 	@property
 	def is_finished(self) -> bool:
-		return self._producers == 0
+		return self._filled.is_set()
+
+
+	async def put(self, item: T) -> None:
+		async with self._put_lock:
+			if self.is_finished:
+				raise QueueDone
+			elif item is None:
+				raise ValueError('Cannot add None to IterableQueue')
+			self._empty.clear()
+			await self._Q.put(item=item)
+		return None
+
+
+	def put_nowait(self, item: T) -> None:
+		raise NotImplementedError
+
+
+	async def get(self) -> T:				
+		item = await self._Q.get()
+		if item is None:
+			self._empty.set()			
+			self._Q.task_done()
+			async with self._put_lock:
+				await self._Q.put(None)
+				raise QueueDone
+		else:
+			async with self._modify:
+				self._wip += 1				
+			return item
+						
+
+	def get_nowait(self) -> T:
+		raise NotImplementedError
+
+
+	def task_done(self) -> None:
+		self._Q.task_done()
+		if self._count_items:
+			self._count += 1
+		self._wip -= 1
+		if self._wip < 0:
+			raise ValueError('task_done() called more than tasks open')
+		elif self._wip == 0 and self.empty():
+			self._done.set()
+
+
+	async def join(self) -> None:
+		await self._filled.wait()
+		await self._done.wait()
+		return None
 
 
 	@property
@@ -71,64 +129,9 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	def full(self) -> bool:
 		return self._Q.full()
 
-
+	
 	def empty(self) -> bool:
-		if self.is_finished:
-			return self._empty.is_set()
-		return self._Q.empty()
-
-
-	async def get(self) -> T:
-		# if self._empty.is_set():
-		# 	raise QueueDone
-		item = await self._Q.get()
-		if item is None:
-			self._empty.set()
-			self._Q.task_done()
-			await self._Q.put(None)
-			raise QueueDone
-		else:
-			async with self._modify:
-				self._wip += 1
-		return item
-
-
-	def get_nowait(self) -> T:
-		if self._empty.is_set():
-			raise QueueDone
-		item = self._Q.get_nowait()
-		if item is None:
-			self._Q.task_done()
-			self._Q.put_nowait(None)
-			self._empty.set()
-			raise QueueDone
-		else:
-			self._wip += 1
-		return item
-
-
-	async def put(self, item: T) -> None:
-		if self.is_finished:
-			raise QueueDone
-		elif item is None:
-			raise ValueError('Cannot add None to IterableQueue')
-		await self._Q.put(item=item)
-		return None
-
-
-	def put_nowait(self, item: T) -> None:
-		if self.is_finished:
-			raise QueueDone
-		elif item is None:
-			raise ValueError('Cannot add None to IterableQueue')
-		self._Q.put_nowait(item=item)
-		return None
-
-
-	async def join(self) -> None:
-		await self._done.wait()
-		# await self._Q.join()
-		return None
+		return self._empty.is_set()
 
 
 	def qsize(self) -> int:
@@ -146,17 +149,6 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	@property
 	def has_wip(self) -> bool:
 		return self._wip > 0
-	
-
-	def task_done(self) -> None:
-		self._Q.task_done()
-		if self._count_items:
-			self._count += 1
-		self._wip -= 1
-		if self._wip < 0:
-			raise ValueError('task_done() called more than tasks open')
-		if self._wip == 0 and self._empty.is_set():
-			self._done.set()
 
 
 	@property
