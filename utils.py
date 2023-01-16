@@ -70,6 +70,7 @@ class CSVExportable(metaclass=ABCMeta):
 
 
 CSVImportableSelf = TypeVar('CSVImportableSelf', bound='CSVImportable')
+
 class CSVImportable(BaseModel):
 	"""Abstract class to provide CSV export"""
 	
@@ -126,6 +127,10 @@ class CSVImportable(BaseModel):
 
 
 TypeExcludeDict = Mapping[int | str, Any]
+
+# I = TypeVar('I', bound='JSONExportable')
+JSONExportableSelf 	= TypeVar('JSONExportableSelf', bound='JSONExportable')
+B 					= TypeVar('B', bound='BaseModel')
 
 class JSONExportable(BaseModel):
 
@@ -210,6 +215,12 @@ class JSONExportable(BaseModel):
 		return -1
 
 
+	@classmethod
+	def transform(cls: type[JSONExportableSelf], in_obj: Any) -> Optional[JSONExportableSelf]:
+		"""Transform object to out_type if supported"""
+		return None
+
+
 JSONImportableSelf = TypeVar('JSONImportableSelf', bound='JSONImportable')
 class JSONImportable(BaseModel):
 
@@ -266,7 +277,6 @@ class JSONImportable(BaseModel):
 						error(f'{err}')				
 		except Exception as err:
 			error(f'Error importing file {filename}: {err}')
-
 		
 
 class TXTExportable(metaclass=ABCMeta):
