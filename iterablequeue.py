@@ -129,7 +129,14 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	def full(self) -> bool:
 		return self._Q.full()
 
-	
+
+	def check_done(self) -> bool:
+		if self.empty() and self._wip == 0:
+			self._done.set()
+			return True
+		return False
+
+
 	def empty(self) -> bool:
 		return self._empty.is_set()
 
