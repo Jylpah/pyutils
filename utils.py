@@ -70,6 +70,7 @@ class CSVExportable(metaclass=ABCMeta):
 
 
 CSVImportableSelf = TypeVar('CSVImportableSelf', bound='CSVImportable')
+
 class CSVImportable(BaseModel):
 	"""Abstract class to provide CSV export"""
 	
@@ -126,6 +127,10 @@ class CSVImportable(BaseModel):
 
 
 TypeExcludeDict = Mapping[int | str, Any]
+
+# I = TypeVar('I', bound='JSONExportable')
+JSONExportableSelf 	= TypeVar('JSONExportableSelf', bound='JSONExportable')
+B 					= TypeVar('B', bound='BaseModel')
 
 class JSONExportable(BaseModel):
 
@@ -210,6 +215,12 @@ class JSONExportable(BaseModel):
 		return -1
 
 
+	@classmethod
+	def transform(cls: type[JSONExportableSelf], in_obj: Any) -> Optional[JSONExportableSelf]:
+		"""Transform object to out_type if supported"""
+		return None
+
+
 JSONImportableSelf = TypeVar('JSONImportableSelf', bound='JSONImportable')
 class JSONImportable(BaseModel):
 
@@ -266,7 +277,6 @@ class JSONImportable(BaseModel):
 						error(f'{err}')				
 		except Exception as err:
 			error(f'Error importing file {filename}: {err}')
-
 		
 
 class TXTExportable(metaclass=ABCMeta):
@@ -425,10 +435,11 @@ async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type
 	try:
 		content = await get_url(session, url, retries)
 		if content is None:
+			error('get_url() returned None')
 			return None
 		return resp_model.parse_raw(content)		
 	except ValidationError as err:
-		verbose(f'Could not validate response from {url}: {err}')
+		error(f'{resp_model.__name__}: Validation error {url}: {err}')
 		if content is not None:
 			debug(f'{content}')
 	except Exception as err:
@@ -504,7 +515,7 @@ async def get_urls_JSON_models(session: ClientSession, queue : UrlQueue, resp_mo
 		try:
 			yield resp_model.parse_raw(content), url
 		except ValidationError as err:
-			error(f'Failed to validate response from URL: {url}: {err}')		
+			error(f'{resp_model.__name__}(): Validation error: {url}: {err}')		
 		except Exception as err:
 			error(f'Unexpected error: {err}') 
 
