@@ -9,13 +9,15 @@ class QueueDone(Exception):
 
 
 class IterableQueue(Queue[T], AsyncIterable[T], Countable):
-	"""Async.Queue subclass that to supports:
-	* AsyncIterable()
-	* Producers must be registered with add_producer()
-	* Producers must notify once they have finished adding items with finish()
-	* Automatic termination  of consumers when the queue is empty with (QueueDone exception)
-	* Countable interface to count number of items task_done() through 'count' property
-	* Countable property can be disabled with count_items=False. This is useful when you
+	"""Async.Queue subclass with automatic termination when the queue has been 
+	filled and emptied. Supports:
+	- Queue() interface except _nowait() methods
+	- AsyncIterable(): async for item in queue.get():
+	- Automatic termination  of consumers when the queue is empty with (raise QueueDone)
+	- Producers must be registered with add_producer() and they must notify 
+	  once they have finished adding items with finish()	
+	- Countable interface to count number of items task_done() through 'count' property
+	- Countable property can be disabled with count_items=False. This is useful when you
 	want to sum the count of multiple IterableQueues"""
 
 	def __init__(self, count_items: bool = True, **kwargs):
