@@ -13,7 +13,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	filled and emptied. Supports:
 	- Queue() interface except _nowait() methods
 	- AsyncIterable(): async for item in queue.get():
-	- Automatic termination  of consumers when the queue is empty with (raise QueueDone)
+	- Automatic termination of the consumers when the queue has been emptied (QueueDone exception)
 	- Producers must be registered with add_producer() and they must notify 
 	  once they have finished adding items with finish()	
 	- Countable interface to count number of items task_done() through 'count' property
