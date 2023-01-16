@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any
+from typing import Any, Iterable
 import logging
 
 logger	= logging.getLogger()
@@ -18,12 +18,12 @@ class AliasMapper():
 		return self._model.__fields__[field].alias
 
 	@classmethod
-	def map_dict(cls, model: type[BaseModel], fields: dict[str, Any]) -> dict[str, Any]:
+	def map(cls, model: type[BaseModel], fields: Iterable[tuple[str, Any]]) -> dict[str, Any]:
 		res : dict[str, Any] = dict()
 		try:
 			a : AliasMapper = AliasMapper(model)
 			alias = a.alias
-			for f, v in fields.items():
+			for f, v in fields:
 				res[alias(f)] = v
 		except KeyError as err:
 			error(f'{type(model).__name__}() Field not found: {err}')
