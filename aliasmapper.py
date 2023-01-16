@@ -17,16 +17,16 @@ class AliasMapper():
 	def alias(self, field: str):
 		return self._model.__fields__[field].alias
 
-
-def alias_mapper(model: type[BaseModel], fields: dict[str, Any]) -> dict[str, Any]:
-	res : dict[str, Any] = dict()
-	try:
-		a : AliasMapper = AliasMapper(model)
-		alias = a.alias
-		for f, v in fields.items():
-			res[alias(f)] = v
-	except KeyError as err:
-		error(f'{type(model).__name__}() Field not found: {err}')
-	except Exception as err:		
-		raise ValueError(f'{type(model).__name__}(): Could not map field aliases: {err}')
-	return res
+	@classmethod
+	def map_dict(cls, model: type[BaseModel], fields: dict[str, Any]) -> dict[str, Any]:
+		res : dict[str, Any] = dict()
+		try:
+			a : AliasMapper = AliasMapper(model)
+			alias = a.alias
+			for f, v in fields.items():
+				res[alias(f)] = v
+		except KeyError as err:
+			error(f'{type(model).__name__}() Field not found: {err}')
+		except Exception as err:		
+			raise ValueError(f'{type(model).__name__}(): Could not map field aliases: {err}')
+		return res

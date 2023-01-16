@@ -1,4 +1,4 @@
-from .aliasmapper 			import AliasMapper, alias_mapper
+from .aliasmapper 			import AliasMapper
 from .bucketmapper			import BucketItem, BucketMapper
 from .counterqueue 			import CounterQueue
 from .eventcounter 			import EventCounter
