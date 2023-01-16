@@ -53,8 +53,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 				raise ValueError('finish() called more than the is producers')
 			elif self._producers == 0:
 				self._filled.set()
-				if self.empty() and not self.has_wip:
-					self._done.set()
+				self.check_done()
 				await self._Q.put(None)						
 				return True
 		return False
@@ -91,9 +90,11 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		if item is None:
 			self._empty.set()			
 			self._Q.task_done()
+			self.check_done()
 			async with self._put_lock:
 				await self._Q.put(None)
 				raise QueueDone
+			
 		else:
 			async with self._modify:
 				self._wip += 1				
@@ -111,20 +112,21 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		self._wip -= 1
 		if self._wip < 0:
 			raise ValueError('task_done() called more than tasks open')
-		elif self._wip == 0 and self.empty():
-			self._done.set()
+		self.check_done()
 
 
 	async def join(self) -> None:
+		print(f'Waiting queue to be filled')
 		await self._filled.wait()
+		print(f'Queue filled, waiting when queue is done')
 		await self._done.wait()
+		print(f'queue is done')
 		return None
 
 
 	@property
 	def maxsize(self) -> int:
 		return self._Q.maxsize
-
 
 	def full(self) -> bool:
 		return self._Q.full()
