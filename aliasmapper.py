@@ -16,7 +16,14 @@ class AliasMapper():
 	
 	
 	def alias(self, field: str) -> str:
-		return self._model.__fields__[field].alias
+		if len(fields := field.split('.')) > 1:
+			field = fields[0]
+			field_child : str = '.'.join(fields[1:])
+			model : type[BaseModel] = self._model.__fields__[field].type_
+			mapper : AliasMapper = AliasMapper(model)
+			return self.alias(field) + '.' + mapper.alias(field_child)
+		else:
+			return self._model.__fields__[field].alias
 
 
 	def map(self, fields: Iterable[tuple[str, T]]) -> dict[str, T]:
