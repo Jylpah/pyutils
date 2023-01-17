@@ -1,6 +1,7 @@
 from pydantic import BaseModel
-from typing import Any, Iterable
+from typing import Any, Iterable, TypeVar, Generic
 
+T = TypeVar('T')
 
 class AliasMapper():
 	"""Simple class to map Pydantic BaseModel fields to their aliases"""
@@ -8,5 +9,7 @@ class AliasMapper():
 	
 	def alias(self, field: str): ...
 
+	def map(self, fields: Iterable[tuple[str, T]]) -> dict[str, T]: ...
+
 	@classmethod
-	def map(cls, model: type[BaseModel], fields: Iterable[tuple[str, Any]]) -> dict[str, Any]: ...
+	def mapper(cls, model: type[BaseModel], fields: Iterable[tuple[str, T]]) -> dict[str, T]: ...

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any, Iterable
+from typing import Any, Iterable, TypeVar, Generic
 import logging
 
 logger	= logging.getLogger()
@@ -8,25 +8,31 @@ message	= logger.warning
 verbose	= logger.info
 debug	= logger.debug
 
+T = TypeVar('T')
 class AliasMapper():
 	"""Simple class to map Pydantic BaseModel fields to their aliases"""
 	def __init__(self, model: type[BaseModel]):
 		self._model : type[BaseModel] = model
 	
 	
-	def alias(self, field: str):
+	def alias(self, field: str) -> str:
 		return self._model.__fields__[field].alias
 
-	@classmethod
-	def map(cls, model: type[BaseModel], fields: Iterable[tuple[str, Any]]) -> dict[str, Any]:
-		res : dict[str, Any] = dict()
-		try:
-			a : AliasMapper = AliasMapper(model)
-			alias = a.alias
+
+	def map(self, fields: Iterable[tuple[str, T]]) -> dict[str, T]:
+		res : dict[str, T] = dict()
+		try:			
 			for f, v in fields:
-				res[alias(f)] = v
-		except KeyError as err:
-			error(f'{type(model).__name__}() Field not found: {err}')
+				try: 
+					res[self.alias(f)] = v
+				except KeyError as err:
+					error(f'{type(self._model).__name__}(): could not map {f}: {err}')
 		except Exception as err:		
-			raise ValueError(f'{type(model).__name__}(): Could not map field aliases: {err}')
+			raise ValueError(f'{type(self._model).__name__}(): Could not map field aliases: {err}')
 		return res
+
+
+	@classmethod
+	def mapper(cls, model: type[BaseModel], fields: Iterable[tuple[str, T]]) -> dict[str, T]:
+		return cls(model).map(fields)
+		
