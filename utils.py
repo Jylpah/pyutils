@@ -356,6 +356,14 @@ def get_type(name: str) -> type[object] | None:
 		error(f'Could not find class {name}(): {err}')
 	return None
 
+T = TypeVar('T', bound=object)
+
+def get_sub_type(name: str, parent: type[T]) -> Optional[type[T]]:
+	if (model := get_type(name)) is not None:
+		if issubclass(model, parent):
+			return model
+	return None
+
 
 async def alive_bar_monitor(monitor : list[Countable], title : str, 
 							total : int | None = None, wait: float = 0.5, 
