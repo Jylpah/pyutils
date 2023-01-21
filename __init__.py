@@ -11,8 +11,8 @@ from .utils					import TXTExportable, CSVExportable, JSONExportable, \
 									CSVImportable, JSONImportable, TXTImportable, \
 									Countable, \
 									export, epoch_now, alive_bar_monitor, is_alphanum, \
-									get_url, get_urls, get_url_JSON_model, get_url_JSON, \
-									get_urls_JSON, get_urls_JSON_models, get_datestr
+									get_type, get_url, get_urls, get_url_JSON_model, \
+									get_url_JSON, get_urls_JSON, get_urls_JSON_models, get_datestr
 
 
 __all__ = [ 'aliasmapper',

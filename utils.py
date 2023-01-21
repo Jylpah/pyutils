@@ -344,6 +344,19 @@ def is_alphanum(string: str) -> bool:
 	return False
 
 
+def get_type(name: str) -> type[object] | None:
+	type_class : type[object]
+	try:
+		if is_alphanum(name):
+			type_class = globals()[name]
+		else:
+			raise ValueError(f'model {name}() contains illegal characters')
+		return type_class
+	except Exception as err:
+		error(f'Could not find class {name}(): {err}')
+	return None
+
+
 async def alive_bar_monitor(monitor : list[Countable], title : str, 
 							total : int | None = None, wait: float = 0.5, 
 							*args, **kwargs) -> None:
