@@ -1,9 +1,10 @@
 from .aliasmapper 			import AliasMapper
+from .asyncqueue 			import AsyncQueue
 from .bucketmapper			import BucketItem, BucketMapper
 from .counterqueue 			import CounterQueue
 from .eventcounter 			import EventCounter
 from .filequeue 			import FileQueue
-from .iterablequeue 			import IterableQueue, QueueDone
+from .iterablequeue 		import IterableQueue, QueueDone
 from .multilevelformatter 	import MultilevelFormatter
 from .throttledclientsession import ThrottledClientSession
 from .urlqueue 				import UrlQueue, UrlQueueItemType, is_url
@@ -17,6 +18,7 @@ from .utils					import TXTExportable, CSVExportable, JSONExportable, \
 
 
 __all__ = [ 'aliasmapper',
+			'asyncqueue',
 			'bucketmapper', 
 			'counterqueue', 
 			'eventcounter', 
