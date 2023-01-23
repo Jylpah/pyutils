@@ -1,4 +1,4 @@
-from queue import Queue, Full, Empty
+import queue
 from typing import Any, AsyncIterable, Generic, TypeVar, Optional
 import logging 
 from asyncio import sleep
@@ -17,7 +17,7 @@ class AsyncQueue(Generic[T]):
 
 	SLEEP: float
 
-	def __init__(self, queue: Queue[T]): ...
+	def __init__(self, queue: queue.Queue[T]): ...
 		
 	async def get(self) -> T: ...
 	

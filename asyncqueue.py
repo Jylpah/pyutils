@@ -1,5 +1,6 @@
-from queue import Queue, Full, Empty
-from typing import Any, AsyncIterable, Generic, TypeVar, Optional
+from queue import Full, Empty
+import queue
+from typing import Generic, TypeVar
 import logging 
 from asyncio import sleep
 
@@ -17,8 +18,8 @@ class AsyncQueue(Generic[T]):
 
 	SLEEP: float = 0.01
 
-	def __init__(self, queue: Queue[T]):
-		self._Q : Queue[T] = queue
+	def __init__(self, Q: queue.Queue[T]):
+		self._Q : queue.Queue[T] = Q
 
 	async def get(self) -> T:
 		while True:
@@ -28,8 +29,7 @@ class AsyncQueue(Generic[T]):
 				await sleep(self.SLEEP)
 	
 
-	async def put(self, item: T) -> None:
-		
+	async def put(self, item: T) -> None:		
 		while True:
 			try:
 				self._Q.put_nowait(item)
