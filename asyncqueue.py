@@ -1,5 +1,7 @@
 from queue import Full, Empty
 import queue
+from asyncio.queues import QueueEmpty, QueueFull
+import asyncio
 from typing import Generic, TypeVar
 import logging 
 from asyncio import sleep
@@ -13,13 +15,25 @@ message = logger.warning
 verbose = logger.info
 error 	= logger.error
 
-class AsyncQueue(Generic[T]):
+class AsyncQueue(asyncio.Queue, Generic[T]):
 	"""Async wrapper for queue.Queue"""
 
 	SLEEP: float = 0.01
 
-	def __init__(self, Q: queue.Queue[T]):
-		self._Q : queue.Queue[T] = Q
+	def __init__(self, maxsize: int =0):
+		self._Q : queue.Queue[T] = queue.Queue()
+
+	@classmethod
+	def from_queue(cls, Q : queue.Queue[T]) -> 'AsyncQueue[T]':
+		aQ : AsyncQueue[T] = AsyncQueue()
+		aQ._Q = Q
+		return aQ
+
+	@property
+	def maxsize(self) -> int:
+		"""not supported by queue.Queue"""
+		return 0
+
 
 	async def get(self) -> T:
 		while True:
@@ -28,6 +42,13 @@ class AsyncQueue(Generic[T]):
 			except Empty:
 				await sleep(self.SLEEP)
 	
+	
+	def get_nowait(self) -> T:
+		try:
+			return self._Q.get_nowait()
+		except:
+			raise QueueEmpty		
+
 
 	async def put(self, item: T) -> None:		
 		while True:
@@ -35,6 +56,21 @@ class AsyncQueue(Generic[T]):
 				self._Q.put_nowait(item)
 				return None
 			except Full:
+				await sleep(self.SLEEP)
+
+
+	def put_nowait(self, item: T) -> None:
+		try:
+			return self._Q.put_nowait(item)
+		except:
+			raise QueueFull
+
+
+	async def join(self) -> None:
+		while True:
+			if self._Q.empty():
+				return None
+			else:
 				await sleep(self.SLEEP)
 
 
