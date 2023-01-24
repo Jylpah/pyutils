@@ -12,10 +12,6 @@ debug	= logger.debug
 
 T = TypeVar("T")
 
-# class BucketItem(Generic[T]):
-# 	item: T
-# 	key: int | float
-
 
 class BucketMapper(Generic[T]):
 	"""BucketMapper() is a generic class for mapping object based on a 
