@@ -13,10 +13,9 @@ debug	= logger.debug
 
 T = TypeVar("T")
 
-@dataclass
-class BucketItem(Generic[T]):
-	item: T
-	key: int | float
+# class BucketItem(Generic[T]):
+# 	item: T
+# 	key: int | float
 
 
 class BucketMapper(Generic[T]):

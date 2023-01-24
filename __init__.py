@@ -1,6 +1,6 @@
 from .aliasmapper 			import AliasMapper
 from .asyncqueue 			import AsyncQueue
-from .bucketmapper			import BucketItem, BucketMapper
+from .bucketmapper			import BucketMapper
 from .counterqueue 			import CounterQueue
 from .eventcounter 			import EventCounter
 from .filequeue 			import FileQueue
