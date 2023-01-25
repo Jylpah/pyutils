@@ -609,7 +609,7 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 			filename += '.csv'
 			file_exists : bool = isfile(filename)
 			if exists(filename) and (not file_exists or not (force or append)):
-				raise FileExistsError(f'Cannot export accounts to {filename }')
+				raise FileExistsError(f'Cannot export to {filename }')
 
 			mode : Literal['w', 'a'] = 'w'
 			if append and file_exists:
@@ -664,7 +664,7 @@ async def export_json(Q: Queue[JSONExportable], filename: str,
 			filename += '.json'
 			file_exists : bool = isfile(filename)
 			if exists(filename) and (not file_exists or not (force or append)):
-				raise FileExistsError(f'Cannot export accounts to {filename }')
+				raise FileExistsError(f'Cannot export to {filename }')
 			mode : Literal['w', 'a'] = 'w'
 			if append and file_exists:
 				mode = 'a'
@@ -708,7 +708,7 @@ async def export_txt(Q: Queue[TXTExportable], filename: str,
 			filename += '.txt'
 			file_exists : bool = isfile(filename)
 			if exists(filename) and (not file_exists or not (force or append)):
-				raise FileExistsError(f'Cannot export accounts to {filename }')
+				raise FileExistsError(f'Cannot export to {filename }')
 			mode : Literal['w', 'a'] = 'w'
 			if append and file_exists:
 				mode = 'a'
