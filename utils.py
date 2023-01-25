@@ -145,15 +145,18 @@ class JSONExportable(BaseModel):
 						fields: list[str] | None = None, **kwargs) -> dict:
 		"""Helper func to process params for obj/src export funcs"""
 		if fields is not None:
-			_exclude : dict[str, bool] = dict()
-			_include : dict[str, bool] = dict()
-			for f in fields:
-				_exclude[f] = False
-				_include[f] = True
-			params['exclude'] = _exclude
-			params['include'] = _include
+			# _exclude : dict[str, bool] = dict()
+			# _include : dict[str, bool] = dict()
+			# for f in fields:
+			# 	_exclude[f] = False
+			# 	_include[f] = True
+			# params['exclude'] = _exclude
+			# params['include'] = _include
+			
+			del params['exclude']
+			params['include'] = { f: True for f in fields }
 			params['exclude_defaults'] 	= False
-			params['exclude_unset'] 	= False
+			params['exclude_unset'] 	= False			
 		else:
 			for f in  ['exclude', 'include']:
 				try:
