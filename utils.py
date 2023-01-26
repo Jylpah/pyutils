@@ -1,7 +1,8 @@
 import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
-from typing import Optional, Any, cast, Type, Literal, TypeVar, ClassVar, Self, Mapping, Iterable, Generic
+from typing import Optional, Any, cast, Type, Literal, Iterable, TypeVar, ClassVar,\
+	 Union, Mapping
 from abc import ABCMeta, ABC, abstractmethod
 from re import compile
 from aiofiles import open
@@ -34,6 +35,11 @@ debug	= logger.debug
 # Constants
 MAX_RETRIES : int   = 3
 SLEEP       : float = 1
+
+Idx = Union[str, int, ObjectId]
+D = TypeVar('D', bound='JSONExportable')
+O = TypeVar('O', bound='JSONExportable')
+I = TypeVar('I', bound=Idx)
 
 
 class Countable(ABC):
@@ -216,6 +222,16 @@ class JSONExportable(BaseModel):
 		except Exception as err:
 			error(f'Error writing replay {filename}: {err}')
 		return -1
+
+
+	def index(self) -> Idx:
+		"""return backend index"""
+		raise NotImplementedError
+
+
+	def indexes(self) -> dict[str, Idx]:
+		"""return backend indexes"""
+		raise NotImplementedError
 
 
 	@classmethod
