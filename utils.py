@@ -219,8 +219,28 @@ class JSONExportable(BaseModel):
 
 
 	@classmethod
-	def transform(cls: type[JSONExportableSelf], in_obj: Any) -> Optional[JSONExportableSelf]:
+	def transform(cls: type[JSONExportableSelf], in_obj: 'JSONExportable') -> Optional[JSONExportableSelf]:  
 		"""Transform object to out_type if supported"""
+		return None
+
+	
+	@classmethod
+	def transform_obj(cls: type[JSONExportableSelf], obj: Any, in_type: type[D]) -> Optional[JSONExportableSelf]:  
+		"""Transform object to class' object"""
+		try:
+			if in_type is cls:
+				return cls.parse_obj(obj)
+			obj_in : D = in_type.parse_obj(obj)				
+			if (res := cls.transform(obj_in)) is not None:						
+				return res
+			else:
+				return cls.parse_obj(obj_in.obj_db())
+		except ValidationError as err:
+			error(f'Could not validate {in_type} or transform it to {cls}: {obj}')
+			error(f'{err}')					
+		except Exception as err:
+			error(f'Could not export object={obj} type={in_type} to type={cls}')
+			error(f'{err}: {obj}')
 		return None
 
 
