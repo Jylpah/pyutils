@@ -74,6 +74,8 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 	async def put(self, item: T) -> None:
 		async with self._put_lock:
+			if self._producers == 0:
+				raise ValueError('No registered producers')
 			if self.is_finished:
 				raise QueueDone
 			elif item is None:
