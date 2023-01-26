@@ -33,9 +33,9 @@ class AliasMapper():
 				try: 
 					res[self.alias(f)] = v
 				except KeyError as err:
-					error(f'{type(self._model).__name__}(): could not map {f}: {err}')
+					error(f'{self._model.__qualname__}(): could not map {f}: {err}')
 		except Exception as err:		
-			raise ValueError(f'{type(self._model).__name__}(): Could not map field aliases: {err}')
+			raise ValueError(f'{self._model.__qualname__}(): Could not map field aliases: {err}')
 		return res
 
 
