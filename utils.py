@@ -1,7 +1,7 @@
 import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
-from typing import Optional, Any, cast, Type, Literal, Iterable, TypeVar, ClassVar,\
+from typing import Optional, Any, cast, Type, Literal, Sequence, TypeVar, ClassVar,\
 	 Union, Mapping
 from abc import ABCMeta, ABC, abstractmethod
 from re import compile
@@ -41,6 +41,11 @@ D = TypeVar('D', bound='JSONExportable')
 O = TypeVar('O', bound='JSONExportable')
 I = TypeVar('I', bound=Idx)
 
+DESCENDING 	: Literal[-1] 	  = -1
+ASCENDING	: Literal[1]	  = 1
+TEXT 		: Literal['text'] = 'text'
+BackendIndexType 	= Literal[-1, 1, 'text']
+BackendIndex 		= tuple[str, BackendIndexType]
 
 class Countable(ABC):
 	
@@ -231,6 +236,12 @@ class JSONExportable(BaseModel):
 	@property
 	def indexes(self) -> dict[str, Idx]:
 		"""return backend indexes"""
+		raise NotImplementedError
+
+
+	@classmethod
+	def backend_indexes(cls) -> list[list[tuple[str, BackendIndexType]]]:
+		"""return backend search indexes"""
 		raise NotImplementedError
 
 
