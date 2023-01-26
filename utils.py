@@ -275,6 +275,14 @@ class JSONExportable(BaseModel):
 		return None
 
 
+	@classmethod
+	def transform_objs(cls: type[JSONExportableSelf], 
+					  objs: Sequence[Any], 
+					  in_type: type[D] | None = None) -> list[JSONExportableSelf]:
+		"""Transform a list of objects"""
+		return [ out for obj in objs if (out:= cls.transform_obj(obj, in_type=in_type)) is not None ]
+
+
 JSONImportableSelf = TypeVar('JSONImportableSelf', bound='JSONImportable')
 class JSONImportable(BaseModel):
 
