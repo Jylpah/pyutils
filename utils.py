@@ -223,12 +223,12 @@ class JSONExportable(BaseModel):
 			error(f'Error writing replay {filename}: {err}')
 		return -1
 
-
+	@property
 	def index(self) -> Idx:
 		"""return backend index"""
 		raise NotImplementedError
 
-
+	@property
 	def indexes(self) -> dict[str, Idx]:
 		"""return backend indexes"""
 		raise NotImplementedError
