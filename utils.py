@@ -8,7 +8,7 @@ from re import compile
 from aiofiles import open
 from aiocsv.writers import AsyncDictWriter
 from aiocsv.readers import AsyncDictReader
-from alive_progress import alive_bar 							# type: ignore
+from alive_progress import alive_bar 				# type: ignore
 from csv import Dialect, Sniffer, excel, QUOTE_NONNUMERIC
 from ast import literal_eval
 from os.path import isfile, exists
@@ -18,7 +18,7 @@ import json
 from time import time
 from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
-from asyncio import sleep, CancelledError, Queue, AbstractEventLoop, Task, gather
+from asyncio import sleep, CancelledError, Queue
 from collections.abc import AsyncGenerator
 
 from .eventcounter import EventCounter
@@ -156,14 +156,7 @@ class JSONExportable(BaseModel):
 						fields: list[str] | None = None, **kwargs) -> dict:
 		"""Helper func to process params for obj/src export funcs"""
 		if fields is not None:
-			# _exclude : dict[str, bool] = dict()
-			# _include : dict[str, bool] = dict()
-			# for f in fields:
-			# 	_exclude[f] = False
-			# 	_include[f] = True
-			# params['exclude'] = _exclude
-			# params['include'] = _include
-			
+	
 			del params['exclude']
 			params['include'] = { f: True for f in fields }
 			params['exclude_defaults'] 	= False
