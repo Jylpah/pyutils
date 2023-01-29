@@ -253,9 +253,8 @@ class JSONExportable(BaseModel):
 			obj_in : JSONExportable
 			if type(obj) is cls:
 				return obj
-			elif in_type is None or in_type is  type(obj):
-				if isinstance(obj, JSONExportable):
-					# debug(f'transform_obj(): setting in_type={type(obj)}')
+			elif in_type is None or in_type is type(obj):
+				if isinstance(obj, JSONExportable):					
 					obj_in = obj
 				else:
 					raise ValueError("if if 'in_type' is not set, 'obj' has to be JSONExportable")
@@ -282,6 +281,14 @@ class JSONExportable(BaseModel):
 					  in_type: type[D] | None = None) -> list[JSONExportableSelf]:
 		"""Transform a list of objects"""
 		return [ out for obj in objs if (out:= cls.transform_obj(obj, in_type=in_type)) is not None ]
+
+
+async def transform_objs(out_type: type[D], 
+						agen: AsyncGenerator[JSONExportable, None]) ->  AsyncGenerator[D, None]:
+		async for exportable in agen:
+			if (out := out_type.transform_obj(exportable)) is not None:
+				yield out
+
 
 
 JSONImportableSelf = TypeVar('JSONImportableSelf', bound='JSONImportable')
