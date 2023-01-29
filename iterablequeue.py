@@ -1,6 +1,14 @@
 from asyncio import Queue, Event, Lock
 from typing import Any, AsyncIterable, Generic, TypeVar, Optional
 from .utils import Countable
+import logging
+
+# Setup logging
+logger	= logging.getLogger()
+error 	= logger.error
+message	= logger.warning
+verbose	= logger.info
+debug	= logger.debug
 
 T= TypeVar('T')
 
@@ -120,11 +128,11 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	async def join(self) -> None:
-		print(f'Waiting queue to be filled')
+		debug(f'Waiting queue to be filled')
 		await self._filled.wait()
-		print(f'Queue filled, waiting when queue is done')
+		debug(f'Queue filled, waiting when queue is done')
 		await self._done.wait()
-		print(f'queue is done')
+		debug(f'queue is done')
 		return None
 
 
