@@ -150,13 +150,14 @@ class JSONExportable(BaseModel):
 	_include_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_include_export_src_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_export_DB_by_alias			: bool = True
+	_exclude_defaults 			: bool = True
+	_exclude_unset 				: bool = True
 
 
 	def _export_helper(self, params: dict[str, Any], 
 						fields: list[str] | None = None, **kwargs) -> dict:
 		"""Helper func to process params for obj/src export funcs"""
-		if fields is not None:
-	
+		if fields is not None:	
 			del params['exclude']
 			params['include'] = { f: True for f in fields }
 			params['exclude_defaults'] 	= False
@@ -175,7 +176,7 @@ class JSONExportable(BaseModel):
 	def obj_db(self, fields: list[str] | None = None, **kwargs) -> dict:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
 									'include'	: self._include_export_DB_fields,
-									'exclude_defaults': True, 
+									'exclude_defaults': self._exclude_defaults, 
 									'by_alias'	: self._export_DB_by_alias 
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
@@ -185,7 +186,7 @@ class JSONExportable(BaseModel):
 	def obj_src(self, fields: list[str] | None = None, **kwargs) -> dict:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
 									'include'	: self._include_export_src_fields,
-									'exclude_unset' : True, 
+									'exclude_unset' : self._exclude_unset, 
 									'by_alias'	: not self._export_DB_by_alias 
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
@@ -195,7 +196,7 @@ class JSONExportable(BaseModel):
 	def json_db(self, fields: list[str] | None = None, **kwargs) -> str:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
 									'include'	: self._include_export_DB_fields,
-									'exclude_defaults': True, 
+									'exclude_defaults': self._exclude_defaults, 
 									'by_alias'	: self._export_DB_by_alias 
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
@@ -205,7 +206,7 @@ class JSONExportable(BaseModel):
 	def json_src(self, fields: list[str] | None = None,**kwargs) -> str:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
 									'include'	: self._include_export_src_fields,
-									'exclude_unset' : True, 
+									'exclude_unset' : self._exclude_unset, 
 									'by_alias'	: not self._export_DB_by_alias 
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
