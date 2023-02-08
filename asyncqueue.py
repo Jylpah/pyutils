@@ -22,6 +22,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 
 	def __init__(self, maxsize: int =0):
 		self._Q : queue.Queue[T] = queue.Queue()
+		self._done : int = 0
 
 	@classmethod
 	def from_queue(cls, Q : queue.Queue[T]) -> 'AsyncQueue[T]':
@@ -76,11 +77,17 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 
 	def task_done(self) -> None:
 		self._Q.task_done()
+		self._done += 1
 		return None
 
 
 	def qsize(self) -> int:
 		return self._Q.qsize()
+
+
+	@property
+	def done(self) -> int:
+		return self._done
 
 
 	def empty(self) -> bool:
