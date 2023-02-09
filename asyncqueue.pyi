@@ -46,5 +46,8 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 
 	@property
 	def done(self) -> int: ...
-		
+
+	@property
+	def items(self) -> int: ...
+
 

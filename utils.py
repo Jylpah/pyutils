@@ -260,7 +260,9 @@ class JSONExportable(BaseModel):
 				else:
 					raise ValueError("if if 'in_type' is not set, 'obj' has to be JSONExportable")
 			else:	
-				obj_in = in_type.parse_obj(obj)
+				obj_in = in_type.parse_obj(obj)			
+				if type(obj_in) is cls:
+					return obj_in
 
 			if (res := cls.transform(obj_in)) is not None:						
 				return res

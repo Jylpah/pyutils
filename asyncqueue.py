@@ -21,8 +21,10 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 	SLEEP: float = 0.01
 
 	def __init__(self, maxsize: int =0):
-		self._Q : queue.Queue[T] = queue.Queue()
-		self._done : int = 0
+		self._Q 	: queue.Queue[T] = queue.Queue()
+		self._done 	: int = 0
+		self._items : int = 0
+		
 
 	@classmethod
 	def from_queue(cls, Q : queue.Queue[T]) -> 'AsyncQueue[T]':
@@ -55,6 +57,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 		while True:
 			try:
 				self._Q.put_nowait(item)
+				self._items += 1
 				return None
 			except Full:
 				await sleep(self.SLEEP)
@@ -62,7 +65,9 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 
 	def put_nowait(self, item: T) -> None:
 		try:
-			return self._Q.put_nowait(item)
+			self._Q.put_nowait(item)
+			self._items += 1
+			return None
 		except:
 			raise QueueFull
 
@@ -87,7 +92,14 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 
 	@property
 	def done(self) -> int:
+		"""Number of done items"""
 		return self._done
+
+
+	@property
+	def items(self) -> int:
+		"""Number of items ever put to the queue"""
+		return self._items
 
 
 	def empty(self) -> bool:
