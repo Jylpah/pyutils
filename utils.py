@@ -2,7 +2,7 @@ import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 from typing import Optional, Any, cast, Type, Literal, Sequence, TypeVar, ClassVar,\
-	 Union, Mapping
+	 Union, Mapping, Callable
 from abc import ABCMeta, ABC, abstractmethod
 from re import compile
 from aiofiles import open
@@ -152,6 +152,16 @@ class JSONExportable(BaseModel):
 	_export_DB_by_alias			: bool = True
 	_exclude_defaults 			: bool = True
 	_exclude_unset 				: bool = True
+	_transformations 			: dict[Any, Callable[[D], JSONExportableSelf]] = dict()
+
+
+	@classmethod
+	def register_transformation(cls, obj_type: type[D], 
+								method: Callable[[D], 
+										JSONExportableSelf | None]) -> None:
+		"""Register transformations"""
+		cls._transformations[obj_type] = method
+		return None
 
 
 	def _export_helper(self, params: dict[str, Any], 
@@ -240,8 +250,14 @@ class JSONExportable(BaseModel):
 
 
 	@classmethod
-	def transform(cls: type[JSONExportableSelf], in_obj: 'JSONExportable') -> Optional[JSONExportableSelf]:  
+	def transform(cls: type[JSONExportableSelf], 
+					in_obj: 'JSONExportable') -> Optional[JSONExportableSelf]:  
 		"""Transform object to out_type if supported"""
+		try:
+			transform_func : Callable[[D], JSONExportableSelf] = cls._transformations[type(in_obj)]
+			return transform_func(in_obj)
+		except Exception as err:
+			debug(f'failed to transform {type(in_obj)} to {cls}: {err}')
 		return None
 
 	
