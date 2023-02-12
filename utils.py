@@ -90,7 +90,6 @@ class CSVImportable(BaseModel):
 		"""Provide CSV row as a dict for csv.DictWriter"""
 		try:
 			row = cls._set_field_types(row)
-			debug(str(row))
 			return cls.parse_obj(row)
 		except Exception as err:
 			error(f'Could not parse row ({row}): {err}')
@@ -99,9 +98,10 @@ class CSVImportable(BaseModel):
 
 	@classmethod
 	def _set_field_types(cls, row: dict[str, Any]) -> dict[str, Any]:
+		## Does NOT WORK with Alias field names
 		assert type(row) is dict, 'row has to be type dict()'
 		res : dict[str, Any] = dict()
-		for field in row:			
+		for field in row.keys():			
 			if row[field] != '':
 				try:
 					field_type = cls.__fields__[field].type_
@@ -350,7 +350,7 @@ class JSONImportable(BaseModel):
 
 	@classmethod
 	async def import_json(cls : type[JSONImportableSelf], 
-					filename : str) -> AsyncGenerator[JSONImportableSelf, None]:
+						filename : str) -> AsyncGenerator[JSONImportableSelf, None]:
 		"""Import from filename, one model per line"""
 		try:
 			importable : JSONImportableSelf | None
