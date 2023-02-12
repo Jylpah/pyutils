@@ -49,7 +49,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		"""Add producer(s) to the queue"""
 		assert N > 0, 'N has to be positive'		
 		async with self._modify:
-			if self.is_finished:
+			if self.is_filled:
 				raise QueueDone
 			self._producers += N
 		return self._producers
@@ -70,22 +70,25 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	async def shutdown(self) -> None:
-		async with self._modify:
-			self._producers = 1   # since finish() deducts 1 producer
-			await self.finish()
+		"""Shutdown the queue regardless whether there are items"""
+		self._filled.set()
+		self._done.set()
+		async with self._put_lock, self._modify:
+			self._producers = 0   # since finish() deducts 1 producer			
+			await self._Q.put(None)	
 
 
 	@property
-	def is_finished(self) -> bool:
+	def is_filled(self) -> bool:
 		return self._filled.is_set()
 
 
 	async def put(self, item: T) -> None:
+		if self.is_filled:
+			raise QueueDone
 		async with self._put_lock:
-			if self._producers == 0:
+			if self._producers <= 0:
 				raise ValueError('No registered producers')
-			if self.is_finished:
-				raise QueueDone
 			elif item is None:
 				raise ValueError('Cannot add None to IterableQueue')
 			self._empty.clear()
@@ -156,7 +159,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	def qsize(self) -> int:
-		if self.is_finished:
+		if self.is_filled:
 			return self._Q.qsize() - 1
 		else:
 			return self._Q.qsize()
