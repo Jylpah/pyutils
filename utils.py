@@ -2,9 +2,10 @@ import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 from typing import Optional, Any, cast, Type, Literal, Sequence, TypeVar, ClassVar,\
-	 Union, Mapping, Callable
+	 Union, Mapping, Callable, Iterator
 from abc import ABCMeta, ABC, abstractmethod
 from re import compile
+from itertools import islice
 from aiofiles import open
 from aiocsv.writers import AsyncDictWriter
 from aiocsv.readers import AsyncDictReader
@@ -40,6 +41,7 @@ Idx = Union[str, int, ObjectId]
 D = TypeVar('D', bound='JSONExportable')
 O = TypeVar('O', bound='JSONExportable')
 I = TypeVar('I', bound=Idx)
+T = TypeVar('T', bound=object)
 
 DESCENDING 	: Literal[-1] 	  = -1
 ASCENDING	: Literal[1]	  = 1
@@ -433,6 +435,14 @@ def is_alphanum(string: str) -> bool:
 	return False
 
 
+def chunker(it : Sequence[T], size: int) -> Iterator[list[T]]:
+	"""Makes fixed sized chunks out of Sequence"""
+	assert size > 0, "size has to be positive"
+	iterator : Iterator = iter(it)
+	while chunk := list(islice(iterator, size)):
+		yield chunk
+
+
 def get_type(name: str) -> type[object] | None:
 	type_class : type[object]
 	try:
@@ -445,7 +455,6 @@ def get_type(name: str) -> type[object] | None:
 		error(f'Could not find class {name}(): {err}')
 	return None
 
-T = TypeVar('T', bound=object)
 
 def get_sub_type(name: str, parent: type[T]) -> Optional[type[T]]:
 	if (model := get_type(name)) is not None:
@@ -455,7 +464,9 @@ def get_sub_type(name: str, parent: type[T]) -> Optional[type[T]]:
 
 
 async def alive_bar_monitor(monitor : list[Countable], title : str, 
-							total : int | None = None, wait: float = 0.5, 
+							total : int | None = None, 
+							wait: float = 0.5,
+							batch: int = 1, 
 							*args, **kwargs) -> None:
 	"""Create a alive_progress bar for List[Countable]"""
 	
@@ -472,7 +483,7 @@ async def alive_bar_monitor(monitor : list[Countable], title : str,
 				for m in monitor:
 					current += m.count
 				if current != prev:
-					bar(current - prev)
+					bar((current - prev) * batch)
 				prev = current
 				if current == total:
 					break
