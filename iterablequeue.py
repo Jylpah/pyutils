@@ -1,6 +1,14 @@
 from asyncio import Queue, Event, Lock
 from typing import Any, AsyncIterable, Generic, TypeVar, Optional
 from .utils import Countable
+import logging
+
+# Setup logging
+logger	= logging.getLogger()
+error 	= logger.error
+message	= logger.warning
+verbose	= logger.info
+debug	= logger.debug
 
 T= TypeVar('T')
 
@@ -13,7 +21,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	filled and emptied. Supports:
 	- Queue() interface except _nowait() methods
 	- AsyncIterable(): async for item in queue.get():
-	- Automatic termination  of consumers when the queue is empty with (raise QueueDone)
+	- Automatic termination of the consumers when the queue has been emptied (QueueDone exception)
 	- Producers must be registered with add_producer() and they must notify 
 	  once they have finished adding items with finish()	
 	- Countable interface to count number of items task_done() through 'count' property
@@ -41,7 +49,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		"""Add producer(s) to the queue"""
 		assert N > 0, 'N has to be positive'		
 		async with self._modify:
-			if self.is_finished:
+			if self.is_filled:
 				raise QueueDone
 			self._producers += N
 		return self._producers
@@ -62,20 +70,25 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	async def shutdown(self) -> None:
-		async with self._modify:
-			self._producers = 1   # since finish() deducts 1 producer
-			await self.finish()
+		"""Shutdown the queue regardless whether there are items"""
+		self._filled.set()
+		self._done.set()
+		async with self._put_lock, self._modify:
+			self._producers = 0   # since finish() deducts 1 producer			
+			await self._Q.put(None)	
 
 
 	@property
-	def is_finished(self) -> bool:
+	def is_filled(self) -> bool:
 		return self._filled.is_set()
 
 
 	async def put(self, item: T) -> None:
+		if self.is_filled:
+			raise QueueDone
 		async with self._put_lock:
-			if self.is_finished:
-				raise QueueDone
+			if self._producers <= 0:
+				raise ValueError('No registered producers')
 			elif item is None:
 				raise ValueError('Cannot add None to IterableQueue')
 			self._empty.clear()
@@ -118,11 +131,11 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	async def join(self) -> None:
-		print(f'Waiting queue to be filled')
+		debug(f'Waiting queue to be filled')
 		await self._filled.wait()
-		print(f'Queue filled, waiting when queue is done')
+		debug(f'Queue filled, waiting when queue is done')
 		await self._done.wait()
-		print(f'queue is done')
+		debug(f'queue is done')
 		return None
 
 
@@ -146,7 +159,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	def qsize(self) -> int:
-		if self.is_finished:
+		if self.is_filled:
 			return self._Q.qsize() - 1
 		else:
 			return self._Q.qsize()

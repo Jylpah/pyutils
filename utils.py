@@ -1,13 +1,15 @@
 import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
-from typing import Optional, Any, cast, Type, Literal, TypeVar, ClassVar, Self, Mapping, Iterable, Generic
+from typing import Optional, Any, cast, Type, Literal, Sequence, TypeVar, ClassVar,\
+	 Union, Mapping, Callable, Iterator
 from abc import ABCMeta, ABC, abstractmethod
 from re import compile
+from itertools import islice
 from aiofiles import open
 from aiocsv.writers import AsyncDictWriter
 from aiocsv.readers import AsyncDictReader
-from alive_progress import alive_bar 							# type: ignore
+from alive_progress import alive_bar 				# type: ignore
 from csv import Dialect, Sniffer, excel, QUOTE_NONNUMERIC
 from ast import literal_eval
 from os.path import isfile, exists
@@ -17,7 +19,7 @@ import json
 from time import time
 from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
-from asyncio import sleep, CancelledError, Queue, AbstractEventLoop, Task, gather
+from asyncio import sleep, CancelledError, Queue
 from collections.abc import AsyncGenerator
 
 from .eventcounter import EventCounter
@@ -35,6 +37,17 @@ debug	= logger.debug
 MAX_RETRIES : int   = 3
 SLEEP       : float = 1
 
+Idx = Union[str, int, ObjectId]
+D = TypeVar('D', bound='JSONExportable')
+O = TypeVar('O', bound='JSONExportable')
+I = TypeVar('I', bound=Idx)
+T = TypeVar('T', bound=object)
+
+DESCENDING 	: Literal[-1] 	  = -1
+ASCENDING	: Literal[1]	  = 1
+TEXT 		: Literal['text'] = 'text'
+BackendIndexType 	= Literal[-1, 1, 'text']
+BackendIndex 		= tuple[str, BackendIndexType]
 
 class Countable(ABC):
 	
@@ -79,7 +92,6 @@ class CSVImportable(BaseModel):
 		"""Provide CSV row as a dict for csv.DictWriter"""
 		try:
 			row = cls._set_field_types(row)
-			debug(str(row))
 			return cls.parse_obj(row)
 		except Exception as err:
 			error(f'Could not parse row ({row}): {err}')
@@ -88,9 +100,10 @@ class CSVImportable(BaseModel):
 
 	@classmethod
 	def _set_field_types(cls, row: dict[str, Any]) -> dict[str, Any]:
+		## Does NOT WORK with Alias field names
 		assert type(row) is dict, 'row has to be type dict()'
 		res : dict[str, Any] = dict()
-		for field in row:			
+		for field in row.keys():			
 			if row[field] != '':
 				try:
 					field_type = cls.__fields__[field].type_
@@ -139,21 +152,28 @@ class JSONExportable(BaseModel):
 	_include_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_include_export_src_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_export_DB_by_alias			: bool = True
+	_exclude_defaults 			: bool = True
+	_exclude_unset 				: bool = True
+	_transformations 			: dict[Any, Callable[[D], JSONExportableSelf]] = dict()
+
+
+	@classmethod
+	def register_transformation(cls, obj_type: type[D], 
+								method: Callable[[D], 
+										JSONExportableSelf | None]) -> None:
+		"""Register transformations"""
+		cls._transformations[obj_type] = method
+		return None
 
 
 	def _export_helper(self, params: dict[str, Any], 
 						fields: list[str] | None = None, **kwargs) -> dict:
 		"""Helper func to process params for obj/src export funcs"""
-		if fields is not None:
-			_exclude : dict[str, bool] = dict()
-			_include : dict[str, bool] = dict()
-			for f in fields:
-				_exclude[f] = False
-				_include[f] = True
-			params['exclude'] = _exclude
-			params['include'] = _include
+		if fields is not None:	
+			del params['exclude']
+			params['include'] = { f: True for f in fields }
 			params['exclude_defaults'] 	= False
-			params['exclude_unset'] 	= False
+			params['exclude_unset'] 	= False			
 		else:
 			for f in  ['exclude', 'include']:
 				try:
@@ -168,7 +188,7 @@ class JSONExportable(BaseModel):
 	def obj_db(self, fields: list[str] | None = None, **kwargs) -> dict:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
 									'include'	: self._include_export_DB_fields,
-									'exclude_defaults': True, 
+									'exclude_defaults': self._exclude_defaults, 
 									'by_alias'	: self._export_DB_by_alias 
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
@@ -178,7 +198,7 @@ class JSONExportable(BaseModel):
 	def obj_src(self, fields: list[str] | None = None, **kwargs) -> dict:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
 									'include'	: self._include_export_src_fields,
-									'exclude_unset' : True, 
+									'exclude_unset' : self._exclude_unset, 
 									'by_alias'	: not self._export_DB_by_alias 
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
@@ -188,7 +208,7 @@ class JSONExportable(BaseModel):
 	def json_db(self, fields: list[str] | None = None, **kwargs) -> str:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
 									'include'	: self._include_export_DB_fields,
-									'exclude_defaults': True, 
+									'exclude_defaults': self._exclude_defaults, 
 									'by_alias'	: self._export_DB_by_alias 
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
@@ -198,7 +218,7 @@ class JSONExportable(BaseModel):
 	def json_src(self, fields: list[str] | None = None,**kwargs) -> str:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
 									'include'	: self._include_export_src_fields,
-									'exclude_unset' : True, 
+									'exclude_unset' : self._exclude_unset, 
 									'by_alias'	: not self._export_DB_by_alias 
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
@@ -214,11 +234,82 @@ class JSONExportable(BaseModel):
 			error(f'Error writing replay {filename}: {err}')
 		return -1
 
+	@property
+	def index(self) -> Idx:
+		"""return backend index"""
+		raise NotImplementedError
+
+	@property
+	def indexes(self) -> dict[str, Idx]:
+		"""return backend indexes"""
+		raise NotImplementedError
+
 
 	@classmethod
-	def transform(cls: type[JSONExportableSelf], in_obj: Any) -> Optional[JSONExportableSelf]:
+	def backend_indexes(cls) -> list[list[tuple[str, BackendIndexType]]]:
+		"""return backend search indexes"""
+		raise NotImplementedError
+
+
+	@classmethod
+	def transform(cls: type[JSONExportableSelf], 
+					in_obj: 'JSONExportable') -> Optional[JSONExportableSelf]:  
 		"""Transform object to out_type if supported"""
+		try:
+			transform_func : Callable[[D], JSONExportableSelf] = cls._transformations[type(in_obj)]
+			return transform_func(in_obj)
+		except Exception as err:
+			debug(f'failed to transform {type(in_obj)} to {cls}: {err}')
 		return None
+
+	
+	@classmethod
+	def transform_obj(cls: type[JSONExportableSelf], 
+					  obj: Any, 
+					  in_type: type[D] | None = None) -> Optional[JSONExportableSelf]:  
+		"""Transform object to class' object"""
+		try:
+			obj_in : JSONExportable
+			if type(obj) is cls:
+				return obj
+			elif in_type is None or in_type is type(obj):
+				if isinstance(obj, JSONExportable):					
+					obj_in = obj
+				else:
+					raise ValueError("if if 'in_type' is not set, 'obj' has to be JSONExportable")
+			else:	
+				obj_in = in_type.parse_obj(obj)			
+				if type(obj_in) is cls:
+					return obj_in
+
+			if (res := cls.transform(obj_in)) is not None:						
+				return res
+			else:
+				return cls.parse_obj(obj_in.obj_db())
+
+		except ValidationError as err:
+			error(f'Could not validate {in_type} or transform it to {cls}: {obj}')
+			error(f'{err}')					
+		except Exception as err:
+			error(f'Could not export object type={in_type} to type={cls}')
+			error(f'{err}: {obj}')
+		return None
+
+
+	@classmethod
+	def transform_objs(cls: type[JSONExportableSelf], 
+					  objs: Sequence[Any], 
+					  in_type: type[D] | None = None) -> list[JSONExportableSelf]:
+		"""Transform a list of objects"""
+		return [ out for obj in objs if (out:= cls.transform_obj(obj, in_type=in_type)) is not None ]
+
+
+async def transform_objs(out_type: type[D], 
+						agen: AsyncGenerator[JSONExportable, None]) ->  AsyncGenerator[D, None]:
+		async for exportable in agen:
+			if (out := out_type.transform_obj(exportable)) is not None:
+				yield out
+
 
 
 JSONImportableSelf = TypeVar('JSONImportableSelf', bound='JSONImportable')
@@ -261,7 +352,7 @@ class JSONImportable(BaseModel):
 
 	@classmethod
 	async def import_json(cls : type[JSONImportableSelf], 
-					filename : str) -> AsyncGenerator[JSONImportableSelf, None]:
+						filename : str) -> AsyncGenerator[JSONImportableSelf, None]:
 		"""Import from filename, one model per line"""
 		try:
 			importable : JSONImportableSelf | None
@@ -344,8 +435,38 @@ def is_alphanum(string: str) -> bool:
 	return False
 
 
+def chunker(it : Sequence[T], size: int) -> Iterator[list[T]]:
+	"""Makes fixed sized chunks out of Sequence"""
+	assert size > 0, "size has to be positive"
+	iterator : Iterator = iter(it)
+	while chunk := list(islice(iterator, size)):
+		yield chunk
+
+
+def get_type(name: str) -> type[object] | None:
+	type_class : type[object]
+	try:
+		if is_alphanum(name):
+			type_class = globals()[name]
+		else:
+			raise ValueError(f'model {name}() contains illegal characters')
+		return type_class
+	except Exception as err:
+		error(f'Could not find class {name}(): {err}')
+	return None
+
+
+def get_sub_type(name: str, parent: type[T]) -> Optional[type[T]]:
+	if (model := get_type(name)) is not None:
+		if issubclass(model, parent):
+			return model
+	return None
+
+
 async def alive_bar_monitor(monitor : list[Countable], title : str, 
-							total : int | None = None, wait: float = 0.5, 
+							total : int | None = None, 
+							wait: float = 0.5,
+							batch: int = 1, 
 							*args, **kwargs) -> None:
 	"""Create a alive_progress bar for List[Countable]"""
 	
@@ -362,7 +483,7 @@ async def alive_bar_monitor(monitor : list[Countable], title : str,
 				for m in monitor:
 					current += m.count
 				if current != prev:
-					bar(current - prev)
+					bar((current - prev) * batch)
 				prev = current
 				if current == total:
 					break
@@ -585,7 +706,7 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 			filename += '.csv'
 			file_exists : bool = isfile(filename)
 			if exists(filename) and (not file_exists or not (force or append)):
-				raise FileExistsError(f'Cannot export accounts to {filename }')
+				raise FileExistsError(f'Cannot export to {filename }')
 
 			mode : Literal['w', 'a'] = 'w'
 			if append and file_exists:
@@ -640,7 +761,7 @@ async def export_json(Q: Queue[JSONExportable], filename: str,
 			filename += '.json'
 			file_exists : bool = isfile(filename)
 			if exists(filename) and (not file_exists or not (force or append)):
-				raise FileExistsError(f'Cannot export accounts to {filename }')
+				raise FileExistsError(f'Cannot export to {filename }')
 			mode : Literal['w', 'a'] = 'w'
 			if append and file_exists:
 				mode = 'a'
@@ -684,7 +805,7 @@ async def export_txt(Q: Queue[TXTExportable], filename: str,
 			filename += '.txt'
 			file_exists : bool = isfile(filename)
 			if exists(filename) and (not file_exists or not (force or append)):
-				raise FileExistsError(f'Cannot export accounts to {filename }')
+				raise FileExistsError(f'Cannot export to {filename }')
 			mode : Literal['w', 'a'] = 'w'
 			if append and file_exists:
 				mode = 'a'

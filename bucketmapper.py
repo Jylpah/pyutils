@@ -1,7 +1,6 @@
 from operator import attrgetter
 from bisect import bisect, insort, bisect_left
-from typing import Any, TypeVar, Generic, Optional
-from dataclasses import dataclass
+from typing import TypeVar, Generic, Optional
 import logging
 
 # Setup logging
@@ -12,11 +11,6 @@ verbose	= logger.info
 debug	= logger.debug
 
 T = TypeVar("T")
-
-@dataclass
-class BucketItem(Generic[T]):
-	item: T
-	key: int | float
 
 
 class BucketMapper(Generic[T]):
