@@ -1,11 +1,9 @@
 import logging
-from typing import  cast, Type, Any, TypeVar, \
-	 Mapping,Self
+from typing import  cast, Type, Any, TypeVar, Self, AsyncGenerator
 from abc import ABCMeta, abstractmethod
 from pydantic import BaseModel, ValidationError
 from aiocsv.readers import AsyncDictReader
 from csv import Dialect, excel, QUOTE_NONNUMERIC
-from collections.abc import AsyncGenerator
 from aiofiles import open
 
 # Setup logging
@@ -27,19 +25,23 @@ class Importable(metaclass=ABCMeta):
 	"""Abstract class to provide import"""
 
 	@classmethod
-	async def import_file(cls, file : str, 					  
+	async def import_file(cls, 
+		       			file : str, 					  
 					  	**kwargs,
 					 	 ) ->  AsyncGenerator[Self, None]:
 		debug('starting')
 		try:
 			if file.endswith('.txt') and issubclass(cls, TXTImportable):
+				debug(f'importing from TXT file: {file}')
 				async for obj in cls.import_txt(file, **kwargs):
 					yield obj
 			elif file.endswith('.json') and issubclass(cls, JSONImportable):
+				debug(f'importing from JSON file: {file}')
 				async for obj in cls.import_json(file, **kwargs):
 					yield obj
 			elif file.endswith('.csv') and issubclass(cls, CSVImportable):
-				async for obj in cls.import_csv(file, **kwargs):
+				debug(f'importing from CSV file: {file}')
+				async for obj in cls.import_csv(file):
 					yield obj
 		except Exception as err:
 			error(f'{err}')
@@ -57,23 +59,24 @@ class TXTImportable(metaclass=ABCMeta):
 	"""Abstract class to provide TXT import"""
 	
 	@classmethod
-	def from_txt(cls: type[TXTImportableSelf], text: str, **kwargs) -> TXTImportableSelf:
+	def from_txt(cls, text: str, **kwargs) -> Self:
 		"""Provide CSV row as a dict for csv.DictWriter"""
 		raise NotImplementedError
 
 
 	@classmethod
-	async def import_txt(cls : type[TXTImportableSelf], 
+	async def import_txt(cls , 
 					filename : str, 
-					**kwargs) -> AsyncGenerator[TXTImportableSelf, None]:
+					**kwargs) -> AsyncGenerator[Self, None]:
 		"""Import from filename, one model per line"""
 		try:
-			importable : TXTImportableSelf | None
+			# debug(f'starting: {filename}')
+			# importable : TXTImportableSelf | None
 			async with open(filename, 'r') as f:
 				async for line in f:
 					try:
-						importable = cls.from_txt(line, **kwargs)
-						if importable is not None:
+						#debug(f'line: {line}')						
+						if (importable := cls.from_txt(line, **kwargs)) is not None:
 							yield importable
 					except ValidationError as err:
 						error(f'Could not validate mode: {err}')
@@ -96,7 +99,8 @@ class CSVImportable(BaseModel):
 	"""Abstract class to provide CSV export"""
 	
 	@classmethod
-	def from_csv(cls: type[CSVImportableSelf], row: dict[str, Any]) -> CSVImportableSelf | None:
+	def from_csv(cls, 
+	      		row: dict[str, Any]) -> Self | None:
 		"""Provide CSV row as a dict for csv.DictWriter"""
 		try:
 			row = cls._set_field_types(row)
@@ -107,7 +111,8 @@ class CSVImportable(BaseModel):
 
 
 	@classmethod
-	def _set_field_types(cls, row: dict[str, Any]) -> dict[str, Any]:
+	def _set_field_types(cls, 
+		      			row: dict[str, Any]) -> dict[str, Any]:
 		## Does NOT WORK with Alias field names
 		assert type(row) is dict, 'row has to be type dict()'
 		res : dict[str, Any] = dict()
@@ -128,13 +133,12 @@ class CSVImportable(BaseModel):
 
 
 	@classmethod
-	async def import_csv(cls : type[CSVImportableSelf], 
-					filename : str, 
-					**kwargs,) -> AsyncGenerator[CSVImportableSelf, None]:
+	async def import_csv(cls, 
+					filename : str) -> AsyncGenerator[Self, None]:
 		"""Import from filename, one model per line"""
 		try:
 			dialect 	: Type[Dialect] = excel
-			importable 	: CSVImportableSelf | None
+			# importable 	: CSVImportableSelf | None
 			async with open(filename, mode='r', newline='') as f:
 				async for row in AsyncDictReader(f, dialect=dialect):
 					try:						
@@ -160,7 +164,7 @@ JSONImportableSelf = TypeVar('JSONImportableSelf', bound='JSONImportable')
 class JSONImportable(BaseModel):
 
 	@classmethod
-	async def open(cls: type[JSONImportableSelf], filename: str) -> JSONImportableSelf | None:
+	async def open(cls, filename: str) -> Self | None:
 		"""Open replay JSON file and return WoTBlitzReplayJSON instance"""
 		try:
 			async with open(filename, 'r') as f:
@@ -171,7 +175,7 @@ class JSONImportable(BaseModel):
 
 
 	@classmethod
-	def from_str(cls: type[JSONImportableSelf], content: str) -> JSONImportableSelf | None:
+	def from_str(cls, content: str) -> Self | None:
 		"""Open replay JSON file and return WoTBlitzReplayJSON instance"""
 		try:
 			return cls.parse_raw(content)
@@ -183,7 +187,7 @@ class JSONImportable(BaseModel):
 
 
 	@classmethod
-	def from_obj(cls: type[JSONImportableSelf], content: Any) -> JSONImportableSelf | None:
+	def from_obj(cls, content: Any) -> Self | None:
 		"""Open replay JSON file and return WoTBlitzReplayJSON instance"""
 		try:
 			return cls.parse_obj(content)
@@ -195,17 +199,16 @@ class JSONImportable(BaseModel):
 
 
 	@classmethod
-	async def import_json(cls : type[JSONImportableSelf], 
+	async def import_json(cls, 
 						filename : str, 
-						**kwargs) -> AsyncGenerator[JSONImportableSelf, None]:
+						**kwargs) -> AsyncGenerator[Self, None]:
 		"""Import from filename, one model per line"""
 		try:
-			importable : JSONImportableSelf | None
+			# importable : JSONImportableSelf | None
 			async with open(filename, 'r') as f:
 				async for line in f:
-					try:
-						importable = cls.from_str(line, **kwargs)
-						if importable is not None:
+					try:						
+						if (importable := cls.from_str(line, **kwargs)) is not None:
 							yield importable
 					except ValidationError as err:
 						error(f'Could not validate mode: {err}')

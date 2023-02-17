@@ -1,11 +1,10 @@
 import logging
 from typing import  cast, Type, Any, TypeVar, \
-	 Mapping,Self
+	 Mapping,Self, AsyncGenerator
 from abc import ABCMeta, abstractmethod
 from pydantic import BaseModel, ValidationError
 from aiocsv.readers import AsyncDictReader
 from csv import Dialect, excel, QUOTE_NONNUMERIC
-from collections.abc import AsyncGenerator
 from aiofiles import open
 
 # Setup logging
@@ -16,88 +15,6 @@ verbose	= logger.info
 debug	= logger.debug
 
 
-########################################################
-#
-# TXTImportable()
-#
-########################################################
-
-
-TXTImportableSelf = TypeVar('TXTImportableSelf', bound='TXTImportable')
-class TXTImportable(metaclass=ABCMeta):
-	"""Abstract class to provide TXT import"""
-	
-	@classmethod
-	def from_txt(cls: type[TXTImportableSelf], 
-	      			text: str, 
-					**kwargs
-				) -> TXTImportableSelf: ...
-		
-	@classmethod
-	async def import_txt(cls : type[TXTImportableSelf], 
-					filename : str, 
-					**kwargs
-					) -> AsyncGenerator[TXTImportableSelf, None]: ...
-	
-
-########################################################
-#
-# CSVImportable()
-#
-########################################################
-
-
-CSVImportableSelf = TypeVar('CSVImportableSelf', bound='CSVImportable')
-
-class CSVImportable(BaseModel):
-	"""Abstract class to provide CSV export"""
-	
-	@classmethod
-	def from_csv(cls: type[CSVImportableSelf], 
-	      		row: dict[str, Any]
-				) -> CSVImportableSelf | None: ...
-
-	@classmethod
-	def _set_field_types(cls, row: dict[str, Any]) -> dict[str, Any]: ...
-		
-	@classmethod
-	async def import_csv(cls : type[CSVImportableSelf], 
-					filename : str, 
-					**kwargs
-					) -> AsyncGenerator[CSVImportableSelf, None]: ...
-
-
-########################################################
-#
-# JSONImportable()
-#
-########################################################
-
-
-JSONImportableSelf = TypeVar('JSONImportableSelf', bound='JSONImportable')
-
-class JSONImportable(BaseModel):
-
-	@classmethod
-	async def open(cls: type[JSONImportableSelf], 
-					filename: str
-					) -> JSONImportableSelf | None: ...
-	
-	@classmethod
-	def from_str(cls: type[JSONImportableSelf],
-	      		content: str
-		  		) -> JSONImportableSelf | None: ...
-	
-	@classmethod
-	def from_obj(cls: type[JSONImportableSelf], 
-	      		content: Any
-				) -> JSONImportableSelf | None: ...
-	
-	@classmethod
-	async def import_json(cls : type[JSONImportableSelf], 
-						filename : str, 
-						**kwargs
-						) -> AsyncGenerator[JSONImportableSelf, None]: ...
 
 ########################################################
 #
@@ -113,3 +30,87 @@ class Importable(metaclass=ABCMeta):
 	async def import_file(cls, file : str, 					  
 					  	**kwargs,
 					 	 ) ->  AsyncGenerator[Self, None]: ...
+
+
+########################################################
+#
+# TXTImportable()
+#
+########################################################
+
+
+TXTImportableSelf = TypeVar('TXTImportableSelf', bound='TXTImportable')
+class TXTImportable(metaclass=ABCMeta):
+	"""Abstract class to provide TXT import"""
+	
+	@classmethod
+	def from_txt(cls, 
+	      			text: str, 
+					**kwargs
+				) -> Self: ...
+		
+	@classmethod
+	async def import_txt(cls, 
+						filename : str, 
+						**kwargs
+						) -> AsyncGenerator[Self, None]: ...
+	
+
+########################################################
+#
+# CSVImportable()
+#
+########################################################
+
+
+CSVImportableSelf = TypeVar('CSVImportableSelf', bound='CSVImportable')
+
+class CSVImportable(BaseModel):
+	"""Abstract class to provide CSV export"""
+	
+	@classmethod
+	def from_csv(cls, 
+	      		row: dict[str, Any]
+				) -> Self | None: ...
+
+	@classmethod
+	def _set_field_types(cls, row: dict[str, Any]) -> dict[str, Any]: ...
+		
+	@classmethod
+	async def import_csv(cls, 
+						filename : str, 
+						**kwargs
+						) -> AsyncGenerator[Self, None]: ...
+
+
+########################################################
+#
+# JSONImportable()
+#
+########################################################
+
+
+JSONImportableSelf = TypeVar('JSONImportableSelf', bound='JSONImportable')
+
+class JSONImportable(BaseModel):
+
+	@classmethod
+	async def open(cls, 
+					filename: str
+					) -> Self | None: ...
+	
+	@classmethod
+	def from_str(cls,
+	      		content: str
+		  		) -> Self | None: ...
+	
+	@classmethod
+	def from_obj(cls, 
+	      		content: Any
+				) -> Self | None: ...
+	
+	@classmethod
+	async def import_json(cls, 
+						filename : str, 
+						**kwargs
+						) -> AsyncGenerator[Self, None]: ...
