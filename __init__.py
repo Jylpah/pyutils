@@ -8,11 +8,13 @@ from .iterablequeue 		import IterableQueue, QueueDone
 from .multilevelformatter 	import MultilevelFormatter
 from .throttledclientsession import ThrottledClientSession
 from .urlqueue 				import UrlQueue, UrlQueueItemType, is_url
-from .utils					import TXTExportable, CSVExportable, JSONExportable, \
-									CSVImportable, JSONImportable, TXTImportable, \
-									Countable, I, D, O, Idx, BackendIndexType, BackendIndex, \
+from .exportable 			import TXTExportable, CSVExportable, JSONExportable, \
+									export, export_csv, export_json, export_txt, \
 									DESCENDING, ASCENDING, TEXT, \
-									export, epoch_now, alive_bar_monitor, is_alphanum, \
+									I, D, O, Idx, BackendIndexType, BackendIndex \
+
+from .utils					import Countable, epoch_now, alive_bar_monitor, is_alphanum, \
+									CSVImportable, JSONImportable, TXTImportable, \
 									get_url, get_urls, \
 									get_url_JSON_model, get_url_JSON, get_urls_JSON, \
 									get_urls_JSON_models, get_datestr, chunker
