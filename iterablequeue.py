@@ -1,5 +1,5 @@
 from asyncio import Queue, Event, Lock
-from typing import Any, AsyncIterable, Generic, TypeVar, Optional
+from typing import AsyncIterable, TypeVar, Optional
 from .utils import Countable
 import logging
 

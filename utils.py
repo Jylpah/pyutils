@@ -203,8 +203,11 @@ async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type
 	return None
 
 
-async def get_urls(session: ClientSession, queue : UrlQueue, stats : EventCounter = EventCounter(),
-					max_retries : int = MAX_RETRIES) -> AsyncGenerator[tuple[str, str], None]:
+async def get_urls(session: ClientSession, 
+		   			queue : UrlQueue, 
+					stats : EventCounter = EventCounter(),
+					max_retries : int = MAX_RETRIES
+					) -> AsyncGenerator[tuple[str, str], None]:
 	"""Async Generator to retrieve URLs read from an async Queue"""
 
 	assert session is not None, 'Session must be initialized first'
@@ -243,8 +246,11 @@ async def get_urls(session: ClientSession, queue : UrlQueue, stats : EventCounte
 			break
 
 
-async def get_urls_JSON(session: ClientSession, queue : UrlQueue, stats : EventCounter = EventCounter(),
-					max_retries : int = MAX_RETRIES) -> AsyncGenerator[tuple[Any, str], None]:
+async def get_urls_JSON(session: ClientSession, 
+						queue : UrlQueue, 
+						stats : EventCounter = EventCounter(),
+						max_retries : int = MAX_RETRIES
+						) -> AsyncGenerator[tuple[Any, str], None]:
 	"""Async Generator to retrieve JSON from URLs read from an async Queue"""
 	
 	assert session is not None, 'Session must be initialized first'
@@ -259,9 +265,11 @@ async def get_urls_JSON(session: ClientSession, queue : UrlQueue, stats : EventC
 			error(f'Unexpected error: {err}') 
 
 
-async def get_urls_JSON_models(session: ClientSession, queue : UrlQueue, resp_model : type[M], 
+async def get_urls_JSON_models(session: ClientSession, 
+			       				queue : UrlQueue, resp_model : type[M], 
 								stats : EventCounter = EventCounter(),
-								max_retries : int = MAX_RETRIES) -> AsyncGenerator[tuple[M, str], None]:
+								max_retries : int = MAX_RETRIES
+								) -> AsyncGenerator[tuple[M, str], None]:
 	"""Async Generator to retrieve JSON from URLs read from an async Queue"""
 	
 	assert session is not None, 'Session must be initialized first'

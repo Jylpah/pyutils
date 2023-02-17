@@ -10,7 +10,7 @@ from .throttledclientsession import ThrottledClientSession
 from .urlqueue 				import UrlQueue, UrlQueueItemType, is_url
 from .exportable 			import TXTExportable, CSVExportable, JSONExportable, \
 									export, export_csv, export_json, export_txt, \
-									DESCENDING, ASCENDING, TEXT, \
+									TypeExcludeDict, DESCENDING, ASCENDING, TEXT, \
 									I, D, O, Idx, BackendIndexType, BackendIndex
 from .importable 			import CSVImportable, JSONImportable, TXTImportable, Importable, \
 									CSVImportableSelf, JSONImportableSelf, TXTImportableSelf

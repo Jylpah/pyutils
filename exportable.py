@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, cast, Type, Any,Literal, Sequence, TypeVar, ClassVar,\
+from typing import Optional, cast, Type, Self, Any,Literal, Sequence, TypeVar, ClassVar,\
 	 Union, Mapping, Callable, Generic
 from pydantic import BaseModel, ValidationError
 from asyncio import CancelledError, Queue

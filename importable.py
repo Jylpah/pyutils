@@ -18,6 +18,35 @@ debug	= logger.debug
 
 ########################################################
 #
+# Importable()
+#
+########################################################
+
+
+class Importable(metaclass=ABCMeta):
+	"""Abstract class to provide import"""
+
+	@classmethod
+	async def import_file(cls, file : str, 					  
+					  	**kwargs,
+					 	 ) ->  AsyncGenerator[Self, None]:
+		debug('starting')
+		try:
+			if file.endswith('.txt') and issubclass(cls, TXTImportable):
+				async for obj in cls.import_txt(file, **kwargs):
+					yield obj
+			elif file.endswith('.json') and issubclass(cls, JSONImportable):
+				async for obj in cls.import_json(file, **kwargs):
+					yield obj
+			elif file.endswith('.csv') and issubclass(cls, CSVImportable):
+				async for obj in cls.import_csv(file, **kwargs):
+					yield obj
+		except Exception as err:
+			error(f'{err}')
+
+
+########################################################
+#
 # TXTImportable()
 #
 ########################################################
@@ -186,31 +215,4 @@ class JSONImportable(BaseModel):
 			error(f'Error importing file {filename}: {err}')
 		
 
-########################################################
-#
-# Importable()
-#
-########################################################
-
-
-class Importable(metaclass=ABCMeta):
-	"""Abstract class to provide import"""
-
-	@classmethod
-	async def import_file(cls, file : str, 					  
-					  	**kwargs,
-					 	 ) ->  AsyncGenerator[Self, None]:
-		debug('starting')
-		try:
-			if file.endswith('.txt') and issubclass(cls, TXTImportable):
-				async for obj in cls.import_txt(file, **kwargs):
-					yield obj
-			elif file.endswith('.json') and issubclass(cls, JSONImportable):
-				async for obj in cls.import_json(file, **kwargs):
-					yield obj
-			elif file.endswith('.csv') and issubclass(cls, CSVImportable):
-				async for obj in cls.import_csv(file, **kwargs):
-					yield obj
-		except Exception as err:
-			error(f'{err}')
 

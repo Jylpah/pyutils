@@ -7,6 +7,7 @@ from bson.objectid import ObjectId
 
 from .eventcounter import EventCounter
 
+TypeExcludeDict = Mapping[int | str, Any]
 
 D = TypeVar('D', bound='JSONExportable')
 J = TypeVar('J', bound='JSONExportable')
