@@ -11,11 +11,11 @@ from .urlqueue 				import UrlQueue, UrlQueueItemType, is_url
 from .exportable 			import TXTExportable, CSVExportable, JSONExportable, \
 									export, export_csv, export_json, export_txt, \
 									DESCENDING, ASCENDING, TEXT, \
-									I, D, O, Idx, BackendIndexType, BackendIndex \
-
+									I, D, O, Idx, BackendIndexType, BackendIndex
+from .importable 			import CSVImportable, JSONImportable, TXTImportable, Importable, \
+									CSVImportableSelf, JSONImportableSelf, TXTImportableSelf
 from .utils					import Countable, epoch_now, alive_bar_monitor, is_alphanum, \
-									CSVImportable, JSONImportable, TXTImportable, \
-									get_url, get_urls, \
+    								get_url, get_urls, \
 									get_url_JSON_model, get_url_JSON, get_urls_JSON, \
 									get_urls_JSON_models, get_datestr, chunker
 
