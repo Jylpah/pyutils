@@ -2,7 +2,7 @@ import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 from typing import Optional, Any, cast, Type, Literal, Sequence, TypeVar, ClassVar,\
-	 Union, Mapping, Callable, Iterator, Self, Generic
+	 Union, Mapping, Callable, Iterator, Self, Generic, AsyncGenerator
 from abc import ABCMeta, ABC, abstractmethod
 from re import compile
 from itertools import islice
@@ -20,7 +20,6 @@ from time import time
 from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
 from asyncio import sleep, CancelledError, Queue
-from collections.abc import AsyncGenerator
 
 from .eventcounter import EventCounter
 from .urlqueue import UrlQueue, UrlQueueItemType, is_url
