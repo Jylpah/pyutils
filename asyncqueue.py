@@ -17,13 +17,13 @@ error 	= logger.error
 
 class AsyncQueue(asyncio.Queue, Generic[T]):
 	"""Async wrapper for queue.Queue"""
+	
 
-	SLEEP: float = 0.01
-
-	def __init__(self, maxsize: int =0):
+	def __init__(self, maxsize: int =0, asleep: float = 0.001):
 		self._Q 	: queue.Queue[T] = queue.Queue()
 		self._done 	: int = 0
 		self._items : int = 0
+		self._sleep : float = asleep
 		
 
 	@classmethod
@@ -43,7 +43,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 			try:
 				return self._Q.get_nowait()
 			except Empty:
-				await sleep(self.SLEEP)
+				await sleep(self._sleep)
 	
 	
 	def get_nowait(self) -> T:
@@ -60,7 +60,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 				self._items += 1
 				return None
 			except Full:
-				await sleep(self.SLEEP)
+				await sleep(self._sleep)
 
 
 	def put_nowait(self, item: T) -> None:
@@ -77,7 +77,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 			if self._Q.empty():
 				return None
 			else:
-				await sleep(self.SLEEP)
+				await sleep(self._sleep)
 
 
 	def task_done(self) -> None:
