@@ -43,6 +43,9 @@ class Importable(metaclass=ABCMeta):
 				debug(f'importing from CSV file: {file}')
 				async for obj in cls.import_csv(file):
 					yield obj
+			else:
+				raise ValueError(f'Unsupported file format: {file}')
+				yield
 		except Exception as err:
 			error(f'{err}')
 
