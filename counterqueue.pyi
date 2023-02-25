@@ -1,5 +1,6 @@
 from asyncio import Queue
 from typing import TypeVar, Iterable
+from .utils import Countable
 
 ###########################################
 # 
@@ -8,10 +9,14 @@ from typing import TypeVar, Iterable
 ###########################################
 T = TypeVar('T')
 
-class CounterQueue(Queue[T]):
+class CounterQueue(Queue[T], Countable):
 	_counter : int
 
-	def __init__(self, *args, **kwargs) -> None: ...
+	def __init__(self, 
+	      		*args, 
+	      		count_items : bool = True, 
+				batch: int = 1, 
+				**kwargs) -> None: ...
 
 	def task_done(self) -> None: ...
 	
