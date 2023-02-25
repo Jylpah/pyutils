@@ -1,6 +1,6 @@
 import logging
 from typing import  cast, Type, Any, TypeVar, \
-	 Mapping,Self, AsyncGenerator
+	 Self, AsyncGenerator
 from abc import ABCMeta, abstractmethod
 from pydantic import BaseModel, ValidationError
 from aiocsv.readers import AsyncDictReader
@@ -27,7 +27,8 @@ class Importable(metaclass=ABCMeta):
 	"""Abstract class to provide import"""
 
 	@classmethod
-	async def import_file(cls, file : str, 					  
+	async def import_file(cls, 
+		       			file : str, 					  
 					  	**kwargs,
 					 	 ) ->  AsyncGenerator[Self, None]: ...
 
