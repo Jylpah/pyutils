@@ -97,7 +97,8 @@ def get_sub_type(name: str, parent: type[T]) -> Optional[type[T]]:
 	return None
 
 
-async def alive_bar_monitor(monitor : list[Countable], title : str, 
+async def alive_bar_monitor(monitor : list[Countable], 
+			    			title : str, 
 							total : int | None = None, 
 							wait: float = 0.5,
 							batch: int = 1, 
