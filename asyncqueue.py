@@ -19,7 +19,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 	"""Async wrapper for queue.Queue"""
 	
 
-	def __init__(self, maxsize: int =0, asleep: float = 0.001):
+	def __init__(self, maxsize: int =0, asleep: float = 0.01):
 		self._Q 	: queue.Queue[T] = queue.Queue()
 		self._done 	: int = 0
 		self._items : int = 0
