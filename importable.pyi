@@ -31,6 +31,11 @@ class Importable(metaclass=ABCMeta):
 		       			file : str, 					  
 					  	**kwargs,
 					 	 ) ->  AsyncGenerator[Self, None]: ...
+	
+	@classmethod
+	async def count_file(cls, 
+		       			file : str, 					  
+					  	**kwargs)  -> int: ...
 
 
 ########################################################

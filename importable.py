@@ -50,6 +50,17 @@ class Importable(metaclass=ABCMeta):
 			error(f'{err}')
 
 
+	@classmethod
+	async def count_file(cls, 
+		       			file : str, 					  
+					  	**kwargs)  -> int:
+		"""Count Importables in the file"""
+		res : int = 0
+		async for _ in cls.import_file(file=file, **kwargs):
+			res += 1
+		return res
+		
+
 ########################################################
 #
 # TXTImportable()
@@ -144,8 +155,10 @@ class CSVImportable(BaseModel):
 			# importable 	: CSVImportableSelf | None
 			async with open(filename, mode='r', newline='') as f:
 				async for row in AsyncDictReader(f, dialect=dialect):
+					# debug(f'{row}')
 					try:						
 						if (importable := cls.from_csv(row)) is not None:
+							# debug(f'{importable}')
 							yield importable
 					except ValidationError as err:
 						error(f'Could not validate mode: {err}')
