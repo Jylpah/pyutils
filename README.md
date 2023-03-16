@@ -4,7 +4,7 @@ Misc Python utils
 
 # MODULES 
 
-* [AliasMapper(Generic[T])](aliasmapper.py): [Pydantic](https://pydantic.dev/) helper class to map field names to field aliases.
+* [AliasMapper()](aliasmapper.py): [Pydantic](https://pydantic.dev/) helper class to map field names to field aliases.
 * [AsyncQueue(asyncio.Queue, Generic[T])](asyncqueue.py): Implement `async.Queue()` interface for non-async queues using `asyncio.sleep()` and `get_nowait()` and `put_nowait()` methods. Handy when using async code with `multiprocessing`
 * [BucketMapper(Generic[T])](bucketmapper.py): Class to map objects into fixed buckets according to an attribute (`float|int`). Uses `bisect` package. 
 * [CounterQueue(asyncio.Queue)](counterqueue.py): Async Queue that keeps count on `task_done()` completed
