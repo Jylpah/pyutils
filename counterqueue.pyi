@@ -22,8 +22,12 @@ class CounterQueue(Queue[T], Countable):
 	
 	@property
 	def count(self) -> int: ...
-		
 
-async def alive_queue_bar(queues : Iterable[CounterQueue], title : str, 
-							total : int | None = None, wait: float = 0.1, 
-							*args, **kwargs) -> None: ...
+
+class QCounter:
+	def __init__(self, Q : Queue[int]): ...
+
+	@property
+	def count(self) -> int: ...
+
+	async def start(self) -> None: ...

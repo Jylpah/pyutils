@@ -48,4 +48,20 @@ class CounterQueue(Queue[T], Countable):
 		"""Whether or not count items"""
 		return self._count_items
 
+class QCounter:
+	def __init__(self, Q : Queue[int]):
+		self._count = 0
+		self._Q : Queue[int]= Q
 
+
+	@property
+	def count(self) -> int:
+		return self._count	
+
+
+	async def start(self) -> None:
+		"""Read and count items from Q"""
+		while True:
+			self._count += await self._Q.get()
+			self._Q.task_done()
+			

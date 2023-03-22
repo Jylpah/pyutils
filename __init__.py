@@ -1,7 +1,7 @@
 from .aliasmapper 			import AliasMapper
 from .asyncqueue 			import AsyncQueue
 from .bucketmapper			import BucketMapper
-from .counterqueue 			import CounterQueue
+from .counterqueue 			import CounterQueue, QCounter
 from .eventcounter 			import EventCounter
 from .filequeue 			import FileQueue
 from .iterablequeue 		import IterableQueue, QueueDone
