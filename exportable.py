@@ -132,6 +132,7 @@ class JSONExportable(Generic[J], BaseModel):
 		"""Transform object to class' object"""
 		try:
 			obj_in : JSONExportable
+			# debug(f'cls: {cls}, obj: {type(obj)}, in_type: {in_type}')
 			if type(obj) is cls:
 				return obj
 			elif in_type is cls:
@@ -142,12 +143,16 @@ class JSONExportable(Generic[J], BaseModel):
 				else:
 					raise ValueError("if if 'in_type' is not set, 'obj' has to be JSONExportable")
 			else:
+				# debug('transform(obj_in)')
 				obj_in = in_type.parse_obj(obj)
-				res : Optional[J] = cls.transform(obj_in)
-				if res is not None:
-					return res
-				else:					
-					return cls.parse_obj(obj_in.obj_db())
+
+			res : Optional[J] = cls.transform(obj_in)
+			if res is not None:
+				# debug('transform(): OK')
+				return res
+			else:
+				# debug('transform(): failed')
+				return cls.parse_obj(obj_in.obj_db())
 
 		except ValidationError as err:
 			error(f'Could not validate {in_type} or transform it to {cls}: {obj}')
