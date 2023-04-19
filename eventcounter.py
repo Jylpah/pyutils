@@ -21,8 +21,10 @@ FuncTypeFormatter 	= Callable[[str], str]
 FuncTypeFormatterParam = Optional[FuncTypeFormatter]
 class EventCounter():
 	"""Count events for categories"""
-	def __init__(self, name: str = '', totals: Optional[str] = None, 
-					categories: list[str] = list(), errors: list[str] = list(), 
+	def __init__(self, name: str = '', 
+					totals: Optional[str] = None, 
+					categories: list[str] = list(), 
+					errors: list[str] = list(), 
 					int_format: FuncTypeFormatterParam = None, 
 					float_format: FuncTypeFormatterParam = None):
 		assert name is not None, "param 'name' cannot be None"

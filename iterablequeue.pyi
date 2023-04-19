@@ -1,5 +1,5 @@
 from asyncio import Queue
-from typing import Any, AsyncIterable, Generic, TypeVar, Optional
+from typing import AsyncIterable, TypeVar
 from .utils import Countable
 
 

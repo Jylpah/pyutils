@@ -178,7 +178,7 @@ class ThrottledClientSession(ClientSession):
 		"""Filler task to fill the leaky bucket algo"""
 		assert self.rate_limit > 0, "_filler cannot be started without rate limit"
 		try:
-			self._queue = Queue(1)
+			self._queue = Queue(maxsize=1)
 			debug(f'SLEEP: {1/self.rate_limit}')
 			while True:
 				await self._queue.put(None)
@@ -201,12 +201,12 @@ class ThrottledClientSession(ClientSession):
 			if self.rate_limit > 1:
 				qlen = ceil(log(self.rate_limit))
 			wait : float = qlen / self.rate_limit
-			self._queue = Queue(qlen)
+			self._queue = Queue(maxsize=qlen)
 			debug(f'SLEEP: {wait}')
 			while True:
 				for _ in range(qlen):
 					await self._queue.put(None)
-				await sleep(wait)			
+				await sleep(wait)
 		except CancelledError:
 			debug('Cancelled')
 		except Exception as err:
