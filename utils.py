@@ -141,8 +141,6 @@ async def get_url(session: ClientSession, url: str, max_retries : int = MAX_RETR
 			async with session.get(url) as resp:
 				if resp.status == 200:
 					debug(f'HTTP request OK: {url}')
-					# if logger.level == logging.DEBUG:
-					# 	debug(await resp.text())
 					return await resp.text()
 				else:
 					debug(f'HTTP error {resp.status}: {url}')
@@ -169,10 +167,8 @@ async def get_url_JSON(session: ClientSession, url: str, retries : int = MAX_RET
 	assert url is not None, "url cannot be None"
 
 	try:
-		content : str | None = await get_url(session, url, retries)
-		if content is None:
-			return None		
-		return await json.loads(content)
+		if (content := await get_url(session, url, retries)) is not None:
+			return await json.loads(content)
 	except ClientResponseError  as err:
 		error(f'Client response error: {url}: {err}')
 	except Exception as err:
@@ -182,8 +178,11 @@ async def get_url_JSON(session: ClientSession, url: str, retries : int = MAX_RET
 
 M = TypeVar('M', bound=BaseModel)
 
-async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type[M], 
-						retries : int = MAX_RETRIES) -> Optional[M]:
+async def get_url_JSON_model(session: ClientSession, 
+			     			url: str, 
+			     			resp_model : type[M], 
+							retries : int = MAX_RETRIES
+							) -> Optional[M]:
 	"""Get JSON from URL and return object. Validate JSON against resp_model, if given."""
 	assert session is not None, "session cannot be None"
 	assert url is not None, "url cannot be None"
@@ -198,6 +197,31 @@ async def get_url_JSON_model(session: ClientSession, url: str, resp_model : type
 		error(f'{resp_model.__name__}: Validation error {url}: {err}')
 		if content is not None:
 			debug(f'{content}')
+	except Exception as err:
+		error(f'Unexpected error: {err}') 
+	return None
+
+
+async def get_url_JSON_models(session: ClientSession, 
+			      				url: str, 
+								item_model : type[M], 
+								retries : int = MAX_RETRIES
+								) -> Optional[list[M]]:
+	"""Get a list of Pydantic models from URL. Validate JSON against resp_model, if given."""
+	assert session is not None, "session cannot be None"
+	assert url is not None, "url cannot be None"
+	content : str | None = None
+	try:
+		if (content := await get_url(session, url, retries)) is not None:
+			elems : list[Any] | None
+			if (elems := json.loads(content)) is not None:
+				res : list[M] = list()
+				for elem in elems:
+					try:
+						res.append(item_model.parse_obj(elem))
+					except ValidationError as err:
+						error(f'Could not validate {elem}: {err}')
+				return res
 	except Exception as err:
 		error(f'Unexpected error: {err}') 
 	return None

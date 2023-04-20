@@ -16,7 +16,7 @@ from .importable 			import CSVImportable, JSONImportable, TXTImportable, Importa
 									CSVImportableSelf, JSONImportableSelf, TXTImportableSelf
 from .utils					import Countable, epoch_now, alive_bar_monitor, is_alphanum, \
     								get_url, get_urls, \
-									get_url_JSON_model, get_url_JSON, get_urls_JSON, \
+									get_url_JSON_model, get_url_JSON_models, get_url_JSON, get_urls_JSON, \
 									get_urls_JSON_models, get_datestr, chunker
 
 
