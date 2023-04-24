@@ -1,7 +1,10 @@
+aiocsv
+aiofiles
 aiohttp
-aioconsole
-
+pydantic
+pymongo
+types-aiofiles
 # for development & testing
-pytest
 mypy
+pytest
 pytest-asyncio

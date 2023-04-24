@@ -1,5 +1,5 @@
 from typing import Optional, cast, Type, Any,Literal, Sequence, TypeVar, ClassVar,\
-	 Union, Mapping, Callable, Generic
+	 Union, Mapping, Callable, Generic, Self
 from asyncio import Queue
 from abc import ABCMeta, abstractmethod
 from pydantic import BaseModel
@@ -43,27 +43,27 @@ class CSVExportable(metaclass=ABCMeta):
 					) -> dict[str, str | int | float | bool]: ...
 
 
-class JSONExportable(Generic[J], BaseModel):
+class JSONExportable(BaseModel):
 
 	@classmethod
-	def register_transformation(cls : type[J], 
+	def register_transformation(cls, 
 			     				obj_type: type[D], 
-								method: Callable[[D], 
-										Optional[J]]) -> None: ...
+								method: Callable[[D], Optional[Self]]
+								) -> None: ...
 	
 	@classmethod
-	def transform(cls : type[J], 
-				 in_obj: D) -> Optional[J]:  ...
+	def transform(cls, 
+				  in_obj: JSONExportable) -> Optional[Self]:  ...
 		
 	@classmethod
-	def transform_obj(cls : type[J], 
+	def transform_obj(cls, 
 					  obj: Any, 
-					  in_type: type[D] | None = None) -> Optional[J]: ...
+					  in_type: type[D] | None = None) -> Optional[Self]: ...
 	
 	@classmethod
 	def transform_objs(cls, 
 					  objs: Sequence[Any], 
-					  in_type: type[D] | None = None) -> list[J]: ...
+					  in_type: type[D] | None = None) -> list[Self]: ...
 
 	def _export_helper(self, params: dict[str, Any], 
 						fields: list[str] | None = None, **kwargs) -> dict: ...
