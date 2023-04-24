@@ -91,7 +91,7 @@ class CSVExportable(metaclass=ABCMeta):
 ########################################################
 
 
-class JSONExportable(Generic[J], BaseModel):
+class JSONExportable(BaseModel):
 
 	_exclude_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_exclude_export_src_fields	: ClassVar[Optional[TypeExcludeDict]] = None
@@ -100,35 +100,35 @@ class JSONExportable(Generic[J], BaseModel):
 	_export_DB_by_alias			: bool = True
 	_exclude_defaults 			: bool = True
 	_exclude_unset 				: bool = True
-	_transformations 			: dict[Any, Callable[[D], Optional[J]]] = dict()
+	_transformations 			: dict[Type, Callable[[D], Optional[Self]]] = dict()
 
 
 	@classmethod
-	def register_transformation(cls : type[J], 
+	def register_transformation(cls, 
 			     				obj_type: type[D], 
-								method: Callable[[D], 
-										Optional[J]]) -> None:
+								method: Callable[[D], Optional[Self]],
+								) -> None:
 		"""Register transformations"""
 		cls._transformations[obj_type] = method
 		return None
 
 
 	@classmethod
-	def transform(cls : type[J], 
-				 in_obj: D) -> Optional[J]:  
+	def transform(cls, 
+				 in_obj: 'JSONExportable') -> Optional[Self]:  
 		"""Transform object to out_type if supported"""
 		try:
-			transform_func : Callable[[D], Optional[J]] = cls._transformations[type(in_obj)]
-			return transform_func(in_obj)
+			# transform_func : Callable[[D], Optional[Self]] = cls._transformations[type(in_obj)]
+			return cls._transformations[type(in_obj)](in_obj) # type: ignore
 		except Exception as err:
 			debug(f'failed to transform {type(in_obj)} to {cls}: {err}')
 		return None
 
 	
 	@classmethod
-	def transform_obj(cls : type[J], 
+	def transform_obj(cls, 
 					  obj: Any, 
-					  in_type: type[D] | None = None) -> Optional[J]:  
+					  in_type: type[D] | None = None) -> Optional[Self]:  
 		"""Transform object to class' object"""
 		try:
 			obj_in : JSONExportable
@@ -146,7 +146,7 @@ class JSONExportable(Generic[J], BaseModel):
 				# debug('transform(obj_in)')
 				obj_in = in_type.parse_obj(obj)
 
-			res : Optional[J] = cls.transform(obj_in)
+			res : Optional[Self] = cls.transform(obj_in)
 			if res is not None:
 				# debug('transform(): OK')
 				return res
@@ -166,7 +166,7 @@ class JSONExportable(Generic[J], BaseModel):
 	@classmethod
 	def transform_objs(cls, 
 					  objs: Sequence[Any], 
-					  in_type: type[D] | None = None) -> list[J]:
+					  in_type: type[D] | None = None) -> list[Self]:
 		"""Transform a list of objects"""
 		return [ out for obj in objs if (out:= cls.transform_obj(obj, in_type=in_type)) is not None ]
 
