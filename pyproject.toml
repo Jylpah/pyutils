@@ -1,0 +1,35 @@
+[project]
+name = "pyutils"
+version = "0.1.0"
+authors = [ 
+	{ name="Jylpah", email="jylpah@gmail.com"} 
+	]
+description = "Misc Python utils and classes"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+	"Development Status :: 3 - Alpha",
+	"Environment :: Console", 
+	"Framework :: Pydantic",
+	"Framework :: aiohttp",
+	"Topic :: Games/Entertainment"
+]
+
+
+[project.urls]
+"Homepage" = "https://github.com/Jylpah/pyutils"
+"Bug Tracker" = "https://github.com/Jylpah/pyutils/issues"
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.mypy]
+plugins = [
+  "pydantic.mypy"
+]
+exclude = [ 'tmp']
