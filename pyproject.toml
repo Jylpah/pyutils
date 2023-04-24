@@ -25,7 +25,7 @@ classifiers = [
 
 
 [build-system]
-requires = ["hatchling"]
+requires = [ "hatchling" ]
 build-backend = "hatchling.build"
 
 [tool.mypy]
