@@ -6,5 +6,6 @@ pymongo
 types-aiofiles
 # for development & testing
 mypy
+build
 pytest
 pytest-asyncio
