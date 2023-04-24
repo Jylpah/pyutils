@@ -1,5 +1,5 @@
 ## -----------------------------------------------------------
-#### Class ThrottledClientSession(aiohttp.ClientSession)
+#  Class ThrottledClientSession(aiohttp.ClientSession)
 #
 #  Rate-limited async http client session
 #
@@ -13,6 +13,7 @@ import time
 import logging
 import re
 from math import ceil, log
+
 
 logger	= logging.getLogger()
 error 	= logger.error
