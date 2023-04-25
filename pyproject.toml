@@ -33,3 +33,6 @@ plugins = [
   "pydantic.mypy"
 ]
 exclude = [ 'tmp']
+
+[tool.pyright]
+reportGeneralTypeIssues = false
