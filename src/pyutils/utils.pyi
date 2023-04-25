@@ -1,34 +1,16 @@
-import logging
-from bson.objectid import ObjectId
-from datetime import datetime, timedelta
-from typing import Optional, Any, cast, Type, Literal, Sequence, TypeVar, ClassVar,\
-	 Union, Mapping, Callable, Iterator, Self, Generic, AsyncGenerator
-from abc import ABCMeta, ABC, abstractmethod
-from re import compile
-from itertools import islice
-from aiofiles import open
-from aiocsv.writers import AsyncDictWriter
-from aiocsv.readers import AsyncDictReader
-from alive_progress import alive_bar 				# type: ignore
-from csv import Dialect, Sniffer, excel, QUOTE_NONNUMERIC
-from ast import literal_eval
-from os.path import isfile, exists
-from os import linesep
-from aiofiles import open
-import json
-from time import time
-from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
-from pydantic import BaseModel, ValidationError
-from asyncio import sleep, CancelledError, Queue
+from datetime import datetime
+from typing import Optional, Any, Sequence, TypeVar, Iterator, AsyncGenerator
+from abc import ABC, abstractmethod
+from aiohttp import ClientSession
+from pydantic import BaseModel
 
 from .eventcounter import EventCounter
-from .urlqueue import UrlQueue, UrlQueueItemType, is_url
+from .urlqueue import UrlQueue
 
 
 # Constants
 MAX_RETRIES : int   = 3
 SLEEP       : float = 1
-
 
 T= TypeVar('T')
 class Countable(ABC):
