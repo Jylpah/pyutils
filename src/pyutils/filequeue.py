@@ -8,7 +8,7 @@
 
 import logging
 import asyncio
-import aioconsole
+import aioconsole 	# type: ignore
 from os 			import scandir, path
 from fnmatch 		import fnmatch
 from typing			import Optional
