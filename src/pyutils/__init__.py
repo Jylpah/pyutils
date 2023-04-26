@@ -12,9 +12,12 @@ from .urlqueue 				import UrlQueue as UrlQueue, UrlQueueItemType, is_url
 from .exportable 			import TXTExportable as TXTExportable, \
     								CSVExportable as CSVExportable, \
     								JSONExportable as JSONExportable, \
+									TypeExcludeDict as TypeExcludeDict, \
+									BackendIndexType as BackendIndexType, \
+									BackendIndex as BackendIndex, \
+									Idx as Idx, \
 									export, export_csv, export_json, export_txt, \
-									TypeExcludeDict, DESCENDING, ASCENDING, TEXT, \
-									I, D, O, Idx, BackendIndexType, BackendIndex
+									DESCENDING, ASCENDING, TEXT, I, D, O
 from .importable 			import CSVImportable as CSVImportable, \
     								JSONImportable as JSONImportable,\
      								TXTImportable as TXTImportable, \
