@@ -1,12 +1,9 @@
 import sys
 import pytest # type: ignore
-from typing import Literal
-from asyncio.log import logger
 from pathlib import Path
 from queue import Queue
 from asyncio.queues import QueueEmpty, QueueFull
 from asyncio import Task, create_task, sleep, wait_for, timeout, TimeoutError
-
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / 'src'))
 

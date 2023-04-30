@@ -1,8 +1,6 @@
 import sys
 import pytest # type: ignore
 from typing import Literal
-from pytest import Config
-from asyncio.log import logger
 from pydantic import BaseModel, Field
 from pathlib import Path
 
