@@ -41,25 +41,23 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 	async def get(self) -> T:
 		while True:
 			try:
-				return self._Q.get_nowait()
-			except Empty:
+				return self.get_nowait()
+			except QueueEmpty:
 				await sleep(self._sleep)
 	
 	
 	def get_nowait(self) -> T:
 		try:
 			return self._Q.get_nowait()
-		except:
+		except Empty:
 			raise QueueEmpty
 
 
 	async def put(self, item: T) -> None:
 		while True:
 			try:
-				self._Q.put_nowait(item)
-				self._items += 1
-				return None
-			except Full:
+				return self.put_nowait(item)
+			except QueueFull:
 				await sleep(self._sleep)
 
 
@@ -68,7 +66,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 			self._Q.put_nowait(item)
 			self._items += 1
 			return None
-		except:
+		except Full:
 			raise QueueFull
 
 
