@@ -16,14 +16,16 @@ verbose = logger.info
 error 	= logger.error
 
 class AsyncQueue(asyncio.Queue, Generic[T]):
-	"""Async wrapper for queue.Queue"""
-	
+	"""Async wrapper/interface for non-async queue.Queue."""
 
-	def __init__(self, maxsize: int =0, asleep: float = 0.01):
-		self._Q 	: queue.Queue[T] = queue.Queue()
+
+	def __init__(self, maxsize: int = 0, asleep: float = 0.01):
+		self._Q 	: queue.Queue[T] = queue.Queue(maxsize=maxsize)
+		self._maxsize : int = maxsize
 		self._done 	: int = 0
 		self._items : int = 0
 		self._sleep : float = asleep
+		
 		
 
 	@classmethod
@@ -35,31 +37,29 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 	@property
 	def maxsize(self) -> int:
 		"""not supported by queue.Queue"""
-		return 0
+		return self._maxsize
 
 
 	async def get(self) -> T:
 		while True:
 			try:
-				return self._Q.get_nowait()
-			except Empty:
+				return self.get_nowait()
+			except QueueEmpty:
 				await sleep(self._sleep)
 	
 	
 	def get_nowait(self) -> T:
 		try:
 			return self._Q.get_nowait()
-		except:
-			raise QueueEmpty		
+		except Empty:
+			raise QueueEmpty
 
 
-	async def put(self, item: T) -> None:		
+	async def put(self, item: T) -> None:
 		while True:
 			try:
-				self._Q.put_nowait(item)
-				self._items += 1
-				return None
-			except Full:
+				return self.put_nowait(item)
+			except QueueFull:
 				await sleep(self._sleep)
 
 
@@ -68,7 +68,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 			self._Q.put_nowait(item)
 			self._items += 1
 			return None
-		except:
+		except Full:
 			raise QueueFull
 
 

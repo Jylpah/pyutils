@@ -54,6 +54,14 @@ class EventCounter():
 	def _def_value_zero(cls) -> int:
 		return 0
 
+
+	def add_error_categories(self, errors: list[str] = list()) -> bool:
+		"""Add error categories and return if an error has been logged"""
+		self._error_cats += errors
+		if self.sum(self._error_cats) > 0:
+			self._error_status = True
+		return self._error_status
+
 	
 	def _default_int_formatter(self, category: str) -> str:
 		assert category is not None, "param 'category' cannot be None"
@@ -68,7 +76,6 @@ class EventCounter():
 	def log(self, category: str, count: int = 1) -> None:
 		assert category is not None, 'category cannot be None'
 		assert count is not None, 'count cannot be None'
-
 		self._log[category] += count
 		if category in self._error_cats:
 			self._error_status = True
