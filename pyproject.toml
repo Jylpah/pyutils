@@ -38,6 +38,7 @@ dev = [
 	"pytest-asyncio",
 	"pytest-datafiles",
 	"pytest-cov>=4",
+	"pytest-timeout",
 	"types-aiofiles>=23.1.0.1",
 ]
 
