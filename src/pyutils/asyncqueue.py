@@ -19,11 +19,13 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 	"""Async wrapper/interface for non-async queue.Queue."""
 
 
-	def __init__(self, maxsize: int =0, asleep: float = 0.01):
+	def __init__(self, maxsize: int = 0, asleep: float = 0.01):
 		self._Q 	: queue.Queue[T] = queue.Queue(maxsize=maxsize)
+		self._maxsize : int = maxsize
 		self._done 	: int = 0
 		self._items : int = 0
 		self._sleep : float = asleep
+		
 		
 
 	@classmethod
@@ -35,7 +37,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 	@property
 	def maxsize(self) -> int:
 		"""not supported by queue.Queue"""
-		return 0
+		return self._maxsize
 
 
 	async def get(self) -> T:
