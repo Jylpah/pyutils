@@ -12,6 +12,7 @@ T = TypeVar('T')
 class AliasMapper():
 	"""Simple class to map Pydantic BaseModel fields to their aliases"""
 	def __init__(self, model: type[BaseModel]):
+		assert issubclass(model, BaseModel), 'model is not subsclass of pydantic.BaseModel'
 		self._model : type[BaseModel] = model
 	
 	
@@ -28,14 +29,12 @@ class AliasMapper():
 
 	def map(self, fields: Iterable[tuple[str, T]]) -> dict[str, T]:
 		res : dict[str, T] = dict()
-		try:			
-			for f, v in fields:
-				try: 
-					res[self.alias(f)] = v
-				except KeyError as err:
-					error(f'{self._model.__qualname__}(): could not map {f}: {err}')
-		except Exception as err:		
-			raise ValueError(f'{self._model.__qualname__}(): Could not map field aliases: {err}')
+		for f, v in fields:
+			try: 
+				res[self.alias(f)] = v
+			except KeyError as err:
+				error(f'{self._model.__qualname__}(): could not map {f}: {err}')
+				raise err
 		return res
 
 
