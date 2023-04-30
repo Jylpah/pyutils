@@ -18,9 +18,11 @@ from pyutils.aliasmapper import T
 #
 ########################################################
 
-# 1) Create instance and log events
-# 2) Create 2 instances, log events and merge
-# 3) Create an instance and get categories
+# 0) Create instance 
+# 1) alias()
+# 2) map()
+# 3) map() FAIL
+# 4) mapper()
 
 NdxType = Literal[1, 0 , -1 ]
 NDXS : list[int] = [1, 0 , -1 ]
