@@ -1,7 +1,5 @@
 import sys
 import pytest # type: ignore
-from pytest import Config
-from asyncio.log import logger
 from os.path import dirname, realpath, join as pjoin
 from pathlib import Path
 
