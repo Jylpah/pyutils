@@ -37,6 +37,7 @@ dev = [
 	"pytest",
 	"pytest-asyncio",
 	"pytest-datafiles",
+	"pytest-cov>=4",
 	"types-aiofiles>=23.1.0.1",
 ]
 
@@ -65,7 +66,7 @@ mypy_path = ['src']
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-v"
+addopts = "-v --cov=src"
 filterwarnings = [
 	'ignore:Inheritance class ThrottledClientSession from ClientSession is discouraged:DeprecationWarning',
 ]
