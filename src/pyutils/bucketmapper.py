@@ -19,19 +19,22 @@ class BucketMapper(Generic[T]):
 		less that the key. see python bisect module"""
 	
 	def __init__(self, attr: str):
-		self.by_key = attrgetter(attr)
-		self.data : list[T] = list()
+		self._key = attrgetter(attr)
+		self._data : list[T] = list()
 
 
 	def insert(self, item : T) -> None:
-		insort(self.data, item, key=self.by_key)
+		insort(self._data, item, key=self._key)
 		return None
 	
 
-	def get(self, key: int | float, shift: int = 0) -> Optional[T]:
+	def get(self, 
+	 		key: int | float, 
+			shift: int = 0,
+			) -> Optional[T]:
 		"""Get item that has the smallest key larger than key. Use shift to offset"""
 		try:
-			return self.data[bisect(self.data, key, key=self.by_key) + shift]
+			return self._data[bisect(self._data, key, key=self._key) + shift]
 		except IndexError as err:
 			error(f'key={key} is outside of the key range: {err}')
 		except Exception as err:
@@ -39,17 +42,21 @@ class BucketMapper(Generic[T]):
 		return None
 
 
-	def pop(self, item : T|None = None, key : Optional[int|float] = None, shift: int = 0) -> Optional[T]:
+	def pop(self, 
+	 		item : T|None = None, 
+	 		key : Optional[int|float] = None, 
+			shift: int = 0,
+			) -> Optional[T]:
 		try:
 			if item is not None:
-				key = self.by_key(item)
+				key = self._key(item)
 			if key is not None:
-				return self.data.pop(bisect_left(self.data, key, key=self.by_key) + shift)
+				return self._data.pop(bisect_left(self._data, key, key=self._key) + shift)
 		except Exception as err:
 			error(f'{err}')
 		return None
 	
 
 	def list(self) -> list[T]:
-		return self.data
+		return self._data
 		
