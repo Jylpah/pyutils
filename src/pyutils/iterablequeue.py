@@ -47,6 +47,49 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		self._empty.set()
 
 
+	@property
+	def is_filled(self) -> bool:
+		return self._filled.is_set()
+	
+
+	@property
+	def maxsize(self) -> int:
+		return self._Q.maxsize
+	
+	@property
+	def _maxsize(self) -> int:
+		return self.maxsize
+
+
+	def full(self) -> bool:
+		return self._Q.full()
+
+
+	def check_done(self) -> bool:
+
+
+	def qsize(self) -> int:
+		if self.is_filled:
+			return self._Q.qsize() - 1
+		else:
+			return self._Q.qsize()
+
+
+	@property
+	def wip(self) -> int:
+		return self._wip
+
+
+	@property
+	def has_wip(self) -> bool:
+		return self._wip > 0
+
+
+	@property
+	def count(self) -> int:
+		return self._count
+
+
 	async def add_producer(self, N : int = 1) -> int:
 		"""Add producer(s) to the queue"""
 		assert N > 0, 'N has to be positive'
