@@ -29,8 +29,8 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	want to sum the count of multiple IterableQueues"""
 
 	def __init__(self, count_items: bool = True, **kwargs):
-		# _Q is required instead of inheriting from Queue() 
-		# using super() since Queue is Optional[T], not [T] 
+		# _Q is required instead of inheriting from Queue()
+		# using super() since Queue is Optional[T], not [T]
 		self._Q : Queue[Optional[T]] = Queue(**kwargs)
 		self._producers 	: int 	= 0
 		self._count_items 	: bool 	= count_items
@@ -50,12 +50,12 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	@property
 	def is_filled(self) -> bool:
 		return self._filled.is_set()
-	
+
 
 	@property
 	def maxsize(self) -> int:
 		return self._Q.maxsize
-	
+
 	@property
 	def _maxsize(self) -> int:
 		return self.maxsize
@@ -179,7 +179,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 	def get_nowait(self) -> T:
 		"""Attempt to implement get_nowait()"""
-		# raise NotImplementedError		
+		# raise NotImplementedError
 		item : T | None = self._Q.get_nowait()
 		if item is None:
 			self._empty.set()
@@ -216,48 +216,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		return None
 
 
-	@property
-	def maxsize(self) -> int:
-		return self._Q.maxsize
-
-	def full(self) -> bool:
-		return self._Q.full()
-
-
-	def check_done(self) -> bool:
-		if self.empty() and self._wip == 0:
-			self._done.set()
-			return True
-		return False
-
-
-	def empty(self) -> bool:
-		return self._empty.is_set()
-
-
-	def qsize(self) -> int:
-		if self.is_filled:
-			return self._Q.qsize() - 1
-		else:
-			return self._Q.qsize()
-
-
-	@property
-	def wip(self) -> int:
-		return self._wip
-
-
-	@property
-	def has_wip(self) -> bool:
-		return self._wip > 0
-
-
-	@property
-	def count(self) -> int:
-		return self._count
-
-
-	async def __aiter__(self):
+	def __aiter__(self):
 		return self
 
 
