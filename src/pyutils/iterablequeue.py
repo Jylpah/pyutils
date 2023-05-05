@@ -124,17 +124,13 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	async def shutdown(self) -> None:
-		"""Shutdown the queue regardless whether there are items"""
-		self._filled.set()
-		self._done.set()
+		"""Finish the queue for all producers"""
+		# self._filled.set()
 		async with self._put_lock, self._modify:
-			self._producers = 0   # since finish() deducts 1 producer
+			self._producers = 0
+			self._filled.set()
+			self.check_done()
 			await self._Q.put(None)
-
-
-	@property
-	def is_filled(self) -> bool:
-		return self._filled.is_set()
 
 
 	async def put(self, item: T) -> None:
