@@ -72,6 +72,11 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		return False
 
 
+	def empty(self) -> bool:
+		"""Queue has not items except None as sentinel"""
+		return self._Q.qsize() == 0 or self._empty.is_set()
+
+
 	def qsize(self) -> int:
 		if self.is_filled:
 			return self._Q.qsize() - 1
