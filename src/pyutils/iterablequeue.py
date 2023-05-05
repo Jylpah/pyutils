@@ -93,8 +93,8 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 				raise ValueError('No registered producers')
 			elif item is None:
 				raise ValueError('Cannot add None to IterableQueue')
-			self._empty.clear()
 			await self._Q.put(item=item)
+			self._empty.clear()
 		return None
 
 
