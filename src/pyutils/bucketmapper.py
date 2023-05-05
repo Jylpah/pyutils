@@ -12,6 +12,12 @@ debug	= logger.debug
 
 T = TypeVar("T")
 
+###############################################################################
+#
+## WARNING: This class does not perform as well as 
+#  sortedcollections.NearestDict()
+# 
+###############################################################################
 
 class BucketMapper(Generic[T]):
 	"""BucketMapper() is a generic class for mapping object based on a 
