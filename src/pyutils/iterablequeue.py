@@ -66,6 +66,10 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	def check_done(self) -> bool:
+		if self.is_filled and self.empty() and self._wip == 0:
+			self._done.set()
+			return True
+		return False
 
 
 	def qsize(self) -> int:
