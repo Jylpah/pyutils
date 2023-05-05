@@ -99,7 +99,17 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	def put_nowait(self, item: T) -> None:
-		raise NotImplementedError
+		"""Attempt to implement put_nowait()"""
+		# raise NotImplementedError
+		if self.is_filled:
+			raise QueueDone
+		if self._producers <= 0:
+			raise ValueError('No registered producers')
+		elif item is None:
+			raise ValueError('Cannot add None to IterableQueue')
+		self._Q.put_nowait(item=item)
+		self._empty.clear()
+		return None
 
 
 	async def get(self) -> T:
@@ -119,7 +129,21 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 
 	def get_nowait(self) -> T:
-		raise NotImplementedError
+		"""Attempt to implement get_nowait()"""
+		# raise NotImplementedError		
+		item : T | None = self._Q.get_nowait()
+		if item is None:
+			self._empty.set()
+			self._Q.task_done()
+			self.check_done()
+			try:
+				self._Q.put_nowait(None)
+			except QueueFull:
+				pass
+			raise QueueDone
+		else:
+			self._wip += 1
+			return item
 
 
 	def task_done(self) -> None:
