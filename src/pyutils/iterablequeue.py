@@ -191,6 +191,8 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 				pass
 			raise QueueDone
 		else:
+			if self._Q.qsize() == 0:
+				self._empty.set()
 			self._wip += 1
 			return item
 
