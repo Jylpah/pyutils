@@ -17,24 +17,26 @@ class QueueDone(Exception):
 
 
 class IterableQueue(Queue[T], AsyncIterable[T], Countable):
-	"""Async.Queue subclass with automatic termination when the queue has been 
+	"""Async.Queue subclass with automatic termination when the queue has been
 	filled and emptied. Supports:
 	- Queue() interface except _nowait() methods
 	- AsyncIterable(): async for item in queue.get():
 	- Automatic termination of the consumers when the queue has been emptied (QueueDone exception)
-	- Producers must be registered with add_producer() and they must notify 
-	  once they have finished adding items with finish()	
+	- Producers must be registered with add_producer() and they must notify
+	  once they have finished adding items with finish()
 	- Countable interface to count number of items task_done() through 'count' property
 	- Countable property can be disabled with count_items=False. This is useful when you
 	want to sum the count of multiple IterableQueues"""
 
 	def __init__(self, count_items: bool = True, **kwargs):
+		# _Q is required instead of inheriting from Queue() 
+		# using super() since Queue is Optional[T], not [T] 
 		self._Q : Queue[Optional[T]] = Queue(**kwargs)
 		self._producers 	: int 	= 0
 		self._count_items 	: bool 	= count_items
 		self._count 		: int 	= 0
 		self._wip 			: int 	= 0
-		
+
 		self._modify 		: Lock	= Lock()
 		self._put_lock 		: Lock	= Lock()
 
@@ -47,7 +49,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
 	async def add_producer(self, N : int = 1) -> int:
 		"""Add producer(s) to the queue"""
-		assert N > 0, 'N has to be positive'		
+		assert N > 0, 'N has to be positive'
 		async with self._modify:
 			if self.is_filled:
 				raise QueueDone
@@ -64,7 +66,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 			elif self._producers == 0:
 				self._filled.set()
 				self.check_done()
-				await self._Q.put(None)						
+				await self._Q.put(None)
 				return True
 		return False
 
@@ -74,8 +76,8 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		self._filled.set()
 		self._done.set()
 		async with self._put_lock, self._modify:
-			self._producers = 0   # since finish() deducts 1 producer			
-			await self._Q.put(None)	
+			self._producers = 0   # since finish() deducts 1 producer
+			await self._Q.put(None)
 
 
 	@property
@@ -100,21 +102,21 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		raise NotImplementedError
 
 
-	async def get(self) -> T:				
+	async def get(self) -> T:
 		item = await self._Q.get()
 		if item is None:
-			self._empty.set()			
+			self._empty.set()
 			self._Q.task_done()
 			self.check_done()
 			async with self._put_lock:
 				await self._Q.put(None)
 				raise QueueDone
-			
+
 		else:
 			async with self._modify:
-				self._wip += 1				
+				self._wip += 1
 			return item
-						
+
 
 	def get_nowait(self) -> T:
 		raise NotImplementedError
@@ -164,7 +166,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		else:
 			return self._Q.qsize()
 
-	
+
 	@property
 	def wip(self) -> int:
 		return self._wip
