@@ -169,8 +169,9 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 			async with self._put_lock:
 				await self._Q.put(None)
 				raise QueueDone
-
 		else:
+			if self._Q.qsize() == 0:
+				self._empty.set()
 			async with self._modify:
 				self._wip += 1
 			return item
