@@ -151,7 +151,7 @@ async def test_4_multiple_producers_consumers(test_interablequeue_int: IterableQ
 	try:
 		async with timeout(10):
 			await gather(*producers)
-			await Q.shutdown()
+			await Q.finish(all=True)
 			await Q.join()
 			assert not Q.has_wip, "Queue should not have any items WIP"
 	except TimeoutError:

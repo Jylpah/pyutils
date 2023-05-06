@@ -109,13 +109,18 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		return self._producers
 
 
-	async def finish(self) -> bool:
-		"""Producer has finished adding items to the queue"""
+	async def finish(self, all: bool = False) -> bool:
+		"""Producer has finished adding items to the queue
+			* all: finish() queue for all producers at once"""
 		async with self._put_lock, self._modify:
-			self._producers -= 1
-			if self._producers < 0:
+			if self._producers <= 0:
 				raise ValueError('finish() called more than the is producers')
-			elif self._producers == 0:
+			if all:
+				self._producers = 0
+			else:
+				self._producers -= 1
+			
+			if self._producers == 0:
 				self._filled.set()
 				self.check_done()
 				await self._Q.put(None)
@@ -123,14 +128,14 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 		return False
 
 
-	async def shutdown(self) -> None:
-		"""Finish the queue for all producers"""
-		# self._filled.set()
-		async with self._put_lock, self._modify:
-			self._producers = 0
-			self._filled.set()
-			self.check_done()
-			await self._Q.put(None)
+	# async def shutdown(self) -> None:
+	# 	"""Finish the queue for all producers"""
+	# 	# self._filled.set()
+	# 	async with self._put_lock, self._modify:
+	# 		self._producers = 0
+	# 		self._filled.set()
+	# 		self.check_done()
+	# 		await self._Q.put(None)
 
 
 	async def put(self, item: T) -> None:
