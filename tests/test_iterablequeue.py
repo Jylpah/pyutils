@@ -20,8 +20,8 @@ def test_interablequeue_int() -> IterableQueue[int]:
 	return IterableQueue[int](maxsize=QSIZE)
 
 
-async def _producer_int(Q: IterableQueue[int], 
-						n : int, 
+async def _producer_int(Q: IterableQueue[int],
+						n : int,
 						finish: bool = False,
 						wait: float = 0):
 	await Q.add_producer(N=1)
@@ -32,11 +32,11 @@ async def _producer_int(Q: IterableQueue[int],
 		await Q.finish()
 
 
-async def _consumer_int(Q: IterableQueue[int], 
+async def _consumer_int(Q: IterableQueue[int],
 						n : int = -1,
 						wait: float = 0):
 	try:
-		while n != 0:		
+		while n != 0:
 			_ = await Q.get()
 			await sleep(wait*random())
 			Q.task_done()
@@ -45,16 +45,15 @@ async def _consumer_int(Q: IterableQueue[int],
 		pass
 
 
-# 
 @pytest.mark.timeout(10)
 @pytest.mark.asyncio
 async def test_1_put_get_async(test_interablequeue_int: IterableQueue[int]):
 	"""Test: put(), get(), join(), qsize(), empty() == True"""
-	Q = test_interablequeue_int	
+	Q = test_interablequeue_int
 	try:
 		async with timeout(5):
 			await _producer_int(Q, QSIZE-1, finish=True)
-	except TimeoutError:		
+	except TimeoutError:
 		assert False, "IterableQueue got stuck"
 	assert Q.qsize() == QSIZE-1, f"qsize() returned {Q.qsize()}, should be {QSIZE-1}"
 	try:
@@ -62,7 +61,7 @@ async def test_1_put_get_async(test_interablequeue_int: IterableQueue[int]):
 		assert False, "Queue is done and put() should raise an exception"
 	except QueueDone:
 		pass # Queue is done and put() should raise an exception
-	
+
 	consumer : Task = create_task(_consumer_int(Q))
 	try:
 		async with timeout(5):
@@ -81,21 +80,22 @@ async def test_1_put_get_async(test_interablequeue_int: IterableQueue[int]):
 @pytest.mark.timeout(10)
 @pytest.mark.asyncio
 async def test_2_put_get_nowait(test_interablequeue_int: IterableQueue[int]):
+	"""Test put_nowait() and get_nowait() methods"""
 	Q = test_interablequeue_int
 	producer : Task = create_task(_producer_int(Q, N))
-	await sleep(1) 
-	# In theory this could fail without a real error 
+	await sleep(1)
+	# In theory this could fail without a real error
 	# if QSIZE is huge and/or system is slow
 	assert Q.qsize() == Q.maxsize, "Queue was supposed to be at maxsize"
 	assert Q.full(), "Queue should be full"
 	assert not Q.empty(), "Queue should not be empty"
-	
+
 	try:
 		Q.put_nowait(1)
 		assert False, "Queue was supposed to be full, but was not"
 	except QueueFull:
 		pass # OK, Queue was supposed to be full
-	
+
 	try:
 		while True:
 			_ = Q.get_nowait()
@@ -103,7 +103,7 @@ async def test_2_put_get_nowait(test_interablequeue_int: IterableQueue[int]):
 			await sleep(0.01)
 	except QueueEmpty:
 		assert Q.qsize() == 0, "Queue size should be zero"
-	
+
 	try:
 		async with timeout(5):
 			await Q.finish()
@@ -113,13 +113,13 @@ async def test_2_put_get_nowait(test_interablequeue_int: IterableQueue[int]):
 	assert Q.qsize() == 0, "queue size is > 0 even it should be empty"
 	assert Q.empty(), "queue not empty()"
 	producer.cancel()
-	
-	
+
+
 
 @pytest.mark.timeout(10)
 @pytest.mark.asyncio
 async def test_3_multiple_producers(test_interablequeue_int: IterableQueue[int]):
-	Q = test_interablequeue_int	
+	Q = test_interablequeue_int
 	workers : list[Task] = list()
 	for _ in range(THREADS):
 		workers.append(create_task(_producer_int(Q, N, finish=True, wait=0.05)))
@@ -144,7 +144,7 @@ async def test_4_multiple_producers_consumers(test_interablequeue_int: IterableQ
 	Q = test_interablequeue_int
 	producers : list[Task] = list()
 	consumers : list[Task] = list()
-	
+
 	for _ in range(THREADS):
 		producers.append(create_task(_producer_int(Q, N, finish=False, wait=0.05)))
 		consumers.append(create_task(_consumer_int(Q, 2*N, wait=0.06)))
