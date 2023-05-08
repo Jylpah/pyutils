@@ -54,12 +54,38 @@ class ThrottledClientSession(ClientSession):
 	
 	def get_rate(self) -> float:
 		"""Return rate of requests"""
+		warn("Depreaciated: Use 'rate' property")
 		return self._count / (time.time() - self._start_time)
 	
+	@classmethod
+	def _rate_str(cls, rate: float) -> str:
+		"""Get rate as a formatted string"""
+		if rate >= 1:
+			return f'{rate:.1f} requests/sec'
+		elif rate > 0:
+			return f'{1/rate:.1f} secs/request'
+		else:
+			return "-"
+
+	@property
+	def rate_limit(self) -> float:
+		return self._rate_limit
+
+
+	@property
+	def rate_limit_str(self) -> str:
+		"""Give rate-limit as formatted string"""
+		return self._rate_str(self._rate_limit)
+
 
 	@property
 	def rate(self) -> float:
 		return self._count / (time.time() - self._start_time)
+
+
+	@property
+	def rate_str(self) -> str:
+		return self._rate_str(self.rate)
 
 
 	@property
@@ -72,11 +98,17 @@ class ThrottledClientSession(ClientSession):
 		return self._errors
 
 
-	def get_stats(self) -> dict[str, float]:
-		"""Get session statistics"""
-		res = {'rate' : self.rate, 'rate_limit': self.rate_limit, 'count' : self.count, 'errors': self.errors }
-		return res
+	# def get_stats(self) -> dict[str, float]:
+	# 	"""Get session statistics"""
+	# 	res = {'rate' : self.rate, 'rate_limit': self.rate_limit, 'count' : self.count, 'errors': self.errors }
+	# 	return res
 		
+	
+	@property
+	def stats(self) -> str:
+		"""Get session statistics as string"""	
+		return f"rate limit: {self.rate_limit_str}, rate: {self.rate_str}, requests: {self.count}, errors: {self.errors}"
+
 
 	@property
 	def stats_dict(self) -> dict[str, float]:
@@ -113,7 +145,7 @@ class ThrottledClientSession(ClientSession):
 	def get_stats_str(self) -> str:
 		"""Print session statistics"""
 		error('DEPRECIATED: use self.stats')
-		return self.print_stats(self.get_stats())
+		return self.print_stats(self.stats_dict)
 
 
 	@classmethod
@@ -139,7 +171,7 @@ class ThrottledClientSession(ClientSession):
 
 	def reset_counters(self) -> dict[str, float]:
 		"""Reset rate counters and return current results"""
-		res = self.get_stats()
+		res = self.stats_dict
 		self._start_time = time.time()
 		self._count = 0
 		return res
