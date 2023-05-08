@@ -45,7 +45,7 @@ I = TypeVar('I', bound=Idx)
 
 class TXTExportable(metaclass=ABCMeta):
 	"""Abstract class to provide TXT export"""
-	
+
 	@abstractmethod
 	def txt_row(self, format : str = '') -> str:
 		"""export data as single row of text	"""
@@ -67,13 +67,13 @@ class CSVExportable(metaclass=ABCMeta):
 		"""Provide CSV headers as list"""
 		raise NotImplementedError
 
-	
+
 	@abstractmethod
 	def csv_row(self) -> dict[str, str | int | float | bool]:
 		"""Provide CSV row as a dict for csv.DictWriter"""
 		raise NotImplementedError
-	
-	
+
+
 	def clear_None(self, res: dict[str, str | int | float | bool | None]) -> dict[str, str | int | float | bool]:
 		out : dict[str, str | int | float | bool] = dict()
 		for key, value in res.items():
@@ -82,7 +82,7 @@ class CSVExportable(metaclass=ABCMeta):
 			else:
 				out[key] = value
 		return out
-	
+
 
 ########################################################
 #
@@ -104,8 +104,8 @@ class JSONExportable(BaseModel):
 
 
 	@classmethod
-	def register_transformation(cls, 
-			     				obj_type: type[D], 
+	def register_transformation(cls,
+			     				obj_type: type[D],
 								method: Callable[[D], Optional[Self]],
 								) -> None:
 		"""Register transformations"""
@@ -114,8 +114,8 @@ class JSONExportable(BaseModel):
 
 
 	@classmethod
-	def transform(cls, 
-				 in_obj: 'JSONExportable') -> Optional[Self]:  
+	def transform(cls,
+				 in_obj: 'JSONExportable') -> Optional[Self]:
 		"""Transform object to out_type if supported"""
 		try:
 			# transform_func : Callable[[D], Optional[Self]] = cls._transformations[type(in_obj)]
@@ -124,11 +124,11 @@ class JSONExportable(BaseModel):
 			debug(f'failed to transform {type(in_obj)} to {cls}: {err}')
 		return None
 
-	
+
 	@classmethod
-	def transform_obj(cls, 
-					  obj: Any, 
-					  in_type: type[D] | None = None) -> Optional[Self]:  
+	def transform_obj(cls,
+					  obj: Any,
+					  in_type: type[D] | None = None) -> Optional[Self]:
 		"""Transform object to class' object"""
 		try:
 			obj_in : JSONExportable
@@ -156,7 +156,7 @@ class JSONExportable(BaseModel):
 
 		except ValidationError as err:
 			error(f'Could not validate {in_type} or transform it to {cls}: {obj}')
-			error(f'{err}')					
+			error(f'{err}')
 		except Exception as err:
 			error(f'Could not export object type={in_type} to type={cls}')
 			error(f'{err}: {obj}')
@@ -164,47 +164,47 @@ class JSONExportable(BaseModel):
 
 
 	@classmethod
-	def transform_objs(cls, 
-					  objs: Sequence[Any], 
+	def transform_objs(cls,
+					  objs: Sequence[Any],
 					  in_type: type[D] | None = None) -> list[Self]:
 		"""Transform a list of objects"""
 		return [ out for obj in objs if (out:= cls.transform_obj(obj, in_type=in_type)) is not None ]
 
 
-	def _export_helper(self, params: dict[str, Any], 
+	def _export_helper(self, params: dict[str, Any],
 						fields: list[str] | None = None, **kwargs) -> dict:
 		"""Helper func to process params for obj/src export funcs"""
-		if fields is not None:	
+		if fields is not None:
 			del params['exclude']
 			params['include'] = { f: True for f in fields }
 			params['exclude_defaults'] 	= False
-			params['exclude_unset'] 	= False			
+			params['exclude_unset'] 	= False
 		else:
 			for f in  ['exclude', 'include']:
 				try:
-					params[f].update(kwargs[f]) 
+					params[f].update(kwargs[f])
 					del kwargs[f]
 				except:
 					pass
 		params.update(kwargs)
 		return params
-		
+
 
 	def obj_db(self, fields: list[str] | None = None, **kwargs) -> dict:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
 									'include'	: self._include_export_DB_fields,
-									'exclude_defaults': self._exclude_defaults, 
-									'by_alias'	: self._export_DB_by_alias 
+									'exclude_defaults': self._exclude_defaults,
+									'by_alias'	: self._export_DB_by_alias
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
 		return self.dict(**params)
-		
+
 
 	def obj_src(self, fields: list[str] | None = None, **kwargs) -> dict:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
 									'include'	: self._include_export_src_fields,
-									'exclude_unset' : self._exclude_unset, 
-									'by_alias'	: not self._export_DB_by_alias 
+									'exclude_unset' : self._exclude_unset,
+									'by_alias'	: not self._export_DB_by_alias
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
 		return self.dict(**params)
@@ -213,18 +213,18 @@ class JSONExportable(BaseModel):
 	def json_db(self, fields: list[str] | None = None, **kwargs) -> str:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
 									'include'	: self._include_export_DB_fields,
-									'exclude_defaults': self._exclude_defaults, 
-									'by_alias'	: self._export_DB_by_alias 
+									'exclude_defaults': self._exclude_defaults,
+									'by_alias'	: self._export_DB_by_alias
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
 		return self.json(**params)
-		
+
 
 	def json_src(self, fields: list[str] | None = None,**kwargs) -> str:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
 									'include'	: self._include_export_src_fields,
-									'exclude_unset' : self._exclude_unset, 
-									'by_alias'	: not self._export_DB_by_alias 
+									'exclude_unset' : self._exclude_unset,
+									'by_alias'	: not self._export_DB_by_alias
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
 		return self.json(**params)
@@ -257,34 +257,27 @@ class JSONExportable(BaseModel):
 		raise NotImplementedError
 
 
-# async def transform_objs(out_type: type[D], 
-# 						agen: AsyncGenerator[JSONExportable, None]) ->  AsyncGenerator[D, None]:
-# 		async for exportable in agen:
-# 			if (out := out_type.transform_obj(exportable)) is not None:
-# 				yield out
-
-
 FORMAT = Literal['txt', 'json', 'csv']
 
-async def export(Q: Queue[CSVExportable] | Queue[TXTExportable] | Queue[JSONExportable], 
-				format : FORMAT, filename: str, force: bool = False, 
+async def export(Q: Queue[CSVExportable] | Queue[TXTExportable] | Queue[JSONExportable],
+				format : FORMAT, filename: str, force: bool = False,
 				append : bool = False) -> EventCounter:
 	"""Export data to file or STDOUT"""
 	debug('starting')
 	stats : EventCounter = EventCounter('write')
 	try:
-		
+
 		if format == 'txt':
-			stats.merge_child(await export_txt(Q=cast(Queue[TXTExportable], Q), 
+			stats.merge_child(await export_txt(Q=cast(Queue[TXTExportable], Q),
 											filename=filename, force=force, append=append))
 		elif format == 'json':
-			stats.merge_child(await export_json(Q=cast(Queue[JSONExportable], Q), 
+			stats.merge_child(await export_json(Q=cast(Queue[JSONExportable], Q),
 											filename=filename, force=force, append=append))
 		elif format == 'csv':
-			stats.merge_child(await export_csv(Q=cast(Queue[CSVExportable], Q), 
+			stats.merge_child(await export_csv(Q=cast(Queue[CSVExportable], Q),
 											filename=filename, force=force, append=append))
-		else:			
-			raise ValueError(f'Unknown format: {format}')			
+		else:
+			raise ValueError(f'Unknown format: {format}')
 	except Exception as err:
 		stats.log('errors')
 		error(f'{err}')
@@ -292,18 +285,18 @@ async def export(Q: Queue[CSVExportable] | Queue[TXTExportable] | Queue[JSONExpo
 		return stats
 
 
-async def export_csv(Q: Queue[CSVExportable], filename: str, 
+async def export_csv(Q: Queue[CSVExportable], filename: str,
 						force: bool = False, append : bool = False) -> EventCounter:
 	"""Export data to a CSVfile"""
 	debug('starting')
 	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[CSVExportable]'
 	assert type(filename) is str and len(filename) > 0, 'filename has to be str'
-	stats : EventCounter = EventCounter('CSV')	
+	stats : EventCounter = EventCounter('CSV')
 	try:
 		dialect 	: Type[Dialect] = excel
 		exportable 	: CSVExportable	= await Q.get()
 		fields 		: list[str]		= exportable.csv_headers()
-		
+
 		if filename == '-':				# STDOUT
 			try:
 				# print header
@@ -321,7 +314,7 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 					exportable = await Q.get()
 			except CancelledError as err:
 				debug(f'Cancelled')
-			
+
 		else:							# File
 			filename += '.csv'
 			file_exists : bool = isfile(filename)
@@ -330,7 +323,7 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 
 			mode : Literal['w', 'a'] = 'w'
 			if append and file_exists:
-				mode = 'a'				
+				mode = 'a'
 			else:
 				append = False
 			debug(f'opening {filename} for writing in mode={mode}')
@@ -339,7 +332,7 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 					writer = AsyncDictWriter(csvfile, fieldnames=fields, dialect=dialect)
 					if not append:
 						await writer.writeheader()
-					while True:					
+					while True:
 						try:
 							# debug(f'Writing row: {exportable.csv_row()}')
 							await writer.writerow(exportable.csv_row())
@@ -354,13 +347,13 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 					debug(f'Cancelled')
 				finally:
 					pass
-	
+
 	except Exception as err:
 		error(f'{err}')
 	return stats
 
 
-async def export_json(Q: Queue[JSONExportable], filename: str, 
+async def export_json(Q: Queue[JSONExportable], filename: str,
 						force: bool = False, append : bool = False) -> EventCounter:
 	"""Export data to a JSON file"""
 	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[JSONExportable]'
@@ -368,7 +361,7 @@ async def export_json(Q: Queue[JSONExportable], filename: str,
 	stats : EventCounter = EventCounter('JSON')
 	try:
 		exportable 	: JSONExportable
-		if filename == '-':			
+		if filename == '-':
 			while True:
 				exportable = await Q.get()
 				try:
@@ -404,7 +397,7 @@ async def export_json(Q: Queue[JSONExportable], filename: str,
 	return stats
 
 
-async def export_txt(Q: Queue[TXTExportable], filename: str, 
+async def export_txt(Q: Queue[TXTExportable], filename: str,
 						force: bool = False, append : bool = False) -> EventCounter:
 	"""Export data to a text file"""
 	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue'
@@ -412,7 +405,7 @@ async def export_txt(Q: Queue[TXTExportable], filename: str,
 	stats : EventCounter = EventCounter('Text')
 	try:
 		exportable 	: TXTExportable
-		if filename == '-':			
+		if filename == '-':
 			while True:
 				exportable = await Q.get()
 				try:
