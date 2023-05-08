@@ -232,6 +232,8 @@ class ThrottledClientSession(ClientSession):
 	def is_limited(self, *args: str) -> bool:
 		"""Check wether the rate limit should be applied"""
 		try:
+			if self._rate_limit == 0:
+				return False
 			url: str = args[1]
 			for filter in self._filters:
 				if isinstance(filter, re.Pattern) and filter.match(url) is not None:
