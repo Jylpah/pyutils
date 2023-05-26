@@ -98,8 +98,9 @@ class JSONExportable(BaseModel):
 	_include_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_include_export_src_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_export_DB_by_alias			: bool = True
-	_exclude_defaults 			: bool = True
-	_exclude_unset 				: bool = True
+	_exclude_defaults 			: bool = False
+	_exclude_unset 				: bool = False
+	_exclude_none				: bool = False
 	_transformations 			: dict[Type, Callable[[D], Optional[Self]]] = dict()
 
 
@@ -179,6 +180,7 @@ class JSONExportable(BaseModel):
 			params['include'] = { f: True for f in fields }
 			params['exclude_defaults'] 	= False
 			params['exclude_unset'] 	= False
+			params['exclude_none'] 	= False
 		else:
 			for f in  ['exclude', 'include']:
 				try:
@@ -204,6 +206,7 @@ class JSONExportable(BaseModel):
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
 									'include'	: self._include_export_src_fields,
 									'exclude_unset' : self._exclude_unset,
+									'exclude_none': self._exclude_none,
 									'by_alias'	: not self._export_DB_by_alias
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
@@ -213,7 +216,7 @@ class JSONExportable(BaseModel):
 	def json_db(self, fields: list[str] | None = None, **kwargs) -> str:
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_DB_fields,
 									'include'	: self._include_export_DB_fields,
-									'exclude_defaults': self._exclude_defaults,
+									'exclude_defaults': self._exclude_defaults,									
 									'by_alias'	: self._export_DB_by_alias
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
@@ -224,6 +227,7 @@ class JSONExportable(BaseModel):
 		params: dict[str, Any] = {	'exclude' 	: self._exclude_export_src_fields,
 									'include'	: self._include_export_src_fields,
 									'exclude_unset' : self._exclude_unset,
+									'exclude_none': self._exclude_none,
 									'by_alias'	: not self._export_DB_by_alias
 									}
 		params = self._export_helper(params=params, fields=fields, **kwargs)
