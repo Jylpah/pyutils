@@ -98,9 +98,9 @@ class JSONExportable(BaseModel):
 	_include_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_include_export_src_fields	: ClassVar[Optional[TypeExcludeDict]] = None
 	_export_DB_by_alias			: bool = True
-	_exclude_defaults 			: bool = False
-	_exclude_unset 				: bool = False
-	_exclude_none				: bool = False
+	_exclude_defaults 			: bool = True
+	_exclude_unset 				: bool = True
+	_exclude_none				: bool = True
 	_transformations 			: dict[Type, Callable[[D], Optional[Self]]] = dict()
 
 
