@@ -1,6 +1,6 @@
 import logging
 from typing import Optional, cast, Type, Self, Any,Literal, Sequence, TypeVar, ClassVar,\
-	 Union, Mapping, Callable, Generic
+	 Union, Mapping, Callable, Generic, get_args
 from pydantic import BaseModel, ValidationError
 from asyncio import CancelledError, Queue
 from aiofiles import open
@@ -261,36 +261,15 @@ class JSONExportable(BaseModel):
 		raise NotImplementedError
 
 
-FORMAT = Literal['txt', 'json', 'csv']
-
-async def export(Q: Queue[CSVExportable] | Queue[TXTExportable] | Queue[JSONExportable],
-				format : FORMAT, filename: str, force: bool = False,
-				append : bool = False) -> EventCounter:
-	"""Export data to file or STDOUT"""
-	debug('starting')
-	stats : EventCounter = EventCounter('write')
-	try:
-
-		if format == 'txt':
-			stats.merge_child(await export_txt(Q=cast(Queue[TXTExportable], Q),
-											filename=filename, force=force, append=append))
-		elif format == 'json':
-			stats.merge_child(await export_json(Q=cast(Queue[JSONExportable], Q),
-											filename=filename, force=force, append=append))
-		elif format == 'csv':
-			stats.merge_child(await export_csv(Q=cast(Queue[CSVExportable], Q),
-											filename=filename, force=force, append=append))
-		else:
-			raise ValueError(f'Unknown format: {format}')
-	except Exception as err:
-		stats.log('errors')
-		error(f'{err}')
-	finally:
-		return stats
+EXPORT_FORMAT = Literal['txt', 'json', 'csv']
+EXPORT_FORMATS = ['txt', 'json', 'csv']
 
 
-async def export_csv(Q: Queue[CSVExportable], filename: str,
-						force: bool = False, append : bool = False) -> EventCounter:
+
+async def export_csv(Q: Queue[CSVExportable], 
+					 filename: str,
+					 force: bool = False, 
+					 append : bool = False) -> EventCounter:
 	"""Export data to a CSVfile"""
 	debug('starting')
 	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[CSVExportable]'
@@ -320,7 +299,8 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 				debug(f'Cancelled')
 
 		else:							# File
-			filename += '.csv'
+			if not filename.lower().endswith('csv'):
+				filename = f'{filename}.csv'
 			file_exists : bool = isfile(filename)
 			if exists(filename) and (not file_exists or not (force or append)):
 				raise FileExistsError(f'Cannot export to {filename }')
@@ -357,8 +337,11 @@ async def export_csv(Q: Queue[CSVExportable], filename: str,
 	return stats
 
 
-async def export_json(Q: Queue[JSONExportable], filename: str,
-						force: bool = False, append : bool = False) -> EventCounter:
+async def export_json(Q: Queue[JSONExportable], 
+					  filename: str,
+					  force: bool = False, 
+					  append : bool = False
+					  ) -> EventCounter:
 	"""Export data to a JSON file"""
 	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue[JSONExportable]'
 	assert type(filename) is str and len(filename) > 0, 'filename has to be str'
@@ -375,7 +358,8 @@ async def export_json(Q: Queue[JSONExportable], filename: str,
 				finally:
 					Q.task_done()
 		else:
-			filename += '.json'
+			if not filename.lower().endswith('json'):
+				filename = f'{filename}.json'
 			file_exists : bool = isfile(filename)
 			if exists(filename) and (not file_exists or not (force or append)):
 				raise FileExistsError(f'Cannot export to {filename }')
@@ -401,8 +385,10 @@ async def export_json(Q: Queue[JSONExportable], filename: str,
 	return stats
 
 
-async def export_txt(Q: Queue[TXTExportable], filename: str,
-						force: bool = False, append : bool = False) -> EventCounter:
+async def export_txt(Q: Queue[TXTExportable], 
+					 filename: str,
+					 force: bool = False, 
+					 append : bool = False) -> EventCounter:
 	"""Export data to a text file"""
 	assert isinstance(Q, Queue), 'Q has to be type of asyncio.Queue'
 	assert type(filename) is str and len(filename) > 0, 'filename has to be str'
@@ -419,7 +405,8 @@ async def export_txt(Q: Queue[TXTExportable], filename: str,
 				finally:
 					Q.task_done()
 		else:
-			filename += '.txt'
+			if not filename.lower().endswith('txt'):
+				filename = f'{filename}.txt'
 			file_exists : bool = isfile(filename)
 			if exists(filename) and (not file_exists or not (force or append)):
 				raise FileExistsError(f'Cannot export to {filename }')
@@ -444,4 +431,37 @@ async def export_txt(Q: Queue[TXTExportable], filename: str,
 		error(f'{err}')
 	return stats
 
+
+async def export(Q: Queue[CSVExportable] | Queue[TXTExportable] | Queue[JSONExportable],
+				format : EXPORT_FORMAT, 
+				filename: str, 
+				force: bool = False,
+				append : bool = False) -> EventCounter:
+	"""Export data to file or STDOUT"""
+	debug('starting')
+	stats : EventCounter = EventCounter('write')
+
+	if filename != '-':
+		for export_format in EXPORT_FORMATS:
+			if filename.endswith(export_format) and export_format in get_args(EXPORT_FORMAT):
+				format = cast(EXPORT_FORMAT, export_format)
+
+	try:
+
+		if format == 'txt':
+			stats.merge_child(await export_txt(Q=cast(Queue[TXTExportable], Q),
+											filename=filename, force=force, append=append))
+		elif format == 'json':
+			stats.merge_child(await export_json(Q=cast(Queue[JSONExportable], Q),
+											filename=filename, force=force, append=append))
+		elif format == 'csv':
+			stats.merge_child(await export_csv(Q=cast(Queue[CSVExportable], Q),
+											filename=filename, force=force, append=append))
+		else:
+			raise ValueError(f'Unknown format: {format}')
+	except Exception as err:
+		stats.log('errors')
+		error(f'{err}')
+	finally:
+		return stats
 
