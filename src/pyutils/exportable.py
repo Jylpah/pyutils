@@ -101,7 +101,9 @@ class JSONExportable(BaseModel):
 	_exclude_defaults 			: bool = True
 	_exclude_unset 				: bool = True
 	_exclude_none				: bool = True
-	_transformations 			: dict[Type, Callable[[D], Optional[Self]]] = dict()
+	
+	# This has to be set again in every sub class
+	_transformations : dict[Type, Callable[[D], Optional[Self]]] = dict()
 
 
 	@classmethod
