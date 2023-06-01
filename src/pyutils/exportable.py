@@ -1,6 +1,7 @@
 import logging
 from typing import Optional, cast, Type, Self, Any,Literal, Sequence, TypeVar, ClassVar,\
-	 Union, Mapping, Callable, Generic, get_args
+	 Union, Callable, Generic, get_args
+from collections.abc import MutableMapping
 from pydantic import BaseModel, ValidationError
 from asyncio import CancelledError, Queue
 from aiofiles import open
@@ -20,7 +21,7 @@ message	= logger.warning
 verbose	= logger.info
 debug	= logger.debug
 
-TypeExcludeDict = Mapping[int | str, Any]
+TypeExcludeDict = MutableMapping[int | str, Any]
 
 D = TypeVar('D', bound='JSONExportable')
 J = TypeVar('J', bound='JSONExportable')
@@ -110,8 +111,7 @@ class JSONExportable(BaseModel):
 	_exclude_none				: bool = True
 	
 	# This has to be set again in every sub class
-	_transformations : dict[Type, Callable[[D], Optional[Self]]] = dict()
-
+	_transformations : ClassVar[MutableMapping[Type, Callable[[Any], Optional[Self]]]] = dict()
 
 	@classmethod
 	def register_transformation(cls,
