@@ -16,7 +16,7 @@ from .exportable 			import TXTExportable as TXTExportable, \
 									BackendIndexType as BackendIndexType, \
 									BackendIndex as BackendIndex, \
 									Idx as Idx, \
-									export, export_csv, export_json, export_txt, \
+									export, export_csv, export_json, export_txt, call_clsinit, \
 									DESCENDING as DESCENDING, \
 									ASCENDING as ASCENDING, \
 									TEXT as TEXT, \

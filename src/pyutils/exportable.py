@@ -91,6 +91,13 @@ class CSVExportable(metaclass=ABCMeta):
 ########################################################
 
 
+def call_clsinit(cls):
+	"""Decorator to call cls._clsinit to init the class. 
+		This is needed for transformation register to work"""
+	cls._clsinit()
+	return cls
+
+
 class JSONExportable(BaseModel):
 
 	_exclude_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
@@ -114,11 +121,17 @@ class JSONExportable(BaseModel):
 		"""Register transformations"""
 		cls._transformations[obj_type] = method
 		return None
+	
+
+	@classmethod
+	def _clsinit(cls):
+		"""Init new dict for each class. Otherwise the dict() is shared among the subclasses"""
+		cls._transformations = dict()
 
 
 	@classmethod
 	def transform(cls,
-				 in_obj: 'JSONExportable') -> Optional[Self]:
+				  in_obj: Any) -> Optional[Self]:
 		"""Transform object to out_type if supported"""
 		try:
 			# transform_func : Callable[[D], Optional[Self]] = cls._transformations[type(in_obj)]
