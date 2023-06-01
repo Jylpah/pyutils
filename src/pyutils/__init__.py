@@ -17,7 +17,12 @@ from .exportable 			import TXTExportable as TXTExportable, \
 									BackendIndex as BackendIndex, \
 									Idx as Idx, \
 									export, export_csv, export_json, export_txt, \
-									DESCENDING, ASCENDING, TEXT, I, D, O
+									DESCENDING as DESCENDING, \
+									ASCENDING as ASCENDING, \
+									TEXT as TEXT, \
+									I as I, \
+									D as D, \
+									O as O
 from .importable 			import CSVImportable as CSVImportable, \
 									JSONImportable as JSONImportable,\
 	 								TXTImportable as TXTImportable, \
