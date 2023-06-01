@@ -1,6 +1,7 @@
 import logging
 from typing import Optional, cast, Type, Self, Any,Literal, Sequence, TypeVar, ClassVar,\
-	 Union, Mapping, Callable, Generic, get_args
+	 Union, Callable, Generic, get_args
+from collections.abc import MutableMapping
 from pydantic import BaseModel, ValidationError
 from asyncio import CancelledError, Queue
 from aiofiles import open
@@ -20,7 +21,7 @@ message	= logger.warning
 verbose	= logger.info
 debug	= logger.debug
 
-TypeExcludeDict = Mapping[int | str, Any]
+TypeExcludeDict = MutableMapping[int | str, Any]
 
 D = TypeVar('D', bound='JSONExportable')
 J = TypeVar('J', bound='JSONExportable')
@@ -91,6 +92,13 @@ class CSVExportable(metaclass=ABCMeta):
 ########################################################
 
 
+def call_clsinit(cls):
+	"""Decorator to call cls._clsinit to init the class. 
+		This is needed for transformation register to work"""
+	cls._clsinit()
+	return cls
+
+
 class JSONExportable(BaseModel):
 
 	_exclude_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
@@ -103,22 +111,27 @@ class JSONExportable(BaseModel):
 	_exclude_none				: bool = True
 	
 	# This has to be set again in every sub class
-	_transformations : dict[Type, Callable[[D], Optional[Self]]] = dict()
-
+	_transformations : ClassVar[MutableMapping[Type, Callable[[Any], Optional[Self]]]] = dict()
 
 	@classmethod
 	def register_transformation(cls,
-			     				obj_type: type[D],
-								method: Callable[[D], Optional[Self]],
+								obj_type: Any,
+								method: Callable[[Any], Optional[Self]],
 								) -> None:
 		"""Register transformations"""
 		cls._transformations[obj_type] = method
 		return None
+	
+
+	@classmethod
+	def _clsinit(cls):
+		"""Init new dict for each class. Otherwise the dict() is shared among the subclasses"""
+		cls._transformations = dict()
 
 
 	@classmethod
 	def transform(cls,
-				 in_obj: 'JSONExportable') -> Optional[Self]:
+				  in_obj: Any) -> Optional[Self]:
 		"""Transform object to out_type if supported"""
 		try:
 			# transform_func : Callable[[D], Optional[Self]] = cls._transformations[type(in_obj)]
@@ -145,14 +158,14 @@ class JSONExportable(BaseModel):
 					obj_in = obj
 				else:
 					raise ValueError("if if 'in_type' is not set, 'obj' has to be JSONExportable")
-			elif type(obj) is in_type:		
+			elif type(obj) is in_type:
 				obj_in = obj
 			else:
 				# debug('transform(obj_in)')
 				obj_in = in_type.parse_obj(obj)
 
-			res : Optional[Self] = cls.transform(obj_in)
-			if res is not None:
+			res : Optional[Self]
+			if (res := cls.transform(obj_in)) is not None:
 				# debug('transform(): OK')
 				return res
 			else:

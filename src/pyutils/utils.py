@@ -98,7 +98,7 @@ def get_sub_type(name: str, parent: type[T]) -> Optional[type[T]]:
 
 
 async def alive_bar_monitor(monitor : list[Countable], 
-			    			title : str, 
+							title : str, 
 							total : int | None = None, 
 							wait: float = 0.5,
 							batch: int = 1, 
@@ -179,8 +179,8 @@ async def get_url_JSON(session: ClientSession, url: str, retries : int = MAX_RET
 M = TypeVar('M', bound=BaseModel)
 
 async def get_url_JSON_model(session: ClientSession, 
-			     			url: str, 
-			     			resp_model : type[M], 
+				 			url: str, 
+				 			resp_model : type[M], 
 							retries : int = MAX_RETRIES
 							) -> Optional[M]:
 	"""Get JSON from URL and return object. Validate JSON against resp_model, if given."""
@@ -203,7 +203,7 @@ async def get_url_JSON_model(session: ClientSession,
 
 
 async def get_url_JSON_models(session: ClientSession, 
-			      				url: str, 
+				  				url: str, 
 								item_model : type[M], 
 								retries : int = MAX_RETRIES
 								) -> Optional[list[M]]:
@@ -290,7 +290,8 @@ async def get_urls_JSON(session: ClientSession,
 
 
 async def get_urls_JSON_models(session: ClientSession, 
-			       				queue : UrlQueue, resp_model : type[M], 
+				   				queue : UrlQueue, 
+								resp_model : type[M], 
 								stats : EventCounter = EventCounter(),
 								max_retries : int = MAX_RETRIES
 								) -> AsyncGenerator[tuple[M, str], None]:
