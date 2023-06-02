@@ -92,13 +92,6 @@ class CSVExportable(metaclass=ABCMeta):
 ########################################################
 
 
-def call_clsinit(cls):
-	"""Decorator to call cls._clsinit to init the class. 
-		This is needed for transformation register to work"""
-	cls._clsinit()
-	return cls
-
-
 class JSONExportable(BaseModel):
 
 	_exclude_export_DB_fields	: ClassVar[Optional[TypeExcludeDict]] = None
@@ -110,8 +103,15 @@ class JSONExportable(BaseModel):
 	_exclude_unset 				: bool = True
 	_exclude_none				: bool = True
 	
-	# This has to be set again in every sub class
+	# This is set in every subclass using __init_subclass__()
 	_transformations : ClassVar[MutableMapping[Type, Callable[[Any], Optional[Self]]]] = dict()
+
+
+	def __init_subclass__(cls, **kwargs) -> None:
+		"""Use PEP 487 sub class constructor instead a custom one"""
+		 # make sure each subclass has its own transformation register
+		cls._transformations = dict() 
+
 
 	@classmethod
 	def register_transformation(cls,
@@ -121,12 +121,6 @@ class JSONExportable(BaseModel):
 		"""Register transformations"""
 		cls._transformations[obj_type] = method
 		return None
-	
-
-	@classmethod
-	def _clsinit(cls):
-		"""Init new dict for each class. Otherwise the dict() is shared among the subclasses"""
-		cls._transformations = dict()
 
 
 	@classmethod
