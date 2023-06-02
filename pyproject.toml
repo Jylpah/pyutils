@@ -1,55 +1,53 @@
 [project]
 name = "pyutils"
-version = "0.1.11"
-authors = [ 
-	{ name="Jylpah", email="jylpah@gmail.com"} 
-	]
+version = "0.1.12"
+authors = [{ name = "Jylpah", email = "jylpah@gmail.com" }]
 description = "Misc Python utils and classes"
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
-	"Programming Language :: Python :: 3",
-	"License :: OSI Approved :: MIT License",
-	"Operating System :: OS Independent",
-	"Development Status :: 4 - Beta",
-	"Environment :: Console", 
-	"Framework :: Pydantic",
-	"Framework :: aiohttp",
-	"Topic :: Games/Entertainment"
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Framework :: Pydantic",
+    "Framework :: aiohttp",
+    "Topic :: Games/Entertainment",
 ]
 dependencies = [
-	"aiofiles>=23.1.0",
-	"aiohttp>=3.8.4",
-	"aioconsole>=0.6.1",
-	"aiosqlite>=0.19.0",
-	"aiocsv>=1.2.4",
-	"alive-progress>=3.1.1",	
-	"isort>=5.12.0",	
-	"pydantic>=1.10.7",
-	"pymongo>=4.3.3",	
-	]
+    "aiofiles>=23.1.0",
+    "aiohttp>=3.8.4",
+    "aioconsole>=0.6.1",
+    "aiosqlite>=0.19.0",
+    "aiocsv>=1.2.4",
+    "alive-progress>=3.1.1",
+    "isort>=5.12.0",
+    "pydantic>=1.10.7",
+    "pymongo>=4.3.3",
+]
 
 [project.optional-dependencies]
-dev = [	
-	"build>=0.10.0",
-	"mypy==1.2.0",
-	"pip-chill==1.0.3",
-	"pytest",
-	"pytest-asyncio",
-	"pytest-datafiles",
-	"pytest-cov>=4",
-	"pytest-timeout",
-	"types-aiofiles>=23.1.0.1",
+dev = [
+    "build>=0.10.0",
+    "mypy==1.2.0",
+    "pip-chill==1.0.3",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-datafiles",
+    "pytest-cov>=4",
+    "pytest-timeout",
+    "types-aiofiles>=23.1.0.1",
 ]
 
 
 [project.urls]
-"Homepage" 		= "https://github.com/Jylpah/pyutils"
-"Bug Tracker" 	= "https://github.com/Jylpah/pyutils/issues"
+"Homepage" = "https://github.com/Jylpah/pyutils"
+"Bug Tracker" = "https://github.com/Jylpah/pyutils/issues"
 
 
 [build-system]
-requires = [ "hatchling" ]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 
@@ -58,18 +56,19 @@ packages = ["src/pyutils"]
 
 
 [tool.mypy]
-plugins = [
-	"pydantic.mypy"
-	]
-exclude = [ 'tmp']
+plugins = ["pydantic.mypy"]
+exclude = ['tmp']
 mypy_path = ['src']
 
+[tool.black]
+line-length = 100
+include = '\.pyi?$'
 
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-v --cov=src"
 filterwarnings = [
-	'ignore:Inheritance class ThrottledClientSession from ClientSession is discouraged:DeprecationWarning',
+    'ignore:Inheritance class ThrottledClientSession from ClientSession is discouraged:DeprecationWarning',
 ]
 
 
