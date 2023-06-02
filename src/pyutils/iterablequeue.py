@@ -93,10 +93,12 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	def has_wip(self) -> bool:
 		return self._wip > 0
 
-
-	@property
-	def count(self) -> int:
-		return self._count
+    @property
+    def count(self) -> int:
+        if self._count_items:
+            return self._count
+        else:
+            return 0
 
 
 	async def add_producer(self, N : int = 1) -> int:
@@ -201,15 +203,13 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 			self._wip += 1
 			return item
 
-
-	def task_done(self) -> None:
-		self._Q.task_done()
-		if self._count_items:
-			self._count += 1
-		self._wip -= 1
-		if self._wip < 0:
-			raise ValueError('task_done() called more than tasks open')
-		self.check_done()
+    def task_done(self) -> None:
+        self._Q.task_done()
+        self._count += 1
+        self._wip -= 1
+        if self._wip < 0:
+            raise ValueError("task_done() called more than tasks open")
+        self.check_done()
 
 
 	async def join(self) -> None:
@@ -224,10 +224,11 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 	def __aiter__(self):
 		return self
 
-
-	async def __anext__(self) -> T:
-		try:
-			item = await self.get()
-			return item
-		except QueueDone:
-			raise StopAsyncIteration
+    async def __anext__(self) -> T:
+        try:
+            if self._count + self._wip > 0:  # do not mark task_done() at first call
+                self.task_done()
+            item = await self.get()
+            return item
+        except QueueDone:
+            raise StopAsyncIteration
