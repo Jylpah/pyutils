@@ -131,65 +131,48 @@ class JSONExportable(BaseModel):
         cls._transformations[obj_type] = method
         return None
 
+    @classmethod
+    def transform(cls, in_obj: Any) -> Optional[Self]:
+        """Transform object to out_type if supported"""
+        try:
+            if type(in_obj) is cls:
+                return in_obj
+            else:
+                return cls._transformations[type(in_obj)](in_obj)  # type: ignore
+        except Exception as err:
+            debug(f"failed to transform {type(in_obj)} to {cls}: {err}")
+        return None
 
-	@classmethod
-	def transform(cls,
-				  in_obj: Any) -> Optional[Self]:
-		"""Transform object to out_type if supported"""
-		try:
-			# transform_func : Callable[[D], Optional[Self]] = cls._transformations[type(in_obj)]
-			return cls._transformations[type(in_obj)](in_obj) # type: ignore
-		except Exception as err:
-			debug(f'failed to transform {type(in_obj)} to {cls}: {err}')
-		return None
+    @classmethod
+    def transform_many(cls, in_objs: Sequence[Any]) -> list[Self]:
+        """Transform a Sequence of objects into list of Self"""
+        return [out for obj in in_objs if (out := cls.transform(obj)) is not None]
 
+    @classmethod
+    def from_obj(cls, obj: Any, in_type: BaseModel | None = None) -> Optional[Self]:
+        """Parse instance from raw object.
+        Returns None if reading from object failed.
+        """
+        obj_in: BaseModel
+        if in_type is None:
+            try:
+                return cls.parse_obj(obj)
+            except ValidationError as err:
+                error("could not parse object as %s: %s", cls.__name__, str(err))
+        else:
+            try:
+                if (obj_in := in_type.parse_obj(obj)) is not None:
+                    return cls.transform(obj_in)
+            except ValidationError as err:
+                error("could not parse object as %s: %s", cls.__name__, str(err))
+        return None
 
-	@classmethod
-	def transform_obj(cls,
-					  obj: Any,
-					  in_type: type[D] | None = None) -> Optional[Self]:
-		"""Transform object to class' object"""
-		try:
-			obj_in : JSONExportable
-			# debug(f'cls: {cls}, obj: {type(obj)}, in_type: {in_type}')
-			if type(obj) is cls:
-				return obj
-			elif in_type is cls:
-				return cls.parse_obj(obj)
-			elif in_type is None:
-				if isinstance(obj, JSONExportable):
-					obj_in = obj
-				else:
-					raise ValueError("if if 'in_type' is not set, 'obj' has to be JSONExportable")
-			elif type(obj) is in_type:
-				obj_in = obj
-			else:
-				# debug('transform(obj_in)')
-				obj_in = in_type.parse_obj(obj)
-
-			res : Optional[Self]
-			if (res := cls.transform(obj_in)) is not None:
-				# debug('transform(): OK')
-				return res
-			else:
-				# debug('transform(): failed')
-				return cls.parse_obj(obj_in.obj_db())
-
-		except ValidationError as err:
-			error(f'Could not validate {in_type} or transform it to {cls}: {obj}')
-			error(f'{err}')
-		except Exception as err:
-			error(f'Could not export object type={in_type} to type={cls}')
-			error(f'{err}: {obj}')
-		return None
-
-
-	@classmethod
-	def transform_objs(cls,
-					  objs: Sequence[Any],
-					  in_type: type[D] | None = None) -> list[Self]:
-		"""Transform a list of objects"""
-		return [ out for obj in objs if (out:= cls.transform_obj(obj, in_type=in_type)) is not None ]
+    @classmethod
+    def from_objs(cls, objs: Sequence[Any], in_type: BaseModel | None = None) -> list[Self]:
+        """Parse list of instances from raw objects.
+        Parsing failures are ignored silently.
+        """
+        return [out for obj in objs if (out := cls.from_obj(obj, in_type=in_type)) is not None]
 
     def _export_helper(self, params: dict[str, Any], fields: list[str] | None = None, **kwargs) -> dict:
         """Helper func to process params for obj/src export funcs"""
