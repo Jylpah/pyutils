@@ -20,7 +20,6 @@ from .exportable 			import TXTExportable as TXTExportable, \
 									export_csv as export_csv, \
 									export_json as export_json, \
 									export_txt as export_txt, \
-									call_clsinit as call_clsinit, \
 									DESCENDING as DESCENDING, \
 									ASCENDING as ASCENDING, \
 									TEXT as TEXT, \
