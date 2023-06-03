@@ -75,7 +75,7 @@ class TXTImportable(metaclass=ABCMeta):
 
     @classmethod
     def from_txt(cls, text: str, **kwargs) -> Self:
-        """Provide CSV row as a dict for csv.DictWriter"""
+        """Provide parse object from a line of text"""
         raise NotImplementedError
 
     @classmethod
@@ -146,7 +146,6 @@ class CSVImportable(BaseModel):
         """Import from filename, one model per line"""
         try:
             dialect: Type[Dialect] = excel
-            # importable 	: CSVImportableSelf | None
             async with open(filename, mode="r", newline="") as f:
                 async for row in AsyncDictReader(f, dialect=dialect):
                     # debug(f'{row}')
@@ -240,7 +239,7 @@ class JSONImportable(BaseModel):
 
     @classmethod
     async def open(cls, filename: str) -> Self | None:
-        """Open replay JSON file and return WoTBlitzReplayJSON instance"""
+        """Open replay JSON file and return class instance"""
         try:
             async with open(filename, "r") as f:
                 return cls.parse_raw(await f.read())
@@ -250,7 +249,7 @@ class JSONImportable(BaseModel):
 
     @classmethod
     def from_str(cls, content: str) -> Self | None:
-        """Open replay JSON file and return WoTBlitzReplayJSON instance"""
+        """Open replay JSON file and return class instance"""
         try:
             return cls.parse_raw(content)
         except ValidationError as err:
