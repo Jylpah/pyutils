@@ -194,7 +194,7 @@ class JSONExportable(BaseModel):
         params = self._export_helper(params=params, fields=fields, **kwargs)
         return self.json(**params)
 
-    async def save(self, filename: str) -> int:
+    async def save_json(self, filename: str) -> int:
         """Save object JSON into a file"""
         try:
             async with open(filename, "w") as rf:
