@@ -79,12 +79,16 @@ class CSVExportable(BaseModel):
         """Provide CSV headers as list"""
         raise NotImplementedError
 
-    @abstractmethod
     def csv_row(self) -> dict[str, str | int | float | bool]:
         """Provide CSV row as a dict for csv.DictWriter"""
+        return self._clear_None(self._csv_row())
+
+    @abstractmethod
+    def _csv_row(self) -> dict[str, str | int | float | bool | None]:
+        """Class specific implementation of CSV export as a single row"""
         raise NotImplementedError
 
-    def clear_None(self, res: dict[str, str | int | float | bool | None]) -> dict[str, str | int | float | bool]:
+    def _clear_None(self, res: dict[str, str | int | float | bool | None]) -> dict[str, str | int | float | bool]:
         out: dict[str, str | int | float | bool] = dict()
         for key, value in res.items():
             if value is None:
