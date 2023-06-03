@@ -74,7 +74,7 @@ def today() -> date:
     return date.today()
 
 
-class TXTPerson(TXTExportable, TXTImportable, Importable):
+class TXTPerson(TXTExportable, TXTImportable, CSVExportable, CSVImportable, Importable):
     name: str = Field(default=...)
     height: float = Field(default=...)
     birthday: date = Field(default_factory=today)
@@ -94,6 +94,18 @@ class TXTPerson(TXTExportable, TXTImportable, Importable):
     def __hash__(self) -> int:
         """Make object hashable, but using index fields only"""
         return hash((self.name, self.birthday))
+
+    def csv_headers(self) -> list[str]:
+        """Provide CSV headers as list"""
+        return ["name", "height", "birthday"]
+
+    def _csv_row(self) -> dict[str, str | int | float | bool | None]:
+        """Class specific implementation of CSV export as a single row"""
+        return {
+            "name": self.name,
+            "height": self.height,
+            "birthday": self.birthday.isoformat(),
+        }
 
 
 @pytest.fixture
@@ -147,6 +159,31 @@ async def test_2_txt_exportable_importable(tmp_path: Path, txt_data: list[TXTPer
 
     try:
         await export(awrap(txt_data), "txt", filename=fn)  # type: ignore
+    except Exception as err:
+        assert False, f"failed to export test data: {err}"
+
+    imported: set[TXTPerson] = set()
+    try:
+        async for p_in in TXTPerson.import_file(fn):
+            imported.add(p_in)
+    except Exception as err:
+        assert False, f"failed to import test data: {err}"
+
+    for data in txt_data:
+        try:
+            imported.remove(data)
+        except Exception as err:
+            assert False, f"could not export or import item: {data}: {err}: {imported}"
+
+    assert len(imported) == 0, "Export or import failed"
+
+
+@pytest.mark.asyncio
+async def test_3_csv_exportable_importable(tmp_path: Path, txt_data: list[TXTPerson]):
+    fn: str = f"{tmp_path.resolve()}/export.csv"
+
+    try:
+        await export(awrap(txt_data), "csv", filename=fn)  # type: ignore
     except Exception as err:
         assert False, f"failed to export test data: {err}"
 
