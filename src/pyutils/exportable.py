@@ -71,7 +71,7 @@ class TXTExportable(metaclass=ABCMeta):
 ########################################################
 
 
-class CSVExportable(metaclass=ABCMeta):
+class CSVExportable(BaseModel):
     """Abstract class to provide CSV export"""
 
     @abstractmethod
