@@ -1,6 +1,6 @@
 [project]
 name = "pyutils"
-version = "0.1.12"
+version = "0.1.13"
 authors = [{ name = "Jylpah", email = "jylpah@gmail.com" }]
 description = "Misc Python utils and classes"
 readme = "README.md"
@@ -61,7 +61,7 @@ exclude = ['tmp']
 mypy_path = ['src']
 
 [tool.black]
-line-length = 100
+# line-length = 100
 include = '\.pyi?$'
 
 [tool.pytest.ini_options]
