@@ -129,6 +129,21 @@ class JSONExportable(BaseModel):
         params.update(kwargs)
         return params
 
+    @property
+    def index(self) -> Idx:
+        """return backend index"""
+        raise NotImplementedError
+
+    @property
+    def indexes(self) -> dict[str, Idx]:
+        """return backend indexes"""
+        raise NotImplementedError
+
+    @classmethod
+    def backend_indexes(cls) -> list[list[tuple[str, BackendIndexType]]]:
+        """return backend search indexes"""
+        raise NotImplementedError
+
     def obj_db(self, fields: list[str] | None = None, **kwargs) -> dict:
         params: dict[str, Any] = {
             "exclude": self._exclude_export_DB_fields,
@@ -179,21 +194,6 @@ class JSONExportable(BaseModel):
         except Exception as err:
             error(f"Error writing replay {filename}: {err}")
         return -1
-
-    @property
-    def index(self) -> Idx:
-        """return backend index"""
-        raise NotImplementedError
-
-    @property
-    def indexes(self) -> dict[str, Idx]:
-        """return backend indexes"""
-        raise NotImplementedError
-
-    @classmethod
-    def backend_indexes(cls) -> list[list[tuple[str, BackendIndexType]]]:
-        """return backend search indexes"""
-        raise NotImplementedError
 
 
 EXPORT_FORMAT = Literal["txt", "json", "csv"]
