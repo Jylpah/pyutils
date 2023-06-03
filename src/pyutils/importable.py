@@ -34,15 +34,15 @@ class Importable(metaclass=ABCMeta):
         debug("starting")
         try:
             if file.lower().endswith(".txt") and issubclass(cls, TXTImportable):
-                debug(f"importing from TXT file: {file}")
+                debug("importing from TXT file: %s", file)
                 async for obj in cls.import_txt(file, **kwargs):
                     yield obj
             elif file.lower().endswith(".json") and issubclass(cls, JSONImportable):
-                debug(f"importing from JSON file: {file}")
+                debug("importing from JSON file: %s", file)
                 async for obj in cls.import_json(file, **kwargs):
                     yield obj
             elif file.lower().endswith(".csv") and issubclass(cls, CSVImportable):
-                debug(f"importing from CSV file: {file}")
+                debug("importing from CSV file: %s", file)
                 async for obj in cls.import_csv(file):
                     yield obj
             else:
