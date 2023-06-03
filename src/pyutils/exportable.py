@@ -55,7 +55,7 @@ I = TypeVar("I", bound=Idx)
 ########################################################
 
 
-class TXTExportable(metaclass=ABCMeta):
+class TXTExportable(BaseModel):
     """Abstract class to provide TXT export"""
 
     @abstractmethod
