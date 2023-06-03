@@ -87,8 +87,8 @@ class TXTImportable(BaseModel):
             async with open(filename, "r") as f:
                 async for line in f:
                     try:
-                        # debug(f'line: {line}')
-                        if (importable := cls.from_txt(line, **kwargs)) is not None:
+                        debug("line: %s", line)
+                        if (importable := cls.from_txt(line.rstrip(), **kwargs)) is not None:
                             yield importable
                     except ValidationError as err:
                         error(f"Could not validate mode: {err}")
