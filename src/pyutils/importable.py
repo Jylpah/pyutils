@@ -82,7 +82,7 @@ class TXTImportable(BaseModel):
     async def import_txt(cls, filename: str, **kwargs) -> AsyncGenerator[Self, None]:
         """Import from filename, one model per line"""
         try:
-            # debug(f'starting: {filename}')
+            debug(f"starting: {filename}")
             # importable : TXTImportableSelf | None
             async with open(filename, "r") as f:
                 async for line in f:
@@ -148,7 +148,7 @@ class CSVImportable(BaseModel):
             dialect: Type[Dialect] = excel
             async with open(filename, mode="r", newline="") as f:
                 async for row in AsyncDictReader(f, dialect=dialect):
-                    # debug(f'{row}')
+                    debug("row: %s", row)
                     try:
                         if (importable := cls.from_csv(row)) is not None:
                             # debug(f'{importable}')
@@ -203,7 +203,7 @@ class JSONImportable(BaseModel):
             else:
                 return cls._transformations[type(in_obj)](in_obj)  # type: ignore
         except Exception as err:
-            debug(f"failed to transform {type(in_obj)} to {cls}: {err}")
+            error(f"failed to transform {type(in_obj)} to {cls}: {err}")
         return None
 
     @classmethod
