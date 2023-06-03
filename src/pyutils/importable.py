@@ -70,7 +70,7 @@ class Importable(metaclass=ABCMeta):
 TXTImportableSelf = TypeVar("TXTImportableSelf", bound="TXTImportable")
 
 
-class TXTImportable(metaclass=ABCMeta):
+class TXTImportable(BaseModel):
     """Abstract class to provide TXT import"""
 
     @classmethod
