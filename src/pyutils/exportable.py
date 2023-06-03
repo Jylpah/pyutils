@@ -144,6 +144,10 @@ class JSONExportable(BaseModel):
         """return backend search indexes"""
         raise NotImplementedError
 
+    def __hash__(self) -> int:
+        """Make object hashable, but using index fields only"""
+        return hash(self.index)
+
     def obj_db(self, fields: list[str] | None = None, **kwargs) -> dict:
         params: dict[str, Any] = {
             "exclude": self._exclude_export_DB_fields,
