@@ -130,15 +130,15 @@ class CSVImportable(BaseModel):
             if row[field] != "":
                 try:
                     field_type = cls.__fields__[field].type_
+                    debug("field=%s, field_type=%s, value=%s", field, field_type, row[field])
                     res[field] = (field_type)(eval(row[field]))
                 except KeyError:  # field not in cls
                     continue
-                except (TypeError, ValueError, NameError) as err:
-                    res[field] = row[field]
                 except AttributeError as err:
                     error(f"Class {cls.__name__}() does not have attribute: {field}")
                 except Exception as err:
-                    error(f"Could not parse field {field}: {type(err)}: {err}")
+                    debug("%s raised, trying direct assignment: %s", type(err), err)
+                    res[field] = row[field]
         return res
 
     @classmethod
