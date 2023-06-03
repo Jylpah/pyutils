@@ -1,6 +1,6 @@
 from .aliasmapper import AliasMapper as AliasMapper
 from .asyncqueue import AsyncQueue as AsyncQueue
-from .awrap import AsyncWrapIterable as AsyncWrapIterable
+from .awrap import awrap as awrap
 from .bucketmapper import BucketMapper as BucketMapper
 from .counterqueue import CounterQueue as CounterQueue, QCounter as QCounter
 from .eventcounter import EventCounter as EventCounter

@@ -1,4 +1,4 @@
-"""AsyncWrap() is a async wrapper for Iterables
+"""awrap() is a async wrapper for Iterables
 
 It converts an Iterable[T] to AsyncIterable[T]
 """
@@ -8,7 +8,7 @@ from typing import AsyncIterable, AsyncIterator, Iterable, Iterator, TypeVar
 T = TypeVar("T")
 
 
-class AsyncWrapIterable(AsyncIterable[T]):
+class awrap(AsyncIterable[T]):
     def __init__(self, iterable: Iterable[T]):
         self.iterable: Iterable[T] = iterable
         self.iter: Iterator[T]
