@@ -238,7 +238,7 @@ class JSONImportable(BaseModel):
         return [out for obj in objs if (out := cls.from_obj(obj, in_type=in_type)) is not None]
 
     @classmethod
-    async def open(cls, filename: str) -> Self | None:
+    async def open_json(cls, filename: str) -> Self | None:
         """Open replay JSON file and return class instance"""
         try:
             async with open(filename, "r") as f:
