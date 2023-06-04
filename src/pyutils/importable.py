@@ -133,7 +133,7 @@ class CSVImportable(BaseModel):
                 try:
                     field_type = cls.__fields__[field].type_
                     debug("field=%s, field_type=%s, value=%s", field, field_type, row[field])
-                    res[field] = (field_type)(eval(row[field]))
+                    res[field] = (field_type)(str(row[field]))
                 except KeyError:  # field not in cls
                     continue
                 except AttributeError as err:
