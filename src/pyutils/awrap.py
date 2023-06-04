@@ -1,12 +1,12 @@
 """awrap() is a async wrapper for Iterables
 
-It converts an Iterable[T] to AsyncIterable[T]
+It converts an Iterable[T] to AsyncGenerator[T]. 
+AsyncGenerator[T] is also AsyncIterable[T] allowing it to be used in async for
 """
 
-from typing import Iterator, TypeVar, AsyncGenerator
+from typing import Iterable, TypeVar, AsyncGenerator
 
 T = TypeVar("T")
-
 
 # class awrap(AsyncIterable[T]):
 #     def __init__(self, iterable: Iterable[T]):
@@ -24,7 +24,7 @@ T = TypeVar("T")
 #             raise StopAsyncIteration
 
 
-async def awrap(iterator: Iterator[T]) -> AsyncGenerator[T, None]:
+async def awrap(iterable: Iterable[T]) -> AsyncGenerator[T, None]:
     """Async wrapper for Iterable[T] so it can be used in async for"""
-    for item in iterator:
+    for item in iter(iterable):
         yield item
