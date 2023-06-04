@@ -7,6 +7,8 @@ from aiocsv.readers import AsyncDictReader
 from csv import Dialect, excel, QUOTE_NONNUMERIC
 from aiofiles import open
 
+from .jsonexportable import JSONExportable
+
 # Setup logging
 logger = logging.getLogger()
 error = logger.error
@@ -37,7 +39,7 @@ class Importable(metaclass=ABCMeta):
                 debug("importing from TXT file: %s", file)
                 async for obj in cls.import_txt(file, **kwargs):
                     yield obj
-            elif file.lower().endswith(".json") and issubclass(cls, JSONImportable):
+            elif file.lower().endswith(".json") and issubclass(cls, JSONExportable):
                 debug("importing from JSON file: %s", file)
                 async for obj in cls.import_json(file, **kwargs):
                     yield obj
@@ -152,119 +154,6 @@ class CSVImportable(BaseModel):
                     try:
                         if (importable := cls.from_csv(row)) is not None:
                             # debug(f'{importable}')
-                            yield importable
-                    except ValidationError as err:
-                        error(f"Could not validate mode: {err}")
-                    except Exception as err:
-                        error(f"{err}")
-        except Exception as err:
-            error(f"Error importing file {filename}: {err}")
-
-
-########################################################
-#
-# JSONImportable()
-#
-########################################################
-
-
-JSONImportableSelf = TypeVar("JSONImportableSelf", bound="JSONImportable")
-
-
-class JSONImportable(BaseModel):
-    """Base class for Pydantic models with fail-safe parsing and transformations.
-    Returns None if parsing / iumporting fails
-    """
-
-    # This is set in every subclass using __init_subclass__()
-    _transformations: ClassVar[MutableMapping[Type, Callable[[Any], Optional[Self]]]] = dict()
-
-    def __init_subclass__(cls, **kwargs) -> None:
-        """Use PEP 487 sub class constructor instead a custom one"""
-        # make sure each subclass has its own transformation register
-        cls._transformations = dict()
-
-    @classmethod
-    def register_transformation(
-        cls,
-        obj_type: Any,
-        method: Callable[[Any], Optional[Self]],
-    ) -> None:
-        """Register transformations"""
-        cls._transformations[obj_type] = method
-        return None
-
-    @classmethod
-    def transform(cls, in_obj: Any) -> Optional[Self]:
-        """Transform object to out_type if supported"""
-        try:
-            if type(in_obj) is cls:
-                return in_obj
-            else:
-                return cls._transformations[type(in_obj)](in_obj)  # type: ignore
-        except Exception as err:
-            error(f"failed to transform {type(in_obj)} to {cls}: {err}")
-        return None
-
-    @classmethod
-    def transform_many(cls, in_objs: Sequence[Any]) -> list[Self]:
-        """Transform a Sequence of objects into list of Self"""
-        return [out for obj in in_objs if (out := cls.transform(obj)) is not None]
-
-    @classmethod
-    def from_obj(cls, obj: Any, in_type: type[BaseModel] | None = None) -> Optional[Self]:
-        """Parse instance from raw object.
-        Returns None if reading from object failed.
-        """
-        obj_in: BaseModel
-        if in_type is None:
-            try:
-                return cls.parse_obj(obj)
-            except ValidationError as err:
-                error("could not parse object as %s: %s", cls.__name__, str(err))
-        else:
-            try:
-                if (obj_in := in_type.parse_obj(obj)) is not None:
-                    return cls.transform(obj_in)
-            except ValidationError as err:
-                error("could not parse object as %s: %s", cls.__name__, str(err))
-        return None
-
-    @classmethod
-    def from_objs(cls, objs: Sequence[Any], in_type: type[BaseModel] | None = None) -> list[Self]:
-        """Parse list of instances from raw objects.
-        Parsing failures are ignored silently.
-        """
-        return [out for obj in objs if (out := cls.from_obj(obj, in_type=in_type)) is not None]
-
-    @classmethod
-    async def open_json(cls, filename: str) -> Self | None:
-        """Open replay JSON file and return class instance"""
-        try:
-            async with open(filename, "r") as f:
-                return cls.parse_raw(await f.read())
-        except Exception as err:
-            error(f"Error reading replay: {err}")
-        return None
-
-    @classmethod
-    def from_str(cls, content: str) -> Self | None:
-        """Open replay JSON file and return class instance"""
-        try:
-            return cls.parse_raw(content)
-        except ValidationError as err:
-            error(f"Invalid replay format: {err}")
-        return None
-
-    @classmethod
-    async def import_json(cls, filename: str, **kwargs) -> AsyncGenerator[Self, None]:
-        """Import from filename, one model per line"""
-        try:
-            # importable : JSONImportableSelf | None
-            async with open(filename, "r") as f:
-                async for line in f:
-                    try:
-                        if (importable := cls.from_str(line, **kwargs)) is not None:
                             yield importable
                     except ValidationError as err:
                         error(f"Could not validate mode: {err}")

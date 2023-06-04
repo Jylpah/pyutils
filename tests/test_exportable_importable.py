@@ -10,7 +10,7 @@ import logging
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 
-from pyutils import JSONExportable, JSONImportable, export_json, export, Idx
+from pyutils import JSONExportable, export_json, export, Idx
 from pyutils import CSVExportable, CSVImportable, export_csv
 from pyutils import TXTExportable, TXTImportable, Importable
 from pyutils import awrap
@@ -37,7 +37,7 @@ def epoch() -> int:
     return int(time())
 
 
-class JSONChild(JSONExportable, JSONImportable):
+class JSONChild(JSONExportable):
     name: str
     created: int = Field(default_factory=epoch)
 
@@ -52,7 +52,7 @@ class JSONChild(JSONExportable, JSONImportable):
         return {"name": self.index}
 
 
-class JSONParent(JSONExportable, JSONImportable, Importable):
+class JSONParent(JSONExportable, Importable):
     name: str
     amount: int = 0
     correct: bool = Field(default=False, alias="c")
@@ -129,7 +129,7 @@ def txt_data() -> list[TXTPerson]:
 
 
 @pytest.mark.asyncio
-async def test_1_json_exportable_importable(tmp_path: Path, json_data: list[JSONParent]):
+async def test_1_json_exportable(tmp_path: Path, json_data: list[JSONParent]):
     fn: str = f"{tmp_path.resolve()}/export.json"
 
     try:
