@@ -234,8 +234,10 @@ async def export_csv(
                     try:
                         row: dict[str, str | int | float | bool] = exportable.csv_row()
                         print(dialect.delimiter.join([str(row[key]) for key in fields]))
+                        stats.log("rows")
                     except KeyError as err:
                         error(f"CSVExportable object does not have field: {err}")
+                        stats.log("errors")
                     exportable = await anext(aiterator, None)
 
                 debug("export finished")
@@ -265,7 +267,7 @@ async def export_csv(
                         try:
                             # debug(f'Writing row: {exportable.csv_row()}')
                             await writer.writerow(exportable.csv_row())
-                            stats.log("Rows")
+                            stats.log("rows")
                         except Exception as err:
                             error(f"{err}")
                             stats.log("errors")
@@ -293,8 +295,10 @@ async def export_json(
             async for exportable in iterable:
                 try:
                     print(exportable.json_src())
+                    stats.log("rows")
                 except Exception as err:
                     error(f"{err}")
+                    stats.log("errors")
         else:
             if not filename.lower().endswith("json"):
                 filename = f"{filename}.json"
@@ -308,7 +312,7 @@ async def export_json(
                 async for exportable in iterable:
                     try:
                         await txtfile.write(exportable.json_src() + linesep)
-                        stats.log("Rows")
+                        stats.log("rows")
                     except Exception as err:
                         error(f"{err}")
                         stats.log("errors")
@@ -332,8 +336,10 @@ async def export_txt(
             async for exportable in iterable:
                 try:
                     print(exportable.txt_row(format="rich"))
+                    stats.log("rows")
                 except Exception as err:
                     error(f"{err}")
+                    stats.log("errors")
         else:
             if not filename.lower().endswith("txt"):
                 filename = f"{filename}.txt"
