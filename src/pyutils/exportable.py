@@ -76,10 +76,9 @@ class TXTExportable(BaseModel):
 class CSVExportable(BaseModel):
     """Abstract class to provide CSV export"""
 
-    @abstractmethod
     def csv_headers(self) -> list[str]:
         """Provide CSV headers as list"""
-        raise NotImplementedError
+        return list(self.dict(exclude_unset=False, by_alias=False).keys())
 
     def csv_row(self) -> dict[str, str | int | float | bool]:
         """Provide CSV row as a dict for csv.DictWriter"""
