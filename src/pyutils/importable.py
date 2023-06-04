@@ -212,7 +212,7 @@ class JSONImportable(BaseModel):
         return [out for obj in in_objs if (out := cls.transform(obj)) is not None]
 
     @classmethod
-    def from_obj(cls, obj: Any, in_type: BaseModel | None = None) -> Optional[Self]:
+    def from_obj(cls, obj: Any, in_type: type[BaseModel] | None = None) -> Optional[Self]:
         """Parse instance from raw object.
         Returns None if reading from object failed.
         """
@@ -231,7 +231,7 @@ class JSONImportable(BaseModel):
         return None
 
     @classmethod
-    def from_objs(cls, objs: Sequence[Any], in_type: BaseModel | None = None) -> list[Self]:
+    def from_objs(cls, objs: Sequence[Any], in_type: type[BaseModel] | None = None) -> list[Self]:
         """Parse list of instances from raw objects.
         Parsing failures are ignored silently.
         """
