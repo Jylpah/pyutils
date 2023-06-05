@@ -4,14 +4,15 @@ from typing import Literal, Self
 from pydantic import BaseModel, Field
 from pathlib import Path
 from time import time
-from datetime import date
+from datetime import date, datetime
 from asyncio.queues import Queue
+from enum import Enum, StrEnum, IntEnum
 import logging
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 
 from pyutils import JSONExportable, export_json, export, Idx
-from pyutils import CSVExportable, CSVImportable, export_csv
+from pyutils import CSVExportable, export_csv
 from pyutils import TXTExportable, TXTImportable, Importable
 from pyutils import awrap
 
@@ -35,6 +36,19 @@ debug = logger.debug
 
 def epoch() -> int:
     return int(time())
+
+
+class Eyes(StrEnum):
+    blue = "Blue"
+    grey = "Grey"
+    brown = "Brown"
+
+
+class Hair(IntEnum):
+    black = 0
+    brown = 1
+    red = 2
+    blonde = 3
 
 
 class JSONChild(JSONExportable):
@@ -70,42 +84,73 @@ class JSONParent(JSONExportable, Importable):
         return {"name": self.index}
 
 
-def today() -> date:
-    return date.today()
+def today() -> datetime:
+    return datetime.combine(date.today(), datetime.min.time())
 
 
-class TXTPerson(TXTExportable, TXTImportable, CSVExportable, CSVImportable, Importable):
+def str2datetime(dt: str) -> datetime:
+    debug("str2datetime(): %s", dt)
+    return datetime.combine(date.fromisoformat(dt), datetime.min.time())
+
+
+def datetime2str(dt: datetime) -> str:
+    return dt.date().isoformat()
+
+
+class TXTPerson(TXTExportable, TXTImportable, CSVExportable, Importable):
     name: str = Field(default=...)
+    age: int = Field(default=...)
     height: float = Field(default=...)
-    birthday: date = Field(default_factory=today)
+    birthday: datetime = Field(default_factory=today)
+    woman: bool = Field(default=False)
+    hair: Hair = Field(default=Hair.brown)
+    eyes: Eyes = Field(default=Eyes.blue)
+
+    _csv_custom_field_readers = {"birthday": str2datetime}
+    _csv_custom_field_writers = {"birthday": datetime2str}
 
     def txt_row(self, format: str = "") -> str:
         """export data as single row of text"""
-        return f"{self.name}:{self.height}:{self.birthday.isoformat()}"
+        return f"{self.name}:{self.age}:{self.height}:{self.birthday.date().isoformat()}:{self.woman}:{self.hair.name}:{self.eyes.name}"
 
     @classmethod
     def from_txt(cls, text: str, **kwargs) -> Self:
         """Provide parse object from a line of text"""
         debug(f"line: {text}")
-        n, h, bd = text.split(":")
-        debug(f"name={n}, height={h}, birthday={bd}")
-        return cls(name=n, height=float(h), birthday=date.fromisoformat(bd), **kwargs)
+        n, a, h, bd, w, ha, e = text.split(":")
+        debug("name=%s, age=%s height=%s, birthday=%s, woman=%s, hair=%s, eyes=%s", n, a, h, bd, w, ha, e)
+        return cls(
+            name=n,
+            age=int(a),
+            height=float(h),
+            birthday=datetime.fromisoformat(bd),
+            woman=(w == "True"),
+            hair=Hair[ha],
+            eyes=Eyes[e],
+            **kwargs,
+        )
+
+    # def _csv_row(self) -> dict[str, str | int | float | bool | None]:
+    #     row: dict[str, str | int | float | bool | None] = super()._csv_row()
+    #     row["birthday"] = self.birthday.date().isoformat()
+    #     debug("row: %s", str(row))
+    #     return row
 
     def __hash__(self) -> int:
         """Make object hashable, but using index fields only"""
-        return hash((self.name, self.birthday))
+        return hash((self.name, self.birthday.date()))
 
     def csv_headers(self) -> list[str]:
         """Provide CSV headers as list"""
-        return ["name", "height", "birthday"]
+        return list(self.__fields__.keys())
 
-    def _csv_row(self) -> dict[str, str | int | float | bool | None]:
-        """Class specific implementation of CSV export as a single row"""
-        return {
-            "name": self.name,
-            "height": self.height,
-            "birthday": self.birthday.isoformat(),
-        }
+    # def _csv_row(self) -> dict[str, str | int | float | bool | None]:
+    #     """Class specific implementation of CSV export as a single row"""
+    #     return {
+    #         "name": self.name,
+    #         "height": self.height,
+    #         "birthday": self.birthday.isoformat(),
+    #     }
 
 
 @pytest.fixture
@@ -122,9 +167,15 @@ def json_data() -> list[JSONParent]:
 @pytest.fixture
 def txt_data() -> list[TXTPerson]:
     res: list[TXTPerson] = list()
-    res.append(TXTPerson(name="one", height=1.85))
-    res.append(TXTPerson(name="two more", height=1.43, birthday="1977-07-23"))
-    res.append(TXTPerson(name="Third 3.5", height=1.76, birthday=date.fromisoformat("2005-02-14")))
+    res.append(TXTPerson(name="Marie", age=0, height=1.85, woman=True, eyes=Eyes.brown, hair=Hair.red))
+    res.append(
+        TXTPerson(name="Jack Who", age=45, height=1.43, birthday=datetime.fromisoformat("1977-07-23"), eyes=Eyes.grey)
+    )
+    res.append(
+        TXTPerson(
+            name="James 3.5", age=18, height=1.76, birthday=datetime.fromisoformat("2005-02-14"), hair=Hair.blonde
+        )
+    )
     return res
 
 
@@ -165,11 +216,17 @@ async def test_2_txt_exportable_importable(tmp_path: Path, txt_data: list[TXTPer
     imported: set[TXTPerson] = set()
     try:
         async for p_in in TXTPerson.import_file(fn):
+            debug("import_txt(): %s", str(p_in))
             imported.add(p_in)
     except Exception as err:
         assert False, f"failed to import test data: {err}"
 
+    assert len(imported) == len(
+        txt_data
+    ), f"failed to import all data from TXT file: {len(imported)} != {len(txt_data)}"
+
     for data in txt_data:
+        debug("trying to remove data=%s from imported", str(data))
         try:
             imported.remove(data)
         except Exception as err:
@@ -194,10 +251,18 @@ async def test_3_csv_exportable_importable(tmp_path: Path, txt_data: list[TXTPer
     except Exception as err:
         assert False, f"failed to import test data: {err}"
 
-    for data in txt_data:
+    assert len(imported) == len(txt_data), f"could not import all CSV data: {len(imported)} != {len(txt_data)}"
+    for data_imported in imported:
+        debug("hash(data_imported)=%d", hash(data_imported))
         try:
-            imported.remove(data)
-        except Exception as err:
-            assert False, f"could not export or import item: {data}: {err}: {imported}"
+            if data_imported in txt_data:
+                ndx: int = txt_data.index(data_imported)
+                data = txt_data[ndx]
+                assert data == data_imported, f"imported data different from original: {data_imported} != {data}"
+                txt_data.pop(ndx)
+            else:
+                assert False, f"imported data not in the original: {data_imported}"
+        except ValueError as err:
+            assert False, f"export/import conversion error. imported data={data_imported} is not in input data"
 
-    assert len(imported) == 0, "Export or import failed"
+    assert len(txt_data) == 0, f"could not import all the data correctly: {len(txt_data)} != 0"
