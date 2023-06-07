@@ -22,16 +22,15 @@ from .jsonexportable import (
     # D as D,
     # O as O,
 )
+from .csvexportable import CSVExportable as CSVExportable
 from .exportable import (
     TXTExportable as TXTExportable,
-    CSVExportable as CSVExportable,
     export as export,
     export_csv as export_csv,
     export_json as export_json,
     export_txt as export_txt,
 )
 from .importable import (
-    CSVImportable as CSVImportable,
     TXTImportable as TXTImportable,
     Importable as Importable,
 )

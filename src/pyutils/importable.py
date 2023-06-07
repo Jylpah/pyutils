@@ -5,9 +5,11 @@ from collections.abc import MutableMapping
 from pydantic import BaseModel, ValidationError
 from aiocsv.readers import AsyncDictReader
 from csv import Dialect, excel, QUOTE_NONNUMERIC
+from datetime import date, datetime
 from aiofiles import open
-
+from enum import Enum
 from .jsonexportable import JSONExportable
+from .csvexportable import CSVExportable
 
 # Setup logging
 logger = logging.getLogger()
@@ -43,7 +45,7 @@ class Importable(metaclass=ABCMeta):
                 debug("importing from JSON file: %s", file)
                 async for obj in cls.import_json(file, **kwargs):
                     yield obj
-            elif file.lower().endswith(".csv") and issubclass(cls, CSVImportable):
+            elif file.lower().endswith(".csv") and issubclass(cls, CSVExportable):
                 debug("importing from CSV file: %s", file)
                 async for obj in cls.import_csv(file):
                     yield obj
@@ -91,69 +93,6 @@ class TXTImportable(BaseModel):
                     try:
                         debug("line: %s", line)
                         if (importable := cls.from_txt(line.rstrip(), **kwargs)) is not None:
-                            yield importable
-                    except ValidationError as err:
-                        error(f"Could not validate mode: {err}")
-                    except Exception as err:
-                        error(f"{err}")
-        except Exception as err:
-            error(f"Error importing file {filename}: {err}")
-
-
-########################################################
-#
-# CSVImportable()
-#
-########################################################
-
-
-CSVImportableSelf = TypeVar("CSVImportableSelf", bound="CSVImportable")
-
-
-class CSVImportable(BaseModel):
-    """Abstract class to provide CSV export"""
-
-    @classmethod
-    def from_csv(cls, row: dict[str, Any]) -> Self | None:
-        """Provide CSV row as a dict for csv.DictWriter"""
-        try:
-            row = cls._set_field_types(row)
-            return cls.parse_obj(row)
-        except Exception as err:
-            error(f"Could not parse row ({row}): {err}")
-        return None
-
-    @classmethod
-    def _set_field_types(cls, row: dict[str, Any]) -> dict[str, Any]:
-        ## Does NOT WORK with Alias field names
-        assert type(row) is dict, "row has to be type dict()"
-        res: dict[str, Any] = dict()
-        for field in row.keys():
-            if row[field] != "":
-                try:
-                    field_type = cls.__fields__[field].type_
-                    debug("field=%s, field_type=%s, value=%s", field, field_type, row[field])
-                    res[field] = (field_type)(eval(row[field]))
-                except KeyError:  # field not in cls
-                    continue
-                except AttributeError as err:
-                    error(f"Class {cls.__name__}() does not have attribute: {field}")
-                except Exception as err:
-                    debug("%s raised, trying direct assignment: %s", type(err), err)
-                    res[field] = row[field]
-        return res
-
-    @classmethod
-    async def import_csv(cls, filename: str) -> AsyncGenerator[Self, None]:
-        """Import from filename, one model per line"""
-        try:
-            dialect: Type[Dialect] = excel
-            async with open(filename, mode="r", newline="") as f:
-                async for row in AsyncDictReader(f, dialect=dialect):
-                    debug("row: %s", row)
-                    try:
-                        if (importable := cls.from_csv(row)) is not None:
-                            # debug(f'{importable}')
                             yield importable
                     except ValidationError as err:
                         error(f"Could not validate mode: {err}")

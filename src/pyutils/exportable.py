@@ -7,6 +7,7 @@ from typing import (
     Literal,
     TypeVar,
     ClassVar,
+    Callable,
     Union,
     AsyncIterable,
     AsyncIterator,
@@ -27,6 +28,7 @@ from abc import abstractmethod
 
 from .eventcounter import EventCounter
 from .jsonexportable import JSONExportable
+from .csvexportable import CSVExportable
 
 # Setup logging
 logger = logging.getLogger()
@@ -67,45 +69,6 @@ class TXTExportable(BaseModel):
 # CSVExportable()
 #
 ########################################################
-
-
-class CSVExportable(BaseModel):
-    """Abstract class to provide CSV export"""
-
-    def csv_headers(self) -> list[str]:
-        """Provide CSV headers as list"""
-        return list(self.dict(exclude_unset=False, by_alias=False).keys())
-
-    def csv_row(self) -> dict[str, str | int | float | bool]:
-        """Provide CSV row as a dict for csv.DictWriter"""
-        return self._clear_None(self._csv_row())
-
-    def _csv_row(self) -> dict[str, str | int | float | bool | None]:
-        """CSVExportable._csv_row() takes care of str,int,float,bool,Enum, date and datetime.
-        Class specific implementation needs to take care or serializing other fields."""
-        row: dict[str, str | int | float | bool | None] = dict()
-        for key in self.__dict__.keys():
-            value = getattr(self, key)
-            if type(value) in {int, str, float, bool}:
-                row[key] = value
-            elif isinstance(value, Enum):
-                row[key] = value.value
-            elif isinstance(value, date):
-                row[key] = value.isoformat()
-            elif isinstance(value, datetime):
-                row[key] = value.isoformat()
-            else:
-                row[key] = None
-        return row
-
-    def _clear_None(self, res: dict[str, str | int | float | bool | None]) -> dict[str, str | int | float | bool]:
-        out: dict[str, str | int | float | bool] = dict()
-        for key, value in res.items():
-            if value is None:
-                out[key] = ""
-            else:
-                out[key] = value
-        return out
 
 
 EXPORT_FORMAT = Literal["txt", "json", "csv"]
