@@ -57,10 +57,10 @@ class CSVExportable(BaseModel):
         Returns columns_done, columns_left
         """
         res: dict[str, Any] = dict()
-        debug("_csv_write_fields(): starting: %s", str(type(self)))
+        # debug ("_csv_write_fields(): starting: %s", str(type(self)))
 
         for field, encoder in self._csv_writers.items():
-            debug("class=%s, field=%s, encoder=%s", str(type(self)), field, str(encoder))
+            # debug ("class=%s, field=%s, encoder=%s", str(type(self)), field, str(encoder))
             try:
                 if left[field] != "":
                     res[field] = encoder(left[field])
@@ -108,18 +108,18 @@ class CSVExportable(BaseModel):
         res: dict[str, Any] = dict()
         # if cls is CSVExportable:
         #     return res, row
-        debug("%s._csv_read_fields(): %s", cls.__name__, str(row))
+        # debug ("%s._csv_read_fields(): %s", cls.__name__, str(row))
         for field, decoder in cls._csv_readers.items():
-            debug(
-                "%s._csv_read_fields(): field=%s, decoder=%s, value=%s", cls.__name__, field, str(decoder), row[field]
-            )
+            # debug (
+            #     "%s._csv_read_fields(): field=%s, decoder=%s, value=%s", cls.__name__, field, str(decoder), row[field]
+            # )
             try:
                 if row[field] != "":
                     res[field] = decoder(row[field])
                 del row[field]
             except KeyError as err:
                 debug("field=%s not found", field)
-        debug("class=%s", str(cls))
+        # debug ("class=%s", str(cls))
 
         return res, row
 
@@ -128,14 +128,14 @@ class CSVExportable(BaseModel):
         ## Does NOT WORK with Alias field names
         assert type(row) is dict, "row has to be type dict()"
         res: dict[str, Any]
-        debug("from_csv(): trying to import from: %s", str(row))
+        # debug("from_csv(): trying to import from: %s", str(row))
         res, row = cls._csv_read_fields(row)
 
         for field in row.keys():
             if row[field] != "":
                 try:
                     field_type = cls.__fields__[field].type_
-                    debug("field=%s, field_type=%s, value=%s", field, field_type, row[field])
+                    # debug ("field=%s, field_type=%s, value=%s", field, field_type, row[field])
                     if field_type in {int, float, str}:
                         res[field] = (field_type)(str(row[field]))
                     elif field_type is bool:
@@ -153,10 +153,10 @@ class CSVExportable(BaseModel):
                 except AttributeError as err:
                     error(f"Class {cls.__name__}() does not have attribute: {field}")
                 except Exception as err:
-                    debug("%s raised, trying direct assignment: %s", type(err), err)
+                    # debug ("%s raised, trying direct assignment: %s", type(err), err)
                     res[field] = str(row[field])
         try:
-            debug("from_csv(): trying parse: %s", str(res))
+            # debug ("from_csv(): trying parse: %s", str(res))
             return cls.parse_obj(res)
         except ValidationError as err:
             error(f"Could not parse row ({row}): {err}")
@@ -170,7 +170,7 @@ class CSVExportable(BaseModel):
             debug("importing from CSV file: %s", filename)
             async with open(filename, mode="r", newline="") as f:
                 async for row in AsyncDictReader(f, dialect=dialect):
-                    debug("row: %s", row)
+                    # debug ("row: %s", row)
                     try:
                         if (importable := cls.from_csv(row)) is not None:
                             # debug(f'{importable}')
