@@ -248,7 +248,9 @@ class JSONExportable(BaseModel):
     async def save_json(self, filename: str) -> int:
         """Save object JSON into a file"""
         try:
-            async with open(filename, "w") as rf:
+            if not filename.endswith(".json"):
+                filename += ".json"
+            async with open(filename, mode="w", encoding="utf-8") as rf:
                 return await rf.write(self.json_src())
         except Exception as err:
             error(f"Error writing replay {filename}: {err}")
