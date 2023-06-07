@@ -13,7 +13,6 @@ from csv import Dialect, excel, QUOTE_NONNUMERIC
 from datetime import date, datetime
 from aiofiles import open
 from enum import Enum
-from copy import deepcopy
 
 # Setup logging
 logger = logging.getLogger()
@@ -39,8 +38,8 @@ class CSVExportable(BaseModel):
         # Inherits the parents field functions using copy.deepcopy()
         super().__init_subclass__(**kwargs)
         try:
-            cls._csv_writers = deepcopy(cls._csv_writers)  # type: ignore
-            cls._csv_readers = deepcopy(cls._csv_readers)  # type: ignore
+            cls._csv_writers = cls._csv_writers.copy()  # type: ignore
+            cls._csv_readers = cls._csv_readers.copy()  # type: ignore
         except AttributeError:
             cls._csv_writers = dict()
             cls._csv_readers = dict()
