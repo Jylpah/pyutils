@@ -20,7 +20,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
 
     def __init__(self, queue: Queue[T], asleep: float = 0.01):
         self._Q: Queue[T] = queue
-        self._maxsize: int = queue.maxsize
+        # self._maxsize: int = queue.maxsize
         self._done: int = 0
         self._items: int = 0
         self._sleep: float = asleep
@@ -34,7 +34,7 @@ class AsyncQueue(asyncio.Queue, Generic[T]):
     @property
     def maxsize(self) -> int:
         """not supported by queue.Queue"""
-        return self._maxsize
+        return self._Q.maxsize
 
     async def get(self) -> T:
         while True:
