@@ -1,112 +1,96 @@
-from queue import Full, Empty
-import queue
+from queue import Full, Empty, Queue
 from asyncio.queues import QueueEmpty, QueueFull
 import asyncio
 from typing import Generic, TypeVar
-import logging 
+import logging
 from asyncio import sleep
 
-T= TypeVar('T')
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
-debug	= logger.debug
+debug = logger.debug
 message = logger.warning
 verbose = logger.info
-error 	= logger.error
+error = logger.error
+
 
 class AsyncQueue(asyncio.Queue, Generic[T]):
-	"""Async wrapper/interface for non-async queue.Queue."""
+    """Async wrapper/interface for non-async queue.Queue."""
 
+    def __init__(self, queue: Queue[T], asleep: float = 0.01):
+        self._Q: Queue[T] = queue
+        self._maxsize: int = queue.maxsize
+        self._done: int = 0
+        self._items: int = 0
+        self._sleep: float = asleep
 
-	def __init__(self, maxsize: int = 0, asleep: float = 0.01):
-		self._Q 	: queue.Queue[T] = queue.Queue(maxsize=maxsize)
-		self._maxsize : int = maxsize
-		self._done 	: int = 0
-		self._items : int = 0
-		self._sleep : float = asleep
-		
-		
+    # @classmethod
+    # def from_queue(cls, Q : queue.Queue[T]) -> 'AsyncQueue[T]':
+    # 	aQ : AsyncQueue[T] = AsyncQueue()
+    # 	aQ._Q = Q
+    # 	return aQ
 
-	@classmethod
-	def from_queue(cls, Q : queue.Queue[T]) -> 'AsyncQueue[T]':
-		aQ : AsyncQueue[T] = AsyncQueue()
-		aQ._Q = Q
-		return aQ
+    @property
+    def maxsize(self) -> int:
+        """not supported by queue.Queue"""
+        return self._maxsize
 
-	@property
-	def maxsize(self) -> int:
-		"""not supported by queue.Queue"""
-		return self._maxsize
+    async def get(self) -> T:
+        while True:
+            try:
+                return self.get_nowait()
+            except QueueEmpty:
+                await sleep(self._sleep)
 
+    def get_nowait(self) -> T:
+        try:
+            return self._Q.get_nowait()
+        except Empty:
+            raise QueueEmpty
 
-	async def get(self) -> T:
-		while True:
-			try:
-				return self.get_nowait()
-			except QueueEmpty:
-				await sleep(self._sleep)
-	
-	
-	def get_nowait(self) -> T:
-		try:
-			return self._Q.get_nowait()
-		except Empty:
-			raise QueueEmpty
+    async def put(self, item: T) -> None:
+        while True:
+            try:
+                return self.put_nowait(item)
+            except QueueFull:
+                await sleep(self._sleep)
 
+    def put_nowait(self, item: T) -> None:
+        try:
+            self._Q.put_nowait(item)
+            self._items += 1
+            return None
+        except Full:
+            raise QueueFull
 
-	async def put(self, item: T) -> None:
-		while True:
-			try:
-				return self.put_nowait(item)
-			except QueueFull:
-				await sleep(self._sleep)
+    async def join(self) -> None:
+        while True:
+            if self._Q.empty():
+                return None
+            else:
+                await sleep(self._sleep)
 
+    def task_done(self) -> None:
+        self._Q.task_done()
+        self._done += 1
+        return None
 
-	def put_nowait(self, item: T) -> None:
-		try:
-			self._Q.put_nowait(item)
-			self._items += 1
-			return None
-		except Full:
-			raise QueueFull
+    def qsize(self) -> int:
+        return self._Q.qsize()
 
+    @property
+    def done(self) -> int:
+        """Number of done items"""
+        return self._done
 
-	async def join(self) -> None:
-		while True:
-			if self._Q.empty():
-				return None
-			else:
-				await sleep(self._sleep)
+    @property
+    def items(self) -> int:
+        """Number of items ever put to the queue"""
+        return self._items
 
+    def empty(self) -> bool:
+        return self._Q.empty()
 
-	def task_done(self) -> None:
-		self._Q.task_done()
-		self._done += 1
-		return None
-
-
-	def qsize(self) -> int:
-		return self._Q.qsize()
-
-
-	@property
-	def done(self) -> int:
-		"""Number of done items"""
-		return self._done
-
-
-	@property
-	def items(self) -> int:
-		"""Number of items ever put to the queue"""
-		return self._items
-
-
-	def empty(self) -> bool:
-		return self._Q.empty()
-
-
-	def full(self) -> bool:
-		return self._Q.full()
-
-
+    def full(self) -> bool:
+        return self._Q.full()
