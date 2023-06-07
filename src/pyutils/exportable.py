@@ -123,7 +123,7 @@ async def export_csv(
                 mode = "a"
             else:
                 append = False
-            debug(f"opening {filename} for writing in mode={mode}")
+            debug("opening %s for writing in mode=%s", filename, mode)
             async with open(filename, mode=mode, newline="") as csvfile:
                 try:
                     writer = AsyncDictWriter(csvfile, fieldnames=fields, dialect=dialect)
@@ -178,6 +178,7 @@ async def export_json(
             async with open(filename, mode=mode) as txtfile:
                 async for exportable in iterable:
                     try:
+                        debug("writing JSON: %s", exportable.json_src())
                         await txtfile.write(exportable.json_src() + linesep)
                         stats.log("rows")
                     except Exception as err:
@@ -226,7 +227,7 @@ async def export_txt(
                         stats.log("errors")
 
     except CancelledError as err:
-        debug(f"Cancelled")
+        debug("Cancelled")
     except Exception as err:
         error(f"{err}")
     return stats
