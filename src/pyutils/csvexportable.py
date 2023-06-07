@@ -26,29 +26,40 @@ debug = logger.debug
 class CSVExportable(BaseModel):
     """Abstract class to provide CSV export"""
 
-    _csv_custom_field_writers: ClassVar[MutableMapping[str, Callable[[Any], Any]]] = dict()
-    _csv_custom_field_readers: ClassVar[MutableMapping[str, Callable[[Any], Any]]] = dict()
+    # Define subclass' CSV readers/writers into these
+    _csv_custom_writers: ClassVar[MutableMapping[str, Callable[[Any], Any]]] = dict()
+    _csv_custom_readers: ClassVar[MutableMapping[str, Callable[[Any], Any]]] = dict()
+    # Do not store directly into these
+    _csv_writers: ClassVar[MutableMapping[str, Callable[[Any], Any]]] = dict()
+    _csv_readers: ClassVar[MutableMapping[str, Callable[[Any], Any]]] = dict()
 
     def __init_subclass__(cls, **kwargs) -> None:
         """Use PEP 487 sub class constructor instead a custom one"""
-        # make sure each subclass has its own transformation register.
-        # Inherit the parents field functions
-        cls._csv_custom_field_writers = deepcopy(cls._csv_custom_field_writers)
-        cls._csv_custom_field_readers = deepcopy(cls._csv_custom_field_readers)
+        # makes sure each subclass has its own CSV field readers/writers.
+        # Inherits the parents field functions using copy.deepcopy()
+        super().__init_subclass__(**kwargs)
+        try:
+            cls._csv_writers = deepcopy(cls._csv_writers)  # type: ignore
+            cls._csv_readers = deepcopy(cls._csv_readers)  # type: ignore
+        except AttributeError:
+            cls._csv_writers = dict()
+            cls._csv_readers = dict()
+        cls._csv_writers.update(cls._csv_custom_writers)
+        cls._csv_readers.update(cls._csv_custom_readers)
 
     def csv_headers(self) -> list[str]:
         """Provide CSV headers as list"""
         return list(self.dict(exclude_unset=False, by_alias=False).keys())
 
-    def _csv_write_custom_fields(self, left: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    def _csv_write_fields(self, left: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
         """Write CSV fields with custom encoders
 
         Returns columns_done, columns_left
         """
         res: dict[str, Any] = dict()
-        debug("_csv_write_custom_fieldS(): starting: %s", str(type(self)))
+        debug("_csv_write_fields(): starting: %s", str(type(self)))
 
-        for field, encoder in self._csv_custom_field_writers.items():
+        for field, encoder in self._csv_writers.items():
             debug("class=%s, field=%s, encoder=%s", str(type(self)), field, str(encoder))
             try:
                 if left[field] != "":
@@ -63,7 +74,7 @@ class CSVExportable(BaseModel):
         """CSVExportable._csv_row() takes care of str,int,float,bool,Enum, date and datetime.
         Class specific implementation needs to take care or serializing other fields."""
         res: dict[str, Any]
-        res, left = self._csv_write_custom_fields(self.dict(by_alias=False))
+        res, left = self._csv_write_fields(self.dict(by_alias=False))
 
         for key in left.keys():
             value = getattr(self, key)
@@ -90,20 +101,25 @@ class CSVExportable(BaseModel):
         return out
 
     @classmethod
-    def _csv_read_custom_fields(cls, row: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    def _csv_read_fields(cls, row: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
         """read CSV fields with custom encoding.
         Returns read, unread fields as dict[str, Any]"""
 
         res: dict[str, Any] = dict()
-        if cls is CSVExportable:
-            return res, row
-        for field, decoder in cls._csv_custom_field_readers.items():
+        # if cls is CSVExportable:
+        #     return res, row
+        debug("%s._csv_read_fields(): %s", cls.__name__, str(row))
+        for field, decoder in cls._csv_readers.items():
+            debug(
+                "%s._csv_read_fields(): field=%s, decoder=%s, value=%s", cls.__name__, field, str(decoder), row[field]
+            )
             try:
                 if row[field] != "":
                     res[field] = decoder(row[field])
                 del row[field]
             except KeyError as err:
                 debug("field=%s not found", field)
+        debug("class=%s", str(cls))
 
         return res, row
 
@@ -113,7 +129,7 @@ class CSVExportable(BaseModel):
         assert type(row) is dict, "row has to be type dict()"
         res: dict[str, Any]
         debug("from_csv(): trying to import from: %s", str(row))
-        res, row = cls._csv_read_custom_fields(row)
+        res, row = cls._csv_read_fields(row)
 
         for field in row.keys():
             if row[field] != "":
@@ -151,6 +167,7 @@ class CSVExportable(BaseModel):
         """Import from filename, one model per line"""
         try:
             dialect: Type[Dialect] = excel
+            debug("importing from CSV file: %s", filename)
             async with open(filename, mode="r", newline="") as f:
                 async for row in AsyncDictReader(f, dialect=dialect):
                     debug("row: %s", row)
