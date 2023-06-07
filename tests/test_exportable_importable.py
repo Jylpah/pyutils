@@ -27,7 +27,6 @@ from pyutils import awrap
 # 3) Create instances, export as TXT, import back and compare
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
 error = logger.error
 message = logger.warning
 verbose = logger.info
@@ -107,8 +106,8 @@ class TXTPerson(TXTExportable, TXTImportable, CSVExportable, Importable):
     hair: Hair = Field(default=Hair.brown)
     eyes: Eyes = Field(default=Eyes.blue)
 
-    _csv_custom_field_readers = {"birthday": str2datetime}
-    _csv_custom_field_writers = {"birthday": datetime2str}
+    _csv_custom_readers = {"birthday": str2datetime}
+    _csv_custom_writers = {"birthday": datetime2str}
 
     def txt_row(self, format: str = "") -> str:
         """export data as single row of text"""
@@ -147,8 +146,15 @@ def add_parenthesis(name: str) -> str:
 class CSVPerson(TXTPerson):
     favorite_func: str
 
-    _csv_custom_field_readers = {"favorite_func": add_parenthesis}
-    _csv_custom_field_writers = {"favorite_func": rm_parenthesis}
+    _csv_custom_readers = {"favorite_func": add_parenthesis}
+    _csv_custom_writers = {"favorite_func": rm_parenthesis}
+
+
+class CSVChild(CSVPerson):
+    favorite_func: str
+
+    _csv_custom_readers = {"toy": str.lower}
+    _csv_custom_writers = {"toy": str.upper}
 
 
 @pytest.fixture
