@@ -40,10 +40,6 @@ class CSVExportable(BaseModel):
         """Provide CSV headers as list"""
         return list(self.dict(exclude_unset=False, by_alias=False).keys())
 
-    # def csv_row(self) -> dict[str, str | int | float | bool]:
-    #     """Provide CSV row as a dict for csv.DictWriter"""
-    #     return self._clear_None(self._csv_row())
-
     def _csv_write_custom_fields(self, left: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
         """Write CSV fields with custom encoders
 
@@ -51,10 +47,6 @@ class CSVExportable(BaseModel):
         """
         res: dict[str, Any] = dict()
         debug("_csv_write_custom_fieldS(): starting: %s", str(type(self)))
-        # if _class is CSVExportable:
-        #     debug("_csv_write_custom_fieldS(): stopping recursion")
-        #     return res, left
-        # debug("_csv_write_custom_fieldS(): writing custom fields: %s", str(str(type(self))))
 
         for field, encoder in self._csv_custom_field_writers.items():
             debug("class=%s, field=%s, encoder=%s", str(type(self)), field, str(encoder))
@@ -65,14 +57,6 @@ class CSVExportable(BaseModel):
             except KeyError as err:
                 debug("field=%s not found: %s", field, err)
 
-        # for _class in _class.__mro__[1:-1]:  # ugly hack since super() doesn't work
-        #     try:
-        #         # if the _class does not have _csv_read_custom_fields(), this raises AttributeError
-        #         res_parent, left = _class._csv_read_custom_fields(left)  # type: ignore
-        #         res.update(res_parent)
-        #         return res, left
-        #     except AttributeError:
-        #         pass
         return res, left
 
     def csv_row(self) -> dict[str, str | int | float | bool]:
@@ -105,16 +89,6 @@ class CSVExportable(BaseModel):
                 out[key] = value
         return out
 
-    # @classmethod
-    # def from_csv(cls, row: dict[str, Any]) -> Self | None:
-    #     """Provide CSV row as a dict for csv.DictWriter"""
-    #     try:
-    #         row = cls._from_csv(row)
-    #         return cls.parse_obj(row)
-    #     except Exception as err:
-    #         error(f"Could not parse row ({row}): {err}")
-    #     return None
-
     @classmethod
     def _csv_read_custom_fields(cls, row: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
         """read CSV fields with custom encoding.
@@ -131,15 +105,6 @@ class CSVExportable(BaseModel):
             except KeyError as err:
                 debug("field=%s not found", field)
 
-        # debug("class=%s, parent=%s", str(cls), super())
-        # for _class in cls.__mro__[1:-1]:  # ugly hack since super() doesn't work
-        #     try:
-        #         # if the _class does not have _csv_read_custom_fields(), this raises AttributeError
-        #         res_parent, row = _class._csv_read_custom_fields(row)  # type: ignore
-        #         res.update(res_parent)
-        #         return res, row
-        #     except AttributeError:
-        #         pass
         return res, row
 
     @classmethod
