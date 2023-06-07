@@ -141,12 +141,12 @@ class JSONExportable(BaseModel):
         return None
 
     @classmethod
-    def from_str(cls, content: str) -> Self | None:
-        """Open replay JSON file and return class instance"""
+    def parse_str(cls, content: str) -> Self | None:
+        """return class instance from a JSON string"""
         try:
             return cls.parse_raw(content)
         except ValidationError as err:
-            error(f"Invalid replay format: {err}")
+            error(f"Could not parse {type(cls)} from JSON: {err}")
         return None
 
     @classmethod
@@ -157,7 +157,7 @@ class JSONExportable(BaseModel):
             async with open(filename, "r") as f:
                 async for line in f:
                     try:
-                        if (importable := cls.from_str(line, **kwargs)) is not None:
+                        if (importable := cls.parse_str(line, **kwargs)) is not None:
                             yield importable
                     except ValidationError as err:
                         error(f"Could not validate mode: {err}")
