@@ -131,27 +131,24 @@ class TXTPerson(TXTExportable, TXTImportable, CSVExportable, Importable):
             **kwargs,
         )
 
-    # def _csv_row(self) -> dict[str, str | int | float | bool | None]:
-    #     row: dict[str, str | int | float | bool | None] = super()._csv_row()
-    #     row["birthday"] = self.birthday.date().isoformat()
-    #     debug("row: %s", str(row))
-    #     return row
-
     def __hash__(self) -> int:
         """Make object hashable, but using index fields only"""
         return hash((self.name, self.birthday.date()))
 
-    def csv_headers(self) -> list[str]:
-        """Provide CSV headers as list"""
-        return list(self.__fields__.keys())
 
-    # def _csv_row(self) -> dict[str, str | int | float | bool | None]:
-    #     """Class specific implementation of CSV export as a single row"""
-    #     return {
-    #         "name": self.name,
-    #         "height": self.height,
-    #         "birthday": self.birthday.isoformat(),
-    #     }
+def rm_parenthesis(name: str) -> str:
+    return name.removesuffix("()")
+
+
+def add_parenthesis(name: str) -> str:
+    return f"{name}()"
+
+
+class CSVPerson(TXTPerson):
+    favorite_func: str
+
+    _csv_custom_field_readers = {"favorite_func": add_parenthesis}
+    _csv_custom_field_writers = {"favorite_func": rm_parenthesis}
 
 
 @pytest.fixture
@@ -162,6 +159,37 @@ def json_data() -> list[JSONParent]:
     res.append(JSONParent(name="P1", amount=1, array=["one", "two"], child=c1))
     res.append(JSONParent(name="P2", amount=-6, array=["three", "four"]))
     res.append(JSONParent(name="P3", amount=-6, child=c3))
+    return res
+
+
+@pytest.fixture
+def csv_data() -> list[CSVPerson]:
+    res: list[CSVPerson] = list()
+    res.append(
+        CSVPerson(
+            name="Marie", age=0, height=1.85, woman=True, eyes=Eyes.brown, hair=Hair.red, favorite_func="VLOOKUP()"
+        )
+    )
+    res.append(
+        CSVPerson(
+            name="Jack Who",
+            age=45,
+            height=1.43,
+            birthday=datetime.fromisoformat("1977-07-23"),
+            eyes=Eyes.grey,
+            favorite_func="INDEX()",
+        )
+    )
+    res.append(
+        CSVPerson(
+            name="James 3.5",
+            age=18,
+            height=1.76,
+            birthday=datetime.fromisoformat("2005-02-14"),
+            hair=Hair.blonde,
+            favorite_func="SUMPRODUCT()",
+        )
+    )
     return res
 
 
@@ -237,33 +265,34 @@ async def test_2_txt_exportable_importable(tmp_path: Path, txt_data: list[TXTPer
 
 
 @pytest.mark.asyncio
-async def test_3_csv_exportable_importable(tmp_path: Path, txt_data: list[TXTPerson]):
+async def test_3_csv_exportable_importable(tmp_path: Path, csv_data: list[CSVPerson]):
     fn: str = f"{tmp_path.resolve()}/export.csv"
 
     try:
-        await export(awrap(txt_data), "csv", filename=fn)  # type: ignore
+        await export(awrap(csv_data), "csv", filename=fn)  # type: ignore
     except Exception as err:
         assert False, f"failed to export test data: {err}"
 
-    imported: set[TXTPerson] = set()
+    imported: set[CSVPerson] = set()
     try:
-        async for p_in in TXTPerson.import_file(fn):
+        async for p_in in CSVPerson.import_file(fn):
+            debug("imported: %s", str(p_in))
             imported.add(p_in)
     except Exception as err:
         assert False, f"failed to import test data: {err}"
 
-    assert len(imported) == len(txt_data), f"could not import all CSV data: {len(imported)} != {len(txt_data)}"
+    assert len(imported) == len(csv_data), f"could not import all CSV data: {len(imported)} != {len(csv_data)}"
     for data_imported in imported:
         debug("hash(data_imported)=%d", hash(data_imported))
         try:
-            if data_imported in txt_data:
-                ndx: int = txt_data.index(data_imported)
-                data = txt_data[ndx]
+            if data_imported in csv_data:
+                ndx: int = csv_data.index(data_imported)
+                data = csv_data[ndx]
                 assert data == data_imported, f"imported data different from original: {data_imported} != {data}"
-                txt_data.pop(ndx)
+                csv_data.pop(ndx)
             else:
                 assert False, f"imported data not in the original: {data_imported}"
         except ValueError as err:
             assert False, f"export/import conversion error. imported data={data_imported} is not in input data"
 
-    assert len(txt_data) == 0, f"could not import all the data correctly: {len(txt_data)} != 0"
+    assert len(csv_data) == 0, f"could not import all the data correctly: {len(csv_data)} != 0"
