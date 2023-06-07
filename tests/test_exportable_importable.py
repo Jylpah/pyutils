@@ -94,6 +94,7 @@ def str2datetime(dt: str) -> datetime:
 
 
 def datetime2str(dt: datetime) -> str:
+    debug("datetime2str(): %s", dt)
     return dt.date().isoformat()
 
 
