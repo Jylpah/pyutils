@@ -63,14 +63,14 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
         return self._Q.full()
 
     def check_done(self) -> bool:
-        if self.is_filled and self.empty() and self._wip == 0:
+        if self.is_filled and self.empty() and not self.has_wip:
             self._done.set()
             return True
         return False
 
     def empty(self) -> bool:
         """Queue has not items except None as sentinel"""
-        return self._Q.qsize() == 0 or self._empty.is_set()
+        return self._empty.is_set() or self.qsize() == 0
 
     def qsize(self) -> int:
         if self.is_filled:
@@ -119,15 +119,6 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
                 await self._Q.put(None)
                 return True
         return False
-
-    # async def shutdown(self) -> None:
-    # 	"""Finish the queue for all producers"""
-    # 	# self._filled.set()
-    # 	async with self._put_lock, self._modify:
-    # 		self._producers = 0
-    # 		self._filled.set()
-    # 		self.check_done()
-    # 		await self._Q.put(None)
 
     async def put(self, item: T) -> None:
         if self.is_filled:
