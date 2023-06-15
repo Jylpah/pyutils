@@ -121,6 +121,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
                 try:
                     while True:
                         _ = self.get_nowait()
+                        self.task_done()
                 except (QueueDone, QueueEmpty):
                     pass
 
@@ -128,6 +129,7 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
                 if empty:
                     try:
                         _ = self.get_nowait()
+                        self.task_done()
                     except (QueueDone, QueueEmpty):
                         pass
                 self.check_done()
