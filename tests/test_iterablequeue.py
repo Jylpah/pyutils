@@ -24,9 +24,12 @@ def test_interablequeue_int() -> IterableQueue[int]:
 async def _producer_int(Q: IterableQueue[int], n: int, finish: bool = False, wait: float = 0) -> None:
     await Q.add_producer(N=1)
     await sleep(wait)
-    for i in range(n):
-        await sleep(wait * random())
-        await Q.put(i)
+    try:
+        for i in range(n):
+            await sleep(wait * random())
+            await Q.put(i)
+    except QueueDone:
+        pass
     if finish:
         await Q.finish()
     return None
@@ -183,3 +186,36 @@ async def test_5_empty_join(test_interablequeue_int: IterableQueue[int]):
         assert not consumer.cancelled(), "consumer task was cancelled and did not complete even it should have"
     except Exception as err:
         assert False, f"Unknown Exception caught: {err}"
+
+
+@pytest.mark.timeout(10)
+@pytest.mark.asyncio
+async def test_6_finish_full_queue(test_interablequeue_int: IterableQueue[int]):
+    """Test for await join when an empty queue is finished"""
+    Q = test_interablequeue_int
+    producer: Task = create_task(_producer_int(Q, n=QSIZE * 2))
+    try:
+        await sleep(0.5)
+        async with timeout(3):
+            await Q.finish(all=True, empty=True)
+        assert Q.empty(), f"Queue should be empty: qsize={Q._Q.qsize()}: {Q._Q.get_nowait()}, {Q._Q.get_nowait()}"
+    except TimeoutError:
+        assert False, "await IterableQueue.join() failed with an empty queue finished"
+    await sleep(0.1)
+    producer.cancel()
+
+
+@pytest.mark.timeout(10)
+@pytest.mark.asyncio
+async def test_7_aiter(test_interablequeue_int: IterableQueue[int]):
+    """Test for await join when an empty queue is finished"""
+    Q = test_interablequeue_int
+    await _producer_int(Q, n=QSIZE - 1, finish=True)
+
+    try:
+        await sleep(0.5)
+        async for i in Q:
+            assert i >= 0, "Did not receive an int"
+        assert True, "Queue is done after 3 secs and the join() should finish before timeout(5)"
+    except TimeoutError:
+        assert False, "await IterableQueue.join() failed with an empty queue finished"
