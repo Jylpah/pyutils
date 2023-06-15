@@ -1,4 +1,4 @@
-from asyncio import Queue, QueueFull, QueueEmpty, Event, Lock
+from asyncio import Queue, QueueFull, QueueEmpty, Event, Lock, sleep
 from typing import AsyncIterable, TypeVar, Optional
 from .utils import Countable
 import logging
@@ -102,28 +102,43 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
             self._producers += N
         return self._producers
 
-    async def finish(self, all: bool = False) -> bool:
+    async def finish(self, all: bool = False, empty: bool = False) -> bool:
         """Producer has finished adding items to the queue
         * all: finish() queue for all producers at once"""
-        async with self._put_lock, self._modify:
-            if self._producers <= 0:
-                raise ValueError("finish() called more than the is producers")
-            if all:
+        async with self._modify:
+            if self._producers <= 0 or self.is_filled:
+                # raise ValueError("finish() called more than the is producers")
                 self._producers = 0
-            else:
-                self._producers -= 1
+                return False
+            self._producers -= 1
 
-            if self._producers == 0:
+            if all or self._producers <= 0:
                 self._filled.set()
+                self._producers = 0
+
+        if self._producers == 0:
+            if empty:
+                try:
+                    while True:
+                        _ = self.get_nowait()
+                except (QueueDone, QueueEmpty):
+                    pass
+
+            async with self._put_lock:
+                if empty:
+                    try:
+                        _ = self.get_nowait()
+                    except (QueueDone, QueueEmpty):
+                        pass
                 self.check_done()
                 await self._Q.put(None)
                 return True
         return False
 
     async def put(self, item: T) -> None:
-        if self.is_filled:
-            raise QueueDone
         async with self._put_lock:
+            if self.is_filled:  # should this be inside put_lock?
+                raise QueueDone
             if self._producers <= 0:
                 raise ValueError("No registered producers")
             elif item is None:
