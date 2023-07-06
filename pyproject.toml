@@ -1,6 +1,6 @@
 [project]
 name = "pyutils"
-version = "0.2.8"
+version = "0.2.9"
 authors = [{ name = "Jylpah", email = "jylpah@gmail.com" }]
 description = "Misc Python utils and classes"
 readme = "README.md"
@@ -23,7 +23,7 @@ dependencies = [
     "aiocsv>=1.2.4",
     "alive-progress>=3.1.1",
     "isort>=5.12.0",
-    "pydantic>=1.10.7",
+    "pydantic>=1.10.7, == 1.*",
     "pymongo>=4.3.3",
 ]
 
