@@ -253,5 +253,5 @@ class JSONExportable(BaseModel):
             async with open(filename, mode="w", encoding="utf-8") as rf:
                 return await rf.write(self.json_src())
         except Exception as err:
-            error(f"Error writing replay {filename}: {err}")
+            error(f"Error writing file {filename}: {err}")
         return -1
