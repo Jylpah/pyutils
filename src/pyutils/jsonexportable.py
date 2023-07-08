@@ -174,13 +174,25 @@ class JSONExportable(BaseModel):
             params["exclude_defaults"] = False
             params["exclude_unset"] = False
             params["exclude_none"] = False
-        else:
-            for f in ["exclude", "include"]:
-                try:
-                    params[f].update(kwargs[f])
-                    del kwargs[f]
-                except:
-                    pass
+        elif "exclude" in kwargs:
+            try:
+                params["exclude"].update(kwargs["exclude"])
+                del kwargs["exclude"]
+            except:
+                pass
+        elif "include" in kwargs:
+            try:
+                params["include"].update(kwargs["include"])
+                del kwargs["include"]
+            except:
+                pass
+        # else:
+        #     for f in ["exclude", "include"]:
+        #         try:
+        #             params[f].update(kwargs[f])
+        #             del kwargs[f]
+        #         except:
+        #             pass
         params.update(kwargs)
         return params
 
