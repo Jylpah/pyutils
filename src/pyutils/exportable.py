@@ -82,7 +82,7 @@ async def export_csv(
     debug("starting")
     # assert isinstance(Q, Queue), "Q has to be type of asyncio.Queue[CSVExportable]"
     assert type(filename) is str and len(filename) > 0, "filename has to be str"
-    stats: EventCounter = EventCounter("CSV")
+    stats: EventCounter = EventCounter("export CSV")
     try:
         dialect: Type[Dialect] = excel
         aiterator: AsyncIterator[CSVExportable] = aiter(iterable)
@@ -155,7 +155,7 @@ async def export_json(
 ) -> EventCounter:
     """Export data to a JSON file"""
     assert type(filename) is str and len(filename) > 0, "filename has to be str"
-    stats: EventCounter = EventCounter("JSON")
+    stats: EventCounter = EventCounter("export JSON")
     try:
         exportable: JSONExportable
         if filename == "-":
@@ -197,7 +197,7 @@ async def export_txt(
 ) -> EventCounter:
     """Export data to a text file"""
     assert type(filename) is str and len(filename) > 0, "filename has to be str"
-    stats: EventCounter = EventCounter("Text")
+    stats: EventCounter = EventCounter("export text")
     try:
         exportable: TXTExportable
         if filename == "-":
@@ -211,11 +211,12 @@ async def export_txt(
         else:
             if not filename.lower().endswith("txt"):
                 filename = f"{filename}.txt"
-            file_exists: bool = isfile(filename)
-            if exists(filename) and (not file_exists or not (force or append)):
+            # file_exists: bool = isfile(filename)
+            if isfile(filename) and (not (force or append)):
                 raise FileExistsError(f"Cannot export to {filename }")
             mode: Literal["w", "a"] = "w"
-            if append and file_exists:
+            # if append and file_exists:
+            if append:
                 mode = "a"
             async with open(filename, mode=mode) as txtfile:
                 async for exportable in iterable:
@@ -242,7 +243,7 @@ async def export(
 ) -> EventCounter:
     """Export data to file or STDOUT"""
     debug("starting")
-    stats: EventCounter = EventCounter("write")
+    stats: EventCounter = EventCounter("export")
 
     if filename != "-":
         for export_format in EXPORT_FORMATS:
@@ -251,17 +252,11 @@ async def export(
 
     try:
         if format == "txt":
-            stats.merge_child(
-                await export_txt(iterable, filename=filename, force=force, append=append)  # type: ignore
-            )
+            stats.merge(await export_txt(iterable, filename=filename, force=force, append=append))  # type: ignore
         elif format == "json":
-            stats.merge_child(
-                await export_json(iterable, filename=filename, force=force, append=append)  # type: ignore
-            )
+            stats.merge(await export_json(iterable, filename=filename, force=force, append=append))  # type: ignore
         elif format == "csv":
-            stats.merge_child(
-                await export_csv(iterable, filename=filename, force=force, append=append)  # type: ignore
-            )
+            stats.merge(await export_csv(iterable, filename=filename, force=force, append=append))  # type: ignore
         else:
             raise ValueError(f"Unknown format: {format}")
     except Exception as err:
