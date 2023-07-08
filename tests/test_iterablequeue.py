@@ -219,3 +219,23 @@ async def test_7_aiter(test_interablequeue_int: IterableQueue[int]):
         assert True, "Queue is done after 3 secs and the join() should finish before timeout(5)"
     except TimeoutError:
         assert False, "await IterableQueue.join() failed with an empty queue finished"
+
+
+@pytest.mark.timeout(10)
+@pytest.mark.asyncio
+async def test_8_aiter_1_item(test_interablequeue_int: IterableQueue[int]):
+    """Test for await join when an empty queue is finished"""
+    Q = test_interablequeue_int
+    await _producer_int(Q, n=1, finish=True)
+
+    try:
+        assert Q.qsize() == 1, f"incorrect queue length {Q.qsize()} != 1"
+        await sleep(0.5)
+        count: int = 0
+        async for i in Q:
+            count += 1
+            assert i >= 0, "Did not receive an int"
+        assert count == 1, f"Did not receive correct number of elements {count} != 1"
+        assert True, "Queue is done after 3 secs and the join() should finish before timeout(5)"
+    except TimeoutError:
+        assert False, "await IterableQueue.join() failed with an empty queue finished"
