@@ -7,6 +7,7 @@ from time import time
 from datetime import date, datetime
 from asyncio.queues import Queue
 from enum import Enum, StrEnum, IntEnum
+import json
 import logging
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
@@ -71,6 +72,8 @@ class JSONParent(JSONExportable, Importable):
     correct: bool = Field(default=False, alias="c")
     array: list[str] = list()
     child: JSONChild | None = None
+
+    _exclude_unset = False
 
     @property
     def index(self) -> Idx:
@@ -240,7 +243,34 @@ async def test_1_json_exportable(tmp_path: Path, json_data: list[JSONParent]):
 
 
 @pytest.mark.asyncio
-async def test_2_txt_exportable_importable(tmp_path: Path, txt_data: list[TXTPerson]):
+async def test_2_json_exportable_include_exclude() -> None:
+    # test for custom include/exclude
+    parent = JSONParent(name="P3", amount=-6, child=JSONChild(name="test"))
+
+    parent_export: dict
+    parent_export = json.loads(parent.json_src())
+    assert "array" in parent_export, "json_src() failed: _exclude_unset set 'False', 'array' excluded"
+
+    for excl, incl in zip(["child", None], ["name", None]):
+        kwargs: dict[str, set[str]] = dict()
+        if excl is not None:
+            kwargs["exclude"] = {excl}
+        if incl is not None:
+            kwargs["include"] = {incl}
+
+        parent_export = json.loads(parent.json_src(fields=None, **kwargs))
+        if excl is not None:
+            assert excl not in parent_export, f"json_src() failed: excluded field {excl} included"
+        if incl is not None:
+            assert incl in parent_export, f"json_src() failed: included field {incl} excluded"
+
+    parent_export = json.loads(parent.json_src(fields=["name", "array"]))
+    assert "amount" not in parent_export, f"json_src() failed: excluded field 'amount' included"
+    assert "array" in parent_export, "json_src() failed: included field 'array' excluded"
+
+
+@pytest.mark.asyncio
+async def test_3_txt_exportable_importable(tmp_path: Path, txt_data: list[TXTPerson]):
     fn: str = f"{tmp_path.resolve()}/export.txt"
 
     try:
@@ -271,7 +301,7 @@ async def test_2_txt_exportable_importable(tmp_path: Path, txt_data: list[TXTPer
 
 
 @pytest.mark.asyncio
-async def test_3_csv_exportable_importable(tmp_path: Path, csv_data: list[CSVPerson]):
+async def test_4_csv_exportable_importable(tmp_path: Path, csv_data: list[CSVPerson]):
     fn: str = f"{tmp_path.resolve()}/export.csv"
 
     try:
