@@ -245,11 +245,14 @@ async def test_1_json_exportable(tmp_path: Path, json_data: list[JSONParent]):
 @pytest.mark.asyncio
 async def test_2_json_exportable_include_exclude() -> None:
     # test for custom include/exclude
-    parent = JSONParent(name="P3", amount=-6, child=JSONChild(name="test"))
+    parent = JSONParent(name="P3", amount=-6, correct=False, child=JSONChild(name="test"))
 
-    parent_export: dict
-    parent_export = json.loads(parent.json_src())
-    assert "array" in parent_export, "json_src() failed: _exclude_unset set 'False', 'array' excluded"
+    parent_src: dict
+    parent_db: dict
+    parent_src = json.loads(parent.json_src())
+    assert "array" in parent_src, "json_src() failed: _exclude_unset set 'False', 'array' excluded"
+    parent_db = json.loads(parent.json_db())
+    assert "c" not in parent_db, "json_db() failed: _exclude_defaults set 'True', 'c' included"
 
     for excl, incl in zip(["child", None], ["name", None]):
         kwargs: dict[str, set[str]] = dict()
@@ -258,15 +261,22 @@ async def test_2_json_exportable_include_exclude() -> None:
         if incl is not None:
             kwargs["include"] = {incl}
 
-        parent_export = json.loads(parent.json_src(fields=None, **kwargs))
+        parent_src = json.loads(parent.json_src(fields=None, **kwargs))
+        parent_db = json.loads(parent.json_db(fields=None, **kwargs))
         if excl is not None:
-            assert excl not in parent_export, f"json_src() failed: excluded field {excl} included"
+            assert excl not in parent_db, f"json_src() failed: excluded field {excl} included"
+            assert excl not in parent_src, f"json_db() failed: excluded field {excl} included"
         if incl is not None:
-            assert incl in parent_export, f"json_src() failed: included field {incl} excluded"
+            assert incl in parent_src, f"json_src() failed: included field {incl} excluded"
+            assert incl in parent_db, f"json_db() failed: included field {incl} excluded"
 
-    parent_export = json.loads(parent.json_src(fields=["name", "array"]))
-    assert "amount" not in parent_export, f"json_src() failed: excluded field 'amount' included"
-    assert "array" in parent_export, "json_src() failed: included field 'array' excluded"
+    parent_src = json.loads(parent.json_src(fields=["name", "array"]))
+    assert "amount" not in parent_src, f"json_src() failed: excluded field 'amount' included"
+    assert "array" in parent_src, "json_src() failed: included field 'array' excluded"
+
+    parent_db = json.loads(parent.json_db(fields=["name", "array"]))
+    assert "amount" not in parent_db, f"json_db() failed: excluded field 'amount' included"
+    assert "array" in parent_db, "json_db() failed: included field 'array' excluded"
 
 
 @pytest.mark.asyncio
