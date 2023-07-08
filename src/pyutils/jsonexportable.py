@@ -137,7 +137,7 @@ class JSONExportable(BaseModel):
             async with open(filename, "r") as f:
                 return cls.parse_raw(await f.read())
         except Exception as err:
-            error(f"Error reading replay: {err}")
+            debug(f"Error reading file: {err}")
         return None
 
     @classmethod
@@ -146,7 +146,7 @@ class JSONExportable(BaseModel):
         try:
             return cls.parse_raw(content)
         except ValidationError as err:
-            error(f"Could not parse {type(cls)} from JSON: {err}")
+            debug(f"Could not parse {type(cls)} from JSON: {err}")
         return None
 
     @classmethod
