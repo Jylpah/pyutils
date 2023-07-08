@@ -136,7 +136,9 @@ class JSONExportable(BaseModel):
         try:
             async with open(filename, "r") as f:
                 return cls.parse_raw(await f.read())
-        except Exception as err:
+        except ValidationError as err:
+            debug(f"Error parcing file: {filename}: {err}")
+        except OSError as err:
             debug(f"Error reading file: {err}")
         return None
 
@@ -159,11 +161,9 @@ class JSONExportable(BaseModel):
                     try:
                         if (importable := cls.parse_str(line, **kwargs)) is not None:
                             yield importable
-                    except ValidationError as err:
-                        error(f"Could not validate mode: {err}")
                     except Exception as err:
                         error(f"{err}")
-        except Exception as err:
+        except OSError as err:
             error(f"Error importing file {filename}: {err}")
 
     def _export_helper(self, params: dict[str, Any], fields: list[str] | None = None, **kwargs) -> dict:
