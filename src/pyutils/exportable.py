@@ -161,7 +161,7 @@ async def export_json(
         if filename == "-":
             async for exportable in iterable:
                 try:
-                    print(exportable.json_src())
+                    print(exportable.json_src(indent=4))
                     stats.log("rows")
                 except Exception as err:
                     error(f"{err}")
@@ -249,7 +249,6 @@ async def export(
         for export_format in EXPORT_FORMATS:
             if filename.endswith(export_format) and export_format in get_args(EXPORT_FORMAT):
                 format = cast(EXPORT_FORMAT, export_format)
-
     try:
         if format == "txt":
             stats.merge(await export_txt(iterable, filename=filename, force=force, append=append))  # type: ignore
