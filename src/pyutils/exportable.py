@@ -161,7 +161,7 @@ async def export_json(
         if filename == "-":
             async for exportable in iterable:
                 try:
-                    print(exportable.json_src())
+                    print(exportable.json_src(indent=4))
                     stats.log("rows")
                 except Exception as err:
                     error(f"{err}")
