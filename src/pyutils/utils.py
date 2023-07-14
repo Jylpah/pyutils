@@ -27,7 +27,7 @@ from aiocsv.readers import AsyncDictReader
 from alive_progress import alive_bar  # type: ignore
 from csv import Dialect, Sniffer, excel, QUOTE_NONNUMERIC
 from ast import literal_eval
-from os.path import isfile, exists
+from os.path import isfile, exists, expanduser
 from os import linesep
 from aiofiles import open
 import json
@@ -35,6 +35,7 @@ from time import time
 from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
 from asyncio import sleep, CancelledError, Queue
+from configparser import ConfigParser, Error as ConfigParserError
 
 from .eventcounter import EventCounter
 from .urlqueue import UrlQueue, UrlQueueItemType, is_url
@@ -67,6 +68,25 @@ class Countable(ABC):
 ## Functions
 #
 ##############################################
+
+
+def read_config(
+    config: str | None = None, files: list[str] = list()
+) -> ConfigParser | None:
+    """Read config file and if found return a ConfigParser"""
+    if config is not None:
+        files = [config] + files
+    for fn in [expanduser(f) for f in files]:
+        try:
+            if isfile(fn):
+                debug("reading config file: %s", fn)
+                cfg = ConfigParser()
+                cfg.read(fn)
+                return cfg
+        except ConfigParserError as err:
+            error(f"could not parse config file: {fn}: {err}")
+            break
+    return None
 
 
 def get_datestr(_datetime: datetime = datetime.now()) -> str:
@@ -114,7 +134,13 @@ def get_sub_type(name: str, parent: type[T]) -> Optional[type[T]]:
 
 
 async def alive_bar_monitor(
-    monitor: list[Countable], title: str, total: int | None = None, wait: float = 0.5, batch: int = 1, *args, **kwargs
+    monitor: list[Countable],
+    title: str,
+    total: int | None = None,
+    wait: float = 0.5,
+    batch: int = 1,
+    *args,
+    **kwargs,
 ) -> None:
     """Create a alive_progress bar for List[Countable]"""
 
@@ -141,7 +167,9 @@ async def alive_bar_monitor(
     return None
 
 
-async def get_url(session: ClientSession, url: str, max_retries: int = MAX_RETRIES) -> str | None:
+async def get_url(
+    session: ClientSession, url: str, max_retries: int = MAX_RETRIES
+) -> str | None:
     """Retrieve (GET) an URL and return JSON object"""
     assert session is not None, "Session must be initialized first"
     assert url is not None, "url cannot be None"
@@ -173,7 +201,9 @@ async def get_url(session: ClientSession, url: str, max_retries: int = MAX_RETRI
     return None
 
 
-async def get_url_JSON(session: ClientSession, url: str, retries: int = MAX_RETRIES) -> Any | None:
+async def get_url_JSON(
+    session: ClientSession, url: str, retries: int = MAX_RETRIES
+) -> Any | None:
     """Get JSON from URL and return object."""
 
     assert session is not None, "session cannot be None"
@@ -183,9 +213,9 @@ async def get_url_JSON(session: ClientSession, url: str, retries: int = MAX_RETR
         if (content := await get_url(session, url, retries)) is not None:
             return await json.loads(content)
     except ClientResponseError as err:
-        error(f"Client response error: {url}: {err}")
+        debug(f"Client response error: {url}: {err}")
     except Exception as err:
-        error(f"Unexpected error: {err}")
+        debug(f"Unexpected error: {err}")
     return None
 
 
@@ -200,17 +230,16 @@ async def get_url_JSON_model(
     assert url is not None, "url cannot be None"
     content: str | None = None
     try:
-        content = await get_url(session, url, retries)
-        if content is None:
-            error("get_url() returned None")
+        if (content := await get_url(session, url, retries)) is None:
+            debug("get_url() returned None")
             return None
         return resp_model.parse_raw(content)
     except ValidationError as err:
-        error(f"{resp_model.__name__}: Validation error {url}: {err}")
-        if content is not None:
-            debug(f"{content}")
+        debug(
+            f"{resp_model.__name__}: {url}: response={content}: Validation error={err}"
+        )
     except Exception as err:
-        error(f"Unexpected error: {err}")
+        debug(f"Unexpected error: {err}")
     return None
 
 
@@ -230,15 +259,18 @@ async def get_url_JSON_models(
                     try:
                         res.append(item_model.parse_obj(elem))
                     except ValidationError as err:
-                        error(f"Could not validate {elem}: {err}")
+                        debug(f"Could not validate {elem}: {err}")
                 return res
     except Exception as err:
-        error(f"Unexpected error: {err}")
+        debug(f"Unexpected error: {err}")
     return None
 
 
 async def get_urls(
-    session: ClientSession, queue: UrlQueue, stats: EventCounter = EventCounter(), max_retries: int = MAX_RETRIES
+    session: ClientSession,
+    queue: UrlQueue,
+    stats: EventCounter = EventCounter(),
+    max_retries: int = MAX_RETRIES,
 ) -> AsyncGenerator[tuple[str, str], None]:
     """Async Generator to retrieve URLs read from an async Queue"""
 
@@ -279,20 +311,25 @@ async def get_urls(
 
 
 async def get_urls_JSON(
-    session: ClientSession, queue: UrlQueue, stats: EventCounter = EventCounter(), max_retries: int = MAX_RETRIES
+    session: ClientSession,
+    queue: UrlQueue,
+    stats: EventCounter = EventCounter(),
+    max_retries: int = MAX_RETRIES,
 ) -> AsyncGenerator[tuple[Any, str], None]:
     """Async Generator to retrieve JSON from URLs read from an async Queue"""
 
     assert session is not None, "Session must be initialized first"
     assert queue is not None, "Queue must be initialized first"
 
-    async for content, url in get_urls(session, queue=queue, stats=stats, max_retries=max_retries):
+    async for content, url in get_urls(
+        session, queue=queue, stats=stats, max_retries=max_retries
+    ):
         try:
             yield await json.loads(content), url
         except ClientResponseError as err:
-            error(f"Client response error: {url}: {err}")
+            debug(f"Client response error: {url}: {err}")
         except Exception as err:
-            error(f"Unexpected error: {err}")
+            debug(f"Unexpected error: {err}")
 
 
 async def get_urls_JSON_models(
@@ -307,13 +344,15 @@ async def get_urls_JSON_models(
     assert session is not None, "Session must be initialized first"
     assert queue is not None, "Queue must be initialized first"
 
-    async for content, url in get_urls(session, queue=queue, stats=stats, max_retries=max_retries):
+    async for content, url in get_urls(
+        session, queue=queue, stats=stats, max_retries=max_retries
+    ):
         try:
             yield resp_model.parse_raw(content), url
         except ValidationError as err:
-            error(f"{resp_model.__name__}(): Validation error: {url}: {err}")
+            debug(f"{resp_model.__name__}(): Validation error: {url}: {err}")
         except Exception as err:
-            error(f"Unexpected error: {err}")
+            debug(f"Unexpected error: {err}")
 
 
 # def mk_id(account_id: int, last_battle_time: int, tank_id: int = 0) -> ObjectId:
