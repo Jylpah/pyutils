@@ -2,6 +2,18 @@
 
 Misc Python utils
 
+# Install
+
+```
+pip install git+https://github.com/Jylpah/pyutils.git
+```
+
+# Upgrade
+
+```
+pip install --upgrade git+https://github.com/Jylpah/pyutils.git
+```
+
 # MODULES 
 
 * [AliasMapper()](aliasmapper.py): [Pydantic](https://pydantic.dev/) helper class to map field names to field aliases.
@@ -13,5 +25,5 @@ Misc Python utils
 * [IterableQueue(Queue[T], AsyncIterable[T], Countable):](iterablequeue.py): Async queue that implements `AsyncIterable()`. The queue supports join(). Bit complex, but I could not figure how to simplify it while implenting both `join()` and `AsyncIterable()`
 * [MultilevelFormatter(logging.Formatter)](multilevelformatter.py): Log using different formats per logging level
 * [ThrottledClientSession(aiohttp.ClientSession)](throttledclientsession.py): Rate-throttled client session class inherited from aiohttp.ClientSession
-* [Utils](utils.py) module for ... utils of [pyutils](.)
+* [utils](utils.py) module for ... utils of [pyutils](.)
 
