@@ -27,7 +27,7 @@ from aiocsv.readers import AsyncDictReader
 from alive_progress import alive_bar  # type: ignore
 from csv import Dialect, Sniffer, excel, QUOTE_NONNUMERIC
 from ast import literal_eval
-from os.path import isfile, exists
+from os.path import isfile, exists, expanduser
 from os import linesep
 from aiofiles import open
 import json
@@ -35,6 +35,7 @@ from time import time
 from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
 from asyncio import sleep, CancelledError, Queue
+from configparser import ConfigParser, Error as ConfigParserError
 
 from .eventcounter import EventCounter
 from .urlqueue import UrlQueue, UrlQueueItemType, is_url
@@ -67,6 +68,25 @@ class Countable(ABC):
 ## Functions
 #
 ##############################################
+
+
+def read_config(
+    config: str | None = None, files: list[str] = list()
+) -> ConfigParser | None:
+    """Read config file and if found return a ConfigParser"""
+    if config is not None:
+        files = [config] + files
+    for fn in [expanduser(f) for f in files]:
+        try:
+            if isfile(fn):
+                debug("reading config file: %s", fn)
+                cfg = ConfigParser()
+                cfg.read(fn)
+                return cfg
+        except ConfigParserError as err:
+            error(f"could not parse config file: {fn}: {err}")
+            break
+    return None
 
 
 def get_datestr(_datetime: datetime = datetime.now()) -> str:
