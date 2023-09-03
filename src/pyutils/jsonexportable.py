@@ -68,9 +68,12 @@ class JSONExportable(BaseModel):
     _exclude_defaults: bool = True
     _exclude_unset: bool = True
     _exclude_none: bool = True
+    _example: str = ""
 
     # This is set in every subclass using __init_subclass__()
-    _transformations: ClassVar[MutableMapping[Type, Callable[[Any], Optional[Self]]]] = dict()
+    _transformations: ClassVar[
+        MutableMapping[Type, Callable[[Any], Optional[Self]]]
+    ] = dict()
 
     def __init_subclass__(cls, **kwargs) -> None:
         """Use PEP 487 sub class constructor instead a custom one"""
@@ -105,7 +108,9 @@ class JSONExportable(BaseModel):
         return [out for obj in in_objs if (out := cls.transform(obj)) is not None]
 
     @classmethod
-    def from_obj(cls, obj: Any, in_type: type[BaseModel] | None = None) -> Optional[Self]:
+    def from_obj(
+        cls, obj: Any, in_type: type[BaseModel] | None = None
+    ) -> Optional[Self]:
         """Parse instance from raw object.
         Returns None if reading from object failed.
         """
@@ -124,11 +129,17 @@ class JSONExportable(BaseModel):
         return None
 
     @classmethod
-    def from_objs(cls, objs: Sequence[Any], in_type: type[BaseModel] | None = None) -> list[Self]:
+    def from_objs(
+        cls, objs: Sequence[Any], in_type: type[BaseModel] | None = None
+    ) -> list[Self]:
         """Parse list of instances from raw objects.
         Parsing failures are ignored silently.
         """
-        return [out for obj in objs if (out := cls.from_obj(obj, in_type=in_type)) is not None]
+        return [
+            out
+            for obj in objs
+            if (out := cls.from_obj(obj, in_type=in_type)) is not None
+        ]
 
     @classmethod
     async def open_json(cls, filename: str) -> Self | None:
@@ -166,7 +177,9 @@ class JSONExportable(BaseModel):
         except OSError as err:
             error(f"Error importing file {filename}: {err}")
 
-    def _export_helper(self, params: dict[str, Any], fields: list[str] | None = None, **kwargs) -> dict:
+    def _export_helper(
+        self, params: dict[str, Any], fields: list[str] | None = None, **kwargs
+    ) -> dict:
         """Helper func to process params for obj/src export funcs"""
         if fields is not None:
             del params["exclude"]
@@ -209,6 +222,13 @@ class JSONExportable(BaseModel):
     @classmethod
     def backend_indexes(cls) -> list[list[tuple[str, BackendIndexType]]]:
         """return backend search indexes"""
+        raise NotImplementedError
+
+    @classmethod
+    def example_instance(cls) -> Self:
+        """return a example instance of the class"""
+        if len(cls._example) > 0:
+            return cls.parse_raw(cls._example)
         raise NotImplementedError
 
     def __hash__(self) -> int:
