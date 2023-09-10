@@ -1,6 +1,6 @@
 [project]
 name = "pyutils"
-version = "0.2.16"
+version = "0.2.17"
 authors = [{ name = "Jylpah", email = "jylpah@gmail.com" }]
 description = "Misc Python utils and classes"
 readme = "README.md"
