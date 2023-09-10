@@ -24,7 +24,7 @@ debug = logger.debug
 
 
 # inherit from asyncio.Queue?
-class FileQueue(IterableQueue):
+class FileQueue(IterableQueue[str]):
     """
     Class to create create a async queue of files based on given dirs files given as
     arguments. Filters based on file names.
