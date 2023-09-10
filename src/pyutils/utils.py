@@ -32,10 +32,14 @@ from os import linesep
 from aiofiles import open
 import json
 from time import time
+from pathlib import Path
 from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
 from asyncio import sleep, CancelledError, Queue
 from configparser import ConfigParser, Error as ConfigParserError
+import string
+from tempfile import gettempdir
+from random import choices
 
 from .eventcounter import EventCounter
 from .urlqueue import UrlQueue, UrlQueueItemType, is_url
@@ -131,6 +135,12 @@ def get_sub_type(name: str, parent: type[T]) -> Optional[type[T]]:
         if issubclass(model, parent):
             return model
     return None
+
+
+def get_temp_filename(prefix: str = "", length: int = 10) -> Path:
+    """Return temp filename as Path"""
+    s = string.ascii_letters + string.digits
+    return Path(gettempdir()) / (prefix + "".join(choices(s, k=length)))
 
 
 async def alive_bar_monitor(

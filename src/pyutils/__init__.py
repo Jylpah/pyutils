@@ -40,6 +40,7 @@ from .utils import (
     alive_bar_monitor,
     is_alphanum,
     read_config,
+    get_datestr,
     get_url,
     get_urls,
     get_url_JSON_model,
@@ -47,7 +48,7 @@ from .utils import (
     get_url_JSON,
     get_urls_JSON,
     get_urls_JSON_models,
-    get_datestr,
+    get_temp_filename,
     chunker,
 )
 
