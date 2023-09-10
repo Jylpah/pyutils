@@ -8,11 +8,13 @@
 
 import logging
 import asyncio
-from asyncio import Queue
+
+# from asyncio import Queue
 import aioconsole  # type: ignore
 from os import scandir, path
-from fnmatch import fnmatch
+from fnmatch import fnmatch, fnmatchcase
 from typing import Optional
+from .iterablequeue import IterableQueue, QueueDone
 
 logger = logging.getLogger(__name__)
 error = logger.error
@@ -22,7 +24,7 @@ debug = logger.debug
 
 
 # inherit from asyncio.Queue?
-class FileQueue(Queue):
+class FileQueue(IterableQueue):
     """
     Class to create create a async queue of files based on given dirs files given as
     arguments. Filters based on file names.
@@ -31,22 +33,21 @@ class FileQueue(Queue):
     def __init__(
         self,
         base: Optional[str] = None,
-        maxsize: int = 0,
         filter: str = "*",
         exclude: bool = False,
-        case_sensitive: bool = False,
+        case_sensitive: bool = True,
+        **kwargs,
     ):
-        assert maxsize >= 0, "maxsize has to be >= 0"
-        assert case_sensitive is not None, "case_sensitive cannot be None"
-        assert filter is not None, "filter cannot be None"
+        # assert maxsize >= 0, "maxsize has to be >= 0"
+        assert isinstance(case_sensitive, bool), "case_sensitive has to be bool"
+        assert isinstance(filter, str), "filter has to be string"
 
-        logger.debug(f"maxsize={str(maxsize)}, filter='{filter}'")
-        super().__init__(maxsize=maxsize)
+        # debug(f"maxsize={str(maxsize)}, filter='{filter}'")
+        super().__init__(count_items=True, **kwargs)
         self._base: Optional[str] = base
-        self._done: bool = False
+        # self._done: bool = False
         self._case_sensitive: bool = False
         self._exclude: bool = False
-        self._count: int = 0
         self.set_filter(filter=filter, exclude=exclude, case_sensitive=case_sensitive)
 
     def set_filter(
@@ -77,7 +78,7 @@ class FileQueue(Queue):
         '-' denotes for STDIN
         """
         assert files is not None and len(files) > 0, "No files given to process"
-
+        await self.add_producer()
         try:
             if files[0] == "-":
                 stdin, _ = await aioconsole.get_standard_streams()
@@ -96,11 +97,9 @@ class FileQueue(Queue):
                         await self.put(file)
                     else:
                         await self.put(path.join(self._base, file))
-
-            return True
         except Exception as err:
-            logger.error(f"{err}")
-        return False
+            error(f"{err}")
+        return await self.finish()
 
     async def put(self, filename: str) -> None:
         """Recursive function to build process queueu. Sanitize filename"""
@@ -115,16 +114,16 @@ class FileQueue(Queue):
                     for entry in dirEntry:
                         await self.put(entry.path)
             elif path.isfile(filename) and self._match(filename):
-                logger.debug(f"Adding file to queue: {filename}")
+                debug(f"Adding file to queue: {filename}")
                 await super().put(filename)
-                self._count += 1
+                # self._count += 1
         except Exception as err:
-            logger.error(f"{err}")
+            error(f"{err}")
         return None
 
-    def count(self) -> int:
-        """Return the number of items added to the queue"""
-        return self._count
+    # def count(self) -> int:
+    #     """Return the number of items added to the queue"""
+    #     return self._count
 
     def _match(self, filename: str) -> bool:
         """ "Match file name with filter
@@ -135,14 +134,12 @@ class FileQueue(Queue):
         try:
             filename = path.basename(filename)
 
+            m: bool
             if self._case_sensitive:
-                filename = filename.lower()
-
-            m = fnmatch(filename, self._filter)
-            if self._exclude:
-                return not m
+                m = fnmatch(filename, self._filter)
             else:
-                return m
+                m = fnmatchcase(filename, self._filter)
+            return m != self._exclude
         except Exception as err:
-            logger.error(f"{err}")
+            error(f"{err}")
         return False
