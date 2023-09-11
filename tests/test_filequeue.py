@@ -92,16 +92,15 @@ def count_matches(
 
 @pytest.mark.asyncio
 async def test_1_filter(tmp_path: Path, file_tree: list[Path]) -> None:
-    base: str = str(tmp_path.resolve())
     mk_files(tmp_path, files=file_tree)
 
     for filter, exclude, case_sensitive in zip(
         ["*.json", "*.wotbreplay"], [True, False], [True, False]
     ):
         fq = FileQueue(
-            base=base, filter=filter, exclude=exclude, case_sensitive=case_sensitive
+            base=tmp_path, filter=filter, exclude=exclude, case_sensitive=case_sensitive
         )
-        await fq.mk_queue([base])
+        await fq.mk_queue([str(tmp_path)])
         matches: int = count_matches(
             file_tree, filter=filter, exclude=exclude, case_sensitive=case_sensitive
         )

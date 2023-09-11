@@ -13,6 +13,7 @@ import asyncio
 import aioconsole  # type: ignore
 from os import scandir, path
 from fnmatch import fnmatch, fnmatchcase
+from pathlib import Path
 from typing import Optional
 from .iterablequeue import IterableQueue, QueueDone
 
@@ -24,7 +25,7 @@ debug = logger.debug
 
 
 # inherit from asyncio.Queue?
-class FileQueue(IterableQueue[str]):
+class FileQueue(IterableQueue[Path]):
     """
     Class to create create a async queue of files based on given dirs files given as
     arguments. Filters based on file names.
@@ -32,7 +33,7 @@ class FileQueue(IterableQueue[str]):
 
     def __init__(
         self,
-        base: Optional[str] = None,
+        base: Optional[Path] = None,
         filter: str = "*",
         exclude: bool = False,
         case_sensitive: bool = True,
@@ -41,10 +42,11 @@ class FileQueue(IterableQueue[str]):
         # assert maxsize >= 0, "maxsize has to be >= 0"
         assert isinstance(case_sensitive, bool), "case_sensitive has to be bool"
         assert isinstance(filter, str), "filter has to be string"
+        assert base is None or isinstance(base, Path), "base has to be Path or None"
 
         # debug(f"maxsize={str(maxsize)}, filter='{filter}'")
         super().__init__(count_items=True, **kwargs)
-        self._base: Optional[str] = base
+        self._base: Optional[Path] = base
         # self._done: bool = False
         self._case_sensitive: bool = False
         self._exclude: bool = False
@@ -62,10 +64,7 @@ class FileQueue(IterableQueue[str]):
 
         self._case_sensitive = case_sensitive
         self._exclude = exclude
-        if self._case_sensitive:
-            self._filter = filter.lower()
-        else:
-            self._filter = filter
+        self._filter = filter
         debug(
             "filter=%s exclude=%b, case_sensitive=%b",
             str(self._filter),
@@ -79,66 +78,56 @@ class FileQueue(IterableQueue[str]):
         """
         assert files is not None and len(files) > 0, "No files given to process"
         await self.add_producer()
+        path: Path
+        file: str
         try:
             if files[0] == "-":
                 stdin, _ = await aioconsole.get_standard_streams()
-                while True:
-                    line = (await stdin.readline()).decode("utf-8").removesuffix("\n")
-                    if not line:
-                        break
-                    else:
-                        if self._base is None:
-                            await self.put(line)
-                        else:
-                            await self.put(path.join(self._base, line))
+                while (line := await stdin.readline()) is not None:
+                    path = Path(line.decode("utf-8").removesuffix("\n"))
+                    if self._base is not None:
+                        path = self._base / path
+                    await self.put(path)
             else:
                 for file in files:
-                    if self._base is None:
-                        await self.put(file)
-                    else:
-                        await self.put(path.join(self._base, file))
+                    path = Path(file)
+                    if self._base is not None:
+                        path = self._base / path
+                    await self.put(path)
         except Exception as err:
             error(f"{err}")
         return await self.finish()
 
-    async def put(self, filename: str) -> None:
+    async def put(self, path: Path) -> None:
         """Recursive function to build process queueu. Sanitize filename"""
-        assert (
-            filename is not None and len(filename) > 0
-        ), "None/zero-length filename given as input"
-
+        assert isinstance(path, Path), "path has to be type Path()"
         try:
-            # filename = path.normpath(filename)   # string operation
-            if path.isdir(filename):
-                with scandir(filename) as dirEntry:
-                    for entry in dirEntry:
-                        await self.put(entry.path)
-            elif path.isfile(filename) and self._match(filename):
-                debug(f"Adding file to queue: {filename}")
-                await super().put(filename)
+            if path.is_dir():
+                for child in path.rglob(self._filter):
+                    if child.is_file():
+                        debug("Adding file to queue: %s", str(child))
+                        await super().put(child)
+            elif path.is_file() and self.match(path):
+                debug("Adding file to queue: %s", str(path))
+                await super().put(path)
                 # self._count += 1
         except Exception as err:
             error(f"{err}")
         return None
 
-    # def count(self) -> int:
-    #     """Return the number of items added to the queue"""
-    #     return self._count
-
-    def _match(self, filename: str) -> bool:
+    def match(self, path: Path) -> bool:
         """ "Match file name with filter
 
         https://docs.python.org/3/library/fnmatch.html
         """
-        assert filename is not None, "None provided as filename"
+        assert isinstance(path, Path), "path has to be type Path()"
         try:
-            filename = path.basename(filename)
-
             m: bool
+            print(f"match(): {path}")
             if self._case_sensitive:
-                m = fnmatch(filename, self._filter)
+                m = fnmatch(path.name, self._filter)
             else:
-                m = fnmatchcase(filename, self._filter)
+                m = fnmatchcase(path.name, self._filter)
             return m != self._exclude
         except Exception as err:
             error(f"{err}")
