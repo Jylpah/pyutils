@@ -123,7 +123,6 @@ class FileQueue(IterableQueue[Path]):
         assert isinstance(path, Path), "path has to be type Path()"
         try:
             m: bool
-            print(f"match(): {path}")
             if self._case_sensitive:
                 m = fnmatch(path.name, self._filter)
             else:
