@@ -217,8 +217,9 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
         return self
 
     async def __anext__(self) -> T:
-        if self._count + self._wip > 0:  # do not mark task_done() at first call
-            self.task_done()
+        async with self._modify:
+            if self._wip > 0:  # do not mark task_done() at first call
+                self.task_done()
         try:
             item = await self.get()
             return item
