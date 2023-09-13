@@ -39,7 +39,7 @@ from .utils import (
     epoch_now,
     alive_bar_monitor,
     is_alphanum,
-    read_config,
+    #   read_config,
     get_datestr,
     get_url,
     get_urls,

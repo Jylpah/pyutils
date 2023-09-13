@@ -74,23 +74,23 @@ class Countable(ABC):
 ##############################################
 
 
-def read_config(
-    config: str | None = None, files: list[str] = list()
-) -> ConfigParser | None:
-    """Read config file and if found return a ConfigParser"""
-    if config is not None:
-        files = [config] + files
-    for fn in [expanduser(f) for f in files]:
-        try:
-            if isfile(fn):
-                debug("reading config file: %s", fn)
-                cfg = ConfigParser()
-                cfg.read(fn)
-                return cfg
-        except ConfigParserError as err:
-            error(f"could not parse config file: {fn}: {err}")
-            break
-    return None
+# def read_config(
+#     config: str | None = None, files: list[str] = list()
+# ) -> ConfigParser | None:
+#     """Read config file and if found return a ConfigParser"""
+#     if config is not None:
+#         files = [config] + files
+#     for fn in [expanduser(f) for f in files]:
+#         try:
+#             if isfile(fn):
+#                 debug("reading config file: %s", fn)
+#                 cfg = ConfigParser()
+#                 cfg.read(fn)
+#                 return cfg
+#         except ConfigParserError as err:
+#             error(f"could not parse config file: {fn}: {err}")
+#             break
+#     return None
 
 
 def get_datestr(_datetime: datetime = datetime.now()) -> str:
