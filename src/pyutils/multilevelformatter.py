@@ -1,5 +1,6 @@
 import logging, sys
 from typing import Literal, Optional
+from pathlib import Path
 
 
 def set_mlevel_logging(
@@ -9,11 +10,13 @@ def set_mlevel_logging(
     datefmt: Optional[str] = None,
     style: Literal["%", "{", "$"] = "%",
     validate: bool = True,
-    log_file: Optional[str] = None,
+    log_file: Optional[str | Path] = None,
 ):
     """Setup logging"""
     if fmts is not None:
-        multi_formatter = MultilevelFormatter(fmt=fmt, fmts=fmts, datefmt=datefmt, style=style, validate=validate)
+        multi_formatter = MultilevelFormatter(
+            fmt=fmt, fmts=fmts, datefmt=datefmt, style=style, validate=validate
+        )
         stream_handler = logging.StreamHandler(sys.stdout)
         stream_handler.setFormatter(multi_formatter)
         logger.addHandler(stream_handler)
@@ -50,7 +53,11 @@ class MultilevelFormatter(logging.Formatter):
         self._formatters: dict[int, logging.Formatter] = dict()
         for level in self._levels:
             self._formatters[level] = logging.Formatter(
-                fmt=fmt, datefmt=datefmt, style=style, validate=validate, defaults=defaults
+                fmt=fmt,
+                datefmt=datefmt,
+                style=style,
+                validate=validate,
+                defaults=defaults,
             )
 
         for level in fmts.keys():
@@ -65,11 +72,13 @@ class MultilevelFormatter(logging.Formatter):
         datefmt: Optional[str] = None,
         style: Literal["%", "{", "$"] = "%",
         validate: bool = True,
-        log_file: Optional[str] = None,
+        log_file: Optional[str | Path] = None,
     ) -> None:
         """Setup logging"""
         if fmts is not None:
-            multi_formatter = MultilevelFormatter(fmt=fmt, fmts=fmts, datefmt=datefmt, style=style, validate=validate)
+            multi_formatter = MultilevelFormatter(
+                fmt=fmt, fmts=fmts, datefmt=datefmt, style=style, validate=validate
+            )
             stream_handler = logging.StreamHandler(sys.stdout)
             stream_handler.setFormatter(multi_formatter)
             logger.addHandler(stream_handler)
@@ -81,7 +90,9 @@ class MultilevelFormatter(logging.Formatter):
             logger.addHandler(file_handler)
 
     @classmethod
-    def setDefaults(cls, logger: logging.Logger, log_file: Optional[str] = None) -> None:
+    def setDefaults(
+        cls, logger: logging.Logger, log_file: Optional[str | Path] = None
+    ) -> None:
         """Set multi-level formatting defaults
 
         INFO: %(message)s
@@ -95,7 +106,10 @@ class MultilevelFormatter(logging.Formatter):
             # logging.ERROR: 		'%(levelname)s: %(message)s'
         }
         MultilevelFormatter.setLevels(
-            logger, fmts=logger_conf, fmt="%(levelname)s: %(funcName)s(): %(message)s", log_file=log_file
+            logger,
+            fmts=logger_conf,
+            fmt="%(levelname)s: %(funcName)s(): %(message)s",
+            log_file=log_file,
         )
 
     def format(self, record: logging.LogRecord) -> str:
@@ -107,7 +121,9 @@ class MultilevelFormatter(logging.Formatter):
 
     def formatTime(self, record: logging.LogRecord, datefmt: Optional[str] = None):
         try:
-            return self._formatters[record.levelno].formatTime(record=record, datefmt=datefmt)
+            return self._formatters[record.levelno].formatTime(
+                record=record, datefmt=datefmt
+            )
         except Exception as err:
             logging.error(f"{err}")
             return f"{err}"
