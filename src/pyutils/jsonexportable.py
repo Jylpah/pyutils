@@ -19,6 +19,7 @@ from typing import (
     AsyncGenerator,
     get_args,
 )
+from pathlib import Path
 from enum import Enum
 from datetime import date, datetime
 from collections.abc import MutableMapping
@@ -277,11 +278,20 @@ class JSONExportable(BaseModel):
         params = self._export_helper(params=params, fields=fields, **kwargs)
         return self.json(**params)
 
-    async def save_json(self, filename: str) -> int:
+    async def save_json(self, filename: Path | str) -> int:
         """Save object JSON into a file"""
+        fn: Path
+        if isinstance(filename, str):
+            fn = Path(filename)
+        elif isinstance(filename, Path):
+            fn = filename
+        else:
+            raise TypeError(
+                f"'filename' must be 'str' or 'pathlib.Path', got {type(filename)}"
+            )
         try:
-            if not filename.endswith(".json"):
-                filename += ".json"
+            if not fn.name.endswith(".json"):
+                fn = fn.with_suffix(".json")
             async with open(filename, mode="w", encoding="utf-8") as rf:
                 return await rf.write(self.json_src())
         except Exception as err:
