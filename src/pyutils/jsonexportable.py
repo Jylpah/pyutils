@@ -141,17 +141,17 @@ class JSONExportable(BaseModel):
             if (out := cls.from_obj(obj, in_type=in_type)) is not None
         ]
 
-    @classmethod
-    async def open_json(cls, filename: str) -> Self | None:
-        """Open replay JSON file and return class instance"""
-        try:
-            async with open(filename, "r") as f:
-                return cls.parse_raw(await f.read())
-        except ValidationError as err:
-            debug(f"Error parsing file: {filename}: {err}")
-        except OSError as err:
-            debug(f"Error reading file: {filename}: {err}")
-        return None
+    # @classmethod
+    # async def open_json(cls, filename: str) -> Self | None:
+    #     """Open replay JSON file and return class instance"""
+    #     try:
+    #         async with open(filename, "r") as f:
+    #             return cls.parse_raw(await f.read())
+    #     except ValidationError as err:
+    #         error(f"Error parsing file: {filename}: {err}")
+    #     except OSError as err:
+    #         error(f"Error reading file: {filename}: {err}")
+    #     return None
 
     @classmethod
     def parse_str(cls, content: str) -> Self | None:
