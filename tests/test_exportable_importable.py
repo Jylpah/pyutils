@@ -16,6 +16,7 @@ from pyutils import JSONExportable, export_json, export, Idx
 from pyutils import CSVExportable, export_csv
 from pyutils import TXTExportable, TXTImportable, Importable
 from pyutils import awrap, EventCounter
+from pyutils.utils import get_type, get_subtype
 
 
 ########################################################
@@ -247,6 +248,21 @@ def txt_data() -> list[TXTPerson]:
     return res
 
 
+@pytest.fixture
+def test_model_ok() -> str:
+    return "JSONParent"
+
+
+@pytest.fixture
+def test_model_not_found() -> str:
+    return "JSONParent_NOT_FOUND"
+
+
+@pytest.fixture
+def test_model_nok() -> str:
+    return "JSONParent::NOT_OK"
+
+
 @pytest.mark.asyncio
 async def test_1_json_exportable(tmp_path: Path, json_data: list[JSONParent]):
     fn: Path = tmp_path / "export.json"
@@ -395,3 +411,27 @@ async def test_4_csv_exportable_importable(tmp_path: Path, csv_data: list[CSVPer
     assert (
         len(csv_data) == 0
     ), f"could not import all the data correctly: {len(csv_data)} != 0"
+
+
+def test_5_types(
+    test_model_ok: str, test_model_nok: str, test_model_not_found: str
+) -> None:
+    """Test utils.get_type() and related functions"""
+    assert (
+        get_type(test_model_ok) is JSONParent
+    ), f"failed to get type for '{test_model_ok}'"
+    assert (
+        get_type(test_model_nok) is None
+    ), f"did not return None for NOT OK type: {test_model_nok}"
+    assert (
+        get_type(test_model_not_found) is None
+    ), f"did not return None for non-existing type: {test_model_not_found}"
+    assert (
+        get_subtype(name=test_model_ok, parent=JSONExportable) is JSONParent
+    ), f"failed to get sub type of 'JSONExportable' type for '{test_model_ok}'"
+    assert (
+        get_subtype(name=test_model_ok, parent=JSONChild) is None
+    ), f"returned model that is not child of 'JSONChild' type for '{test_model_ok}'"
+    assert (
+        get_subtype(name=test_model_not_found, parent=JSONChild) is None
+    ), f"returned model that is not child of 'JSONChild' type for '{test_model_not_found}'"

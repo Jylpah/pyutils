@@ -14,7 +14,8 @@ from re import compile
 from itertools import islice
 from aiofiles import open
 from alive_progress import alive_bar  # type: ignore
-
+from inspect import stack, getmembers, currentframe
+from types import FrameType
 import json
 from time import time
 from pathlib import Path
@@ -110,23 +111,47 @@ def chunker(it: Sequence[T], size: int) -> Iterator[list[T]]:
         yield chunk
 
 
-def get_type(name: str) -> type[object] | None:
+def get_type(name: str, _globals: dict[str, Any] | None = None) -> type[object] | None:
     type_class: type[object]
     try:
+        call_scope: FrameType | None
+        if _globals is None:
+            if (call_scope := currentframe()) is not None and (
+                call_scope := call_scope.f_back
+            ) is not None:
+                # _globals = dict(getmembers(stack()[1][0]))["f_globals"]
+                _globals = dict(getmembers(call_scope))["f_globals"]
+            else:
+                raise ValueError("could not get caller environment")
         if is_alphanum(name):
-            type_class = globals()[name]
+            assert _globals is not None, "could not read globals()"
+            type_class = _globals[name]
         else:
             raise ValueError(f"model {name}() contains illegal characters")
         return type_class
-    except Exception as err:
+    except ValueError as err:
+        error(f"{err}")
+    except KeyError as err:
         error(f"Could not find class {name}(): {err}")
     return None
 
 
-def get_sub_type(name: str, parent: type[T]) -> Optional[type[T]]:
-    if (model := get_type(name)) is not None:
-        if issubclass(model, parent):
-            return model
+def get_subtype(
+    name: str, parent: type[T], _globals: dict[str, Any] | None = None
+) -> Optional[type[T]]:
+    type_class: type[object] | None
+    call_scope: FrameType | None
+    if _globals is None:
+        if (call_scope := currentframe()) is not None and (
+            call_scope := call_scope.f_back
+        ) is not None:
+            # _globals = dict(getmembers(stack()[1][0]))["f_globals"]
+            _globals = dict(getmembers(call_scope))["f_globals"]
+        else:
+            raise ValueError("could not get caller environment")
+    if (type_class := get_type(name, _globals)) is not None:
+        if issubclass(type_class, parent):
+            return type_class
     return None
 
 
