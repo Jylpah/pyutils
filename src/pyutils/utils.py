@@ -4,39 +4,23 @@ from datetime import datetime, timedelta
 from typing import (
     Optional,
     Any,
-    cast,
-    Type,
-    Literal,
     Sequence,
     TypeVar,
-    ClassVar,
-    Union,
-    Mapping,
-    Callable,
     Iterator,
-    Self,
-    Generic,
     AsyncGenerator,
 )
-from abc import ABCMeta, ABC, abstractmethod
+from abc import ABC, abstractmethod
 from re import compile
 from itertools import islice
 from aiofiles import open
-from aiocsv.writers import AsyncDictWriter
-from aiocsv.readers import AsyncDictReader
 from alive_progress import alive_bar  # type: ignore
-from csv import Dialect, Sniffer, excel, QUOTE_NONNUMERIC
-from ast import literal_eval
-from os.path import isfile, exists, expanduser
-from os import linesep
-from aiofiles import open
+
 import json
 from time import time
 from pathlib import Path
-from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
+from aiohttp import ClientSession, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
-from asyncio import sleep, CancelledError, Queue
-from configparser import ConfigParser, Error as ConfigParserError
+from asyncio import sleep, CancelledError
 import string
 from tempfile import gettempdir
 from random import choices
@@ -91,6 +75,15 @@ class Countable(ABC):
 #             error(f"could not parse config file: {fn}: {err}")
 #             break
 #     return None
+
+
+def str2path(filename: str | Path, suffix: str | None = None) -> Path:
+    """convert filename (str) to pathlib.Path"""
+    if isinstance(filename, str):
+        filename = Path(filename)
+    if suffix is not None and not filename.name.lower().endswith(suffix):
+        filename = filename.with_suffix(suffix)
+    return filename
 
 
 def get_datestr(_datetime: datetime = datetime.now()) -> str:
