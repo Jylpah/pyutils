@@ -197,7 +197,7 @@ async def get_url(
             debug(f"Could not retrieve URL: {url} : {err}")
         except CancelledError as err:
             debug(f"Cancelled while still working: {err}")
-            break
+            raise
         except Exception as err:
             debug(f"Unexpected error {err}")
     verbose(f"Could not retrieve URL: {url}")
