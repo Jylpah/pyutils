@@ -43,7 +43,7 @@ from .utils import (
     get_datestr,
     get_url,
     # get_urls,
-    get_url_JSON_model,
+    get_url_model,
     # get_url_JSON_models,
     get_url_JSON,
     # get_urls_JSON,

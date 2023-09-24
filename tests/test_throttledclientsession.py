@@ -19,7 +19,7 @@ import logging
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 
-from pyutils import ThrottledClientSession, epoch_now, get_url_JSON, get_url_JSON_model
+from pyutils import ThrottledClientSession, epoch_now, get_url_JSON, get_url_model
 
 from test_exportable_importable import JSONParent, JSONChild  # type: ignore
 
@@ -197,7 +197,7 @@ async def test_2_slow_get(server_url: str) -> None:
 @pytest.mark.timeout(20)
 @pytest.mark.asyncio
 async def test_3_get_model(server_url: str, model_path: str) -> None:
-    """Test get_url_JSON_model()"""
+    """Test get_url_model()"""
     rate_limit: float = RATE_SLOW
     N: int = N_SLOW
     url: str = server_url + model_path
@@ -205,11 +205,11 @@ async def test_3_get_model(server_url: str, model_path: str) -> None:
     async with ThrottledClientSession(rate_limit=rate_limit) as session:
         for _ in range(N):
             if (
-                res := await get_url_JSON_model(
+                res := await get_url_model(
                     session=session, url=url, resp_model=JSONParent, retries=2
                 )
             ) is None:
-                assert False, "get_url_JSON_model() returned None"
+                assert False, "get_url_model() returned None"
 
 
 @pytest.mark.timeout(20)
