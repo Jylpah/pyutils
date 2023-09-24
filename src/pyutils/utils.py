@@ -214,11 +214,11 @@ async def get_url_JSON(
 
     try:
         if (content := await get_url(session, url, retries)) is not None:
-            return await json.loads(content)
+            return json.loads(content)
     except ClientResponseError as err:
         debug(f"Client response error: {url}: {err}")
-    except Exception as err:
-        debug(f"Unexpected error: {err}")
+    # except Exception as err:
+    #     debug(f"Unexpected error: {err}")
     return None
 
 
