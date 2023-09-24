@@ -13,6 +13,9 @@ from csv import Dialect, excel, QUOTE_NONNUMERIC
 from datetime import date, datetime
 from aiofiles import open
 from enum import Enum
+from pathlib import Path
+
+from .utils import str2path
 
 # Setup logging
 logger = logging.getLogger()
@@ -50,7 +53,9 @@ class CSVExportable(BaseModel):
         """Provide CSV headers as list"""
         return list(self.dict(exclude_unset=False, by_alias=False).keys())
 
-    def _csv_write_fields(self, left: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    def _csv_write_fields(
+        self, left: dict[str, Any]
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Write CSV fields with custom encoders
 
         Returns columns_done, columns_left
@@ -90,7 +95,9 @@ class CSVExportable(BaseModel):
                 res[key] = None
         return self._clear_None(res)
 
-    def _clear_None(self, res: dict[str, str | int | float | bool | None]) -> dict[str, str | int | float | bool]:
+    def _clear_None(
+        self, res: dict[str, str | int | float | bool | None]
+    ) -> dict[str, str | int | float | bool]:
         out: dict[str, str | int | float | bool] = dict()
         for key, value in res.items():
             if value is None:
@@ -100,7 +107,9 @@ class CSVExportable(BaseModel):
         return out
 
     @classmethod
-    def _csv_read_fields(cls, row: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    def _csv_read_fields(
+        cls, row: dict[str, Any]
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         """read CSV fields with custom encoding.
         Returns read, unread fields as dict[str, Any]"""
 
@@ -140,7 +149,9 @@ class CSVExportable(BaseModel):
                     elif field_type is bool:
                         res[field] = row[field] == "True"
                     elif issubclass(field_type, Enum):
-                        res[field] = field_type[str(row[field])]  ## Enums are stored by key, not value
+                        res[field] = field_type[
+                            str(row[field])
+                        ]  ## Enums are stored by key, not value
                     elif field_type is date:
                         res[field] = date.fromisoformat(row[field])
                     elif field_type is datetime:
@@ -162,11 +173,11 @@ class CSVExportable(BaseModel):
         return None
 
     @classmethod
-    async def import_csv(cls, filename: str) -> AsyncGenerator[Self, None]:
+    async def import_csv(cls, filename: Path | str) -> AsyncGenerator[Self, None]:
         """Import from filename, one model per line"""
         try:
+            debug("importing from CSV file: %s", str(filename))
             dialect: Type[Dialect] = excel
-            debug("importing from CSV file: %s", filename)
             async with open(filename, mode="r", newline="") as f:
                 async for row in AsyncDictReader(f, dialect=dialect):
                     # debug ("row: %s", row)

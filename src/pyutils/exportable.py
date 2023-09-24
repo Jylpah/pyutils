@@ -1,25 +1,17 @@
 import logging
 from typing import (
-    Optional,
-    cast,
     Type,
-    Any,
     Literal,
     TypeVar,
-    ClassVar,
-    Callable,
     Union,
     AsyncIterable,
     AsyncIterator,
     get_args,
 )
-from enum import Enum
-from datetime import date, datetime
-from collections.abc import MutableMapping
+from pathlib import Path
 from pydantic import BaseModel
 from asyncio import CancelledError
 from aiofiles import open
-from os.path import isfile, exists
 from os import linesep
 from aiocsv.writers import AsyncDictWriter
 from csv import Dialect, excel, QUOTE_NONNUMERIC
@@ -29,6 +21,7 @@ from abc import abstractmethod
 from .eventcounter import EventCounter
 from .jsonexportable import JSONExportable
 from .csvexportable import CSVExportable
+from .utils import str2path
 
 # Setup logging
 logger = logging.getLogger()
@@ -76,131 +69,151 @@ EXPORT_FORMATS = ["txt", "json", "csv"]
 
 
 async def export_csv(
-    iterable: AsyncIterable[CSVExportable], filename: str, force: bool = False, append: bool = False
+    iterable: AsyncIterable[CSVExportable],
+    filename: Path | str,
+    force: bool = False,
+    append: bool = False,
 ) -> EventCounter:
     """Export data to a CSVfile"""
     debug("starting")
     # assert isinstance(Q, Queue), "Q has to be type of asyncio.Queue[CSVExportable]"
-    assert type(filename) is str and len(filename) > 0, "filename has to be str"
+    # assert type(filename) is str and len(filename) > 0, "filename has to be str"
     stats: EventCounter = EventCounter("export CSV")
-    try:
-        dialect: Type[Dialect] = excel
-        aiterator: AsyncIterator[CSVExportable] = aiter(iterable)
-        exportable: CSVExportable | None = await anext(aiterator, None)
 
-        if exportable is None:
-            debug("empty iterable given")
-            return stats
-        fields: list[str] = exportable.csv_headers()
+    dialect: Type[Dialect] = excel
+    aiterator: AsyncIterator[CSVExportable] = aiter(iterable)
+    exportable: CSVExportable | None = await anext(aiterator, None)
 
-        if filename == "-":  # STDOUT
-            try:
-                # print header
-                print(dialect.delimiter.join(fields))
+    if exportable is None:
+        debug("empty iterable given")
+        return stats
+    fields: list[str] = exportable.csv_headers()
+
+    if isinstance(filename, str) and filename == "-":  # STDOUT
+        try:
+            # print header
+            print(dialect.delimiter.join(fields))
+            while exportable is not None:
+                try:
+                    row: dict[str, str | int | float | bool] = exportable.csv_row()
+                    print(dialect.delimiter.join([str(row[key]) for key in fields]))
+                    stats.log("rows")
+                except KeyError as err:
+                    error(f"CSVExportable object does not have field: {err}")
+                    stats.log("errors")
+                except CancelledError:
+                    raise
+                exportable = await anext(aiterator, None)
+
+            debug("export finished")
+        except CancelledError as err:
+            debug(f"Cancelled")
+            raise
+
+    else:  # File
+        try:
+            filename = str2path(filename, ".csv")
+            if filename.is_file() and (not (force or append)):
+                raise FileExistsError(f"Cannot export to {filename }")
+            mode: Literal["w", "a"] = "a" if append else "w"
+
+            debug("opening %s for writing in mode=%s", str(filename), mode)
+            async with open(filename, mode=mode, newline="") as csvfile:
+                try:
+                    writer = AsyncDictWriter(
+                        csvfile, fieldnames=fields, dialect=dialect
+                    )
+                    if not append:
+                        await writer.writeheader()
+                except Exception as err:
+                    error(err)
+                    raise
+
                 while exportable is not None:
                     try:
-                        row: dict[str, str | int | float | bool] = exportable.csv_row()
-                        print(dialect.delimiter.join([str(row[key]) for key in fields]))
+                        # debug(f'Writing row: {exportable.csv_row()}')
+                        await writer.writerow(exportable.csv_row())
                         stats.log("rows")
-                    except KeyError as err:
-                        error(f"CSVExportable object does not have field: {err}")
+                    except CancelledError:
+                        raise
+                    except Exception as err:
+                        error(f"error writing CSV row type={type(exportable)}: {err}")
                         stats.log("errors")
                     exportable = await anext(aiterator, None)
 
-                debug("export finished")
-            except CancelledError as err:
-                debug(f"Cancelled")
-
-        else:  # File
-            if not filename.lower().endswith("csv"):
-                filename = f"{filename}.csv"
-            file_exists: bool = isfile(filename)
-            if exists(filename) and (not file_exists or not (force or append)):
-                raise FileExistsError(f"Cannot export to {filename }")
-
-            mode: Literal["w", "a"] = "w"
-            if append and file_exists:
-                mode = "a"
-            else:
-                append = False
-            debug("opening %s for writing in mode=%s", filename, mode)
-            async with open(filename, mode=mode, newline="") as csvfile:
-                try:
-                    writer = AsyncDictWriter(csvfile, fieldnames=fields, dialect=dialect)
-                    if not append:
-                        await writer.writeheader()
-
-                    while exportable is not None:
-                        try:
-                            # debug(f'Writing row: {exportable.csv_row()}')
-                            await writer.writerow(exportable.csv_row())
-                            stats.log("rows")
-                        except Exception as err:
-                            error(f"{err}")
-                            stats.log("errors")
-                        exportable = await anext(aiterator, None)
-
-                except CancelledError as err:
-                    debug(f"Cancelled")
-                finally:
-                    pass
-
-    except Exception as err:
-        error(f"{err}")
+        except CancelledError as err:
+            debug(f"Cancelled")
+            raise
+        except OSError as err:
+            error(f"could not write to {filename}: {err}")
+            raise
+        except Exception as err:
+            error(f"error exporting to CSV: {err}")
+            raise
     return stats
 
 
 async def export_json(
-    iterable: AsyncIterable[JSONExportable], filename: str, force: bool = False, append: bool = False
+    iterable: AsyncIterable[JSONExportable],
+    filename: Path | str,
+    force: bool = False,
+    append: bool = False,
 ) -> EventCounter:
     """Export data to a JSON file"""
-    assert type(filename) is str and len(filename) > 0, "filename has to be str"
+    # assert type(filename) is str and len(filename) > 0, "filename has to be str"
     stats: EventCounter = EventCounter("export JSON")
     try:
         exportable: JSONExportable
-        if filename == "-":
+        if isinstance(filename, str) and filename == "-":  # STDOUT
             async for exportable in iterable:
                 try:
                     print(exportable.json_src(indent=4))
                     stats.log("rows")
+                except CancelledError:
+                    raise
                 except Exception as err:
-                    error(f"{err}")
+                    error(f"error exporting JSON type={type(exportable)}: {err}")
                     stats.log("errors")
-        else:
-            if not filename.lower().endswith("json"):
-                filename = f"{filename}.json"
-            file_exists: bool = isfile(filename)
-            if exists(filename) and (not file_exists or not (force or append)):
-                raise FileExistsError(f"Cannot export to {filename }")
-            mode: Literal["w", "a"] = "w"
-            if append and file_exists:
-                mode = "a"
+        else:  # FILE
+            filename = str2path(filename, ".json")
+            if filename.is_file() and (not (force or append)):
+                raise FileExistsError(f"Cannot export to {filename}")
+            mode: Literal["w", "a"] = "a" if append else "w"
+
+            debug("opening %s for writing in mode=%s", str(filename), mode)
             async with open(filename, mode=mode) as txtfile:
                 async for exportable in iterable:
                     try:
                         debug("writing JSON: %s", exportable.json_src())
                         await txtfile.write(exportable.json_src() + linesep)
                         stats.log("rows")
+                    except CancelledError:
+                        raise
                     except Exception as err:
                         error(f"{err}")
                         stats.log("errors")
 
     except CancelledError as err:
         debug(f"Cancelled")
+        raise
     except Exception as err:
-        error(f"{err}")
+        error(f"error exporting to JSON: {err}")
+        raise
     return stats
 
 
 async def export_txt(
-    iterable: AsyncIterable[TXTExportable], filename: str, force: bool = False, append: bool = False
+    iterable: AsyncIterable[TXTExportable],
+    filename: Path | str,
+    force: bool = False,
+    append: bool = False,
 ) -> EventCounter:
     """Export data to a text file"""
-    assert type(filename) is str and len(filename) > 0, "filename has to be str"
+    # assert type(filename) is str and len(filename) > 0, "filename has to be str"
     stats: EventCounter = EventCounter("export text")
     try:
         exportable: TXTExportable
-        if filename == "-":
+        if isinstance(filename, str) and filename == "-":
             async for exportable in iterable:
                 try:
                     print(exportable.txt_row(format="rich"))
@@ -209,35 +222,34 @@ async def export_txt(
                     error(f"{err}")
                     stats.log("errors")
         else:
-            if not filename.lower().endswith("txt"):
-                filename = f"{filename}.txt"
-            # file_exists: bool = isfile(filename)
-            if isfile(filename) and (not (force or append)):
+            filename = str2path(filename, ".txt")
+            if filename.is_file() and (not (force or append)):
                 raise FileExistsError(f"Cannot export to {filename }")
-            mode: Literal["w", "a"] = "w"
-            # if append and file_exists:
-            if append:
-                mode = "a"
+            mode: Literal["w", "a"] = "a" if append else "w"
+
             async with open(filename, mode=mode) as txtfile:
                 async for exportable in iterable:
                     try:
                         await txtfile.write(exportable.txt_row() + linesep)
                         stats.log("rows")
                     except Exception as err:
-                        error(f"{err}")
+                        error(f"error exporting to text type={type(exportable)}: {err}")
                         stats.log("errors")
 
     except CancelledError as err:
         debug("Cancelled")
     except Exception as err:
-        error(f"{err}")
+        error(f"error exporting to text: {err}")
+        raise
     return stats
 
 
 async def export(
-    iterable: AsyncIterable[CSVExportable] | AsyncIterable[TXTExportable] | AsyncIterable[JSONExportable],
+    iterable: AsyncIterable[CSVExportable]
+    | AsyncIterable[TXTExportable]
+    | AsyncIterable[JSONExportable],
     format: EXPORT_FORMAT,
-    filename: str,
+    filename: Path | str,
     force: bool = False,
     append: bool = False,
 ) -> EventCounter:
@@ -245,10 +257,11 @@ async def export(
     debug("starting")
     stats: EventCounter = EventCounter("export")
 
-    if filename != "-":
-        for export_format in EXPORT_FORMATS:
-            if filename.endswith(export_format) and export_format in get_args(EXPORT_FORMAT):
-                format = cast(EXPORT_FORMAT, export_format)
+    # if filename != "-":
+    #     for export_format in EXPORT_FORMATS:
+    #         if filename.endswith(export_format) and export_format in get_args(EXPORT_FORMAT):
+    #             format = cast(EXPORT_FORMAT, export_format)
+
     try:
         if format == "txt":
             stats.merge(await export_txt(iterable, filename=filename, force=force, append=append))  # type: ignore
@@ -261,5 +274,5 @@ async def export(
     except Exception as err:
         stats.log("errors")
         error(f"{err}")
-    finally:
-        return stats
+        raise
+    return stats

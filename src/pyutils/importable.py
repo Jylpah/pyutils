@@ -1,5 +1,17 @@
 import logging
-from typing import cast, Type, Any, TypeVar, Self, AsyncGenerator, Callable, Sequence, Self, ClassVar, Optional
+from typing import (
+    cast,
+    Type,
+    Any,
+    TypeVar,
+    Self,
+    AsyncGenerator,
+    Callable,
+    Sequence,
+    Self,
+    ClassVar,
+    Optional,
+)
 from abc import ABCMeta, abstractmethod
 from collections.abc import MutableMapping
 from pydantic import BaseModel, ValidationError
@@ -8,8 +20,11 @@ from csv import Dialect, excel, QUOTE_NONNUMERIC
 from datetime import date, datetime
 from aiofiles import open
 from enum import Enum
+from pathlib import Path
+
 from .jsonexportable import JSONExportable
 from .csvexportable import CSVExportable
+from .utils import str2path
 
 # Setup logging
 logger = logging.getLogger()
@@ -32,34 +47,38 @@ class Importable(metaclass=ABCMeta):
     @classmethod
     async def import_file(
         cls,
-        file: str,
+        filename: Path | str,
         **kwargs,
     ) -> AsyncGenerator[Self, None]:
+        """Import models from a file, one per line"""
         debug("starting")
-        try:
-            if file.lower().endswith(".txt") and issubclass(cls, TXTImportable):
-                debug("importing from TXT file: %s", file)
-                async for obj in cls.import_txt(file, **kwargs):
-                    yield obj
-            elif file.lower().endswith(".json") and issubclass(cls, JSONExportable):
-                debug("importing from JSON file: %s", file)
-                async for obj in cls.import_json(file, **kwargs):
-                    yield obj
-            elif file.lower().endswith(".csv") and issubclass(cls, CSVExportable):
-                debug("importing from CSV file: %s", file)
-                async for obj in cls.import_csv(file):
-                    yield obj
-            else:
-                raise ValueError(f"Unsupported file format: {file}")
-                yield
-        except Exception as err:
-            error(f"{err}")
+        filename = str2path(filename=filename)
+        # try:
+        if filename.name.lower().endswith(".txt") and issubclass(cls, TXTImportable):
+            debug("importing from TXT file: %s", str(filename))
+            async for obj in cls.import_txt(filename, **kwargs):
+                yield obj
+        elif filename.name.lower().endswith(".json") and issubclass(
+            cls, JSONExportable
+        ):
+            debug("importing from JSON file: %s", str(filename))
+            async for obj in cls.import_json(filename, **kwargs):
+                yield obj
+        elif filename.name.lower().endswith(".csv") and issubclass(cls, CSVExportable):
+            debug("importing from CSV file: %s", str(filename))
+            async for obj in cls.import_csv(filename):
+                yield obj
+        else:
+            raise ValueError(f"Unsupported file format: {filename}")
+            yield
+        # except Exception as err:
+        #     error(f"{err}")
 
     @classmethod
-    async def count_file(cls, file: str, **kwargs) -> int:
+    async def count_file(cls, filename: Path | str, **kwargs) -> int:
         """Count Importables in the file"""
         res: int = 0
-        async for _ in cls.import_file(file=file, **kwargs):
+        async for _ in cls.import_file(filename=filename, **kwargs):
             res += 1
         return res
 
@@ -83,20 +102,23 @@ class TXTImportable(BaseModel):
         raise NotImplementedError
 
     @classmethod
-    async def import_txt(cls, filename: str, **kwargs) -> AsyncGenerator[Self, None]:
+    async def import_txt(
+        cls, filename: Path | str, **kwargs
+    ) -> AsyncGenerator[Self, None]:
         """Import from filename, one model per line"""
-        try:
-            debug(f"starting: {filename}")
-            # importable : TXTImportableSelf | None
-            async with open(filename, "r") as f:
-                async for line in f:
-                    try:
-                        debug("line: %s", line)
-                        if (importable := cls.from_txt(line.rstrip(), **kwargs)) is not None:
-                            yield importable
-                    except ValidationError as err:
-                        error(f"Could not validate mode: {err}")
-                    except Exception as err:
-                        error(f"{err}")
-        except Exception as err:
-            error(f"Error importing file {filename}: {err}")
+        # try:
+        debug(f"starting: {filename}")
+        async with open(filename, "r") as f:
+            async for line in f:
+                try:
+                    debug("line: %s", line)
+                    if (
+                        importable := cls.from_txt(line.rstrip(), **kwargs)
+                    ) is not None:
+                        yield importable
+                except ValidationError as err:
+                    error(f"Could not validate mode: {err}")
+                except Exception as err:
+                    error(f"{err}")
+        # except Exception as err:
+        #     error(f"Error importing file {filename}: {err}")

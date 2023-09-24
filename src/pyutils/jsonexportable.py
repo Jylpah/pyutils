@@ -19,6 +19,7 @@ from typing import (
     AsyncGenerator,
     get_args,
 )
+from pathlib import Path
 from enum import Enum
 from datetime import date, datetime
 from collections.abc import MutableMapping
@@ -31,6 +32,7 @@ from bson.objectid import ObjectId
 from abc import abstractmethod
 
 from .eventcounter import EventCounter
+from .utils import str2path
 
 # Setup logging
 logger = logging.getLogger()
@@ -141,17 +143,17 @@ class JSONExportable(BaseModel):
             if (out := cls.from_obj(obj, in_type=in_type)) is not None
         ]
 
-    # @classmethod
-    # async def open_json(cls, filename: str) -> Self | None:
-    #     """Open replay JSON file and return class instance"""
-    #     try:
-    #         async with open(filename, "r") as f:
-    #             return cls.parse_raw(await f.read())
-    #     except ValidationError as err:
-    #         error(f"Error parsing file: {filename}: {err}")
-    #     except OSError as err:
-    #         error(f"Error reading file: {filename}: {err}")
-    #     return None
+    @classmethod
+    async def open_json(cls, filename: Path | str) -> Self | None:
+        """Open replay JSON file and return class instance"""
+        try:
+            async with open(filename, "r") as f:
+                return cls.parse_raw(await f.read())
+        except ValidationError as err:
+            error(f"Error parsing file: {filename}: {err}")
+        except OSError as err:
+            error(f"Error reading file: {filename}: {err}")
+        return None
 
     @classmethod
     def parse_str(cls, content: str) -> Self | None:
@@ -163,8 +165,10 @@ class JSONExportable(BaseModel):
         return None
 
     @classmethod
-    async def import_json(cls, filename: str, **kwargs) -> AsyncGenerator[Self, None]:
-        """Import from filename, one model per line"""
+    async def import_json(
+        cls, filename: Path | str, **kwargs
+    ) -> AsyncGenerator[Self, None]:
+        """Import models from filename, one model per line"""
         try:
             # importable : JSONImportableSelf | None
             async with open(filename, "r") as f:
@@ -277,11 +281,13 @@ class JSONExportable(BaseModel):
         params = self._export_helper(params=params, fields=fields, **kwargs)
         return self.json(**params)
 
-    async def save_json(self, filename: str) -> int:
+    async def save_json(self, filename: Path | str) -> int:
         """Save object JSON into a file"""
+        filename = str2path(filename)
+
         try:
-            if not filename.endswith(".json"):
-                filename += ".json"
+            if not filename.name.endswith(".json"):
+                filename = filename.with_suffix(".json")
             async with open(filename, mode="w", encoding="utf-8") as rf:
                 return await rf.write(self.json_src())
         except Exception as err:

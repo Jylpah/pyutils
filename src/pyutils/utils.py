@@ -4,39 +4,24 @@ from datetime import datetime, timedelta
 from typing import (
     Optional,
     Any,
-    cast,
-    Type,
-    Literal,
     Sequence,
     TypeVar,
-    ClassVar,
-    Union,
-    Mapping,
-    Callable,
     Iterator,
-    Self,
-    Generic,
     AsyncGenerator,
 )
-from abc import ABCMeta, ABC, abstractmethod
+from abc import ABC, abstractmethod
 from re import compile
 from itertools import islice
 from aiofiles import open
-from aiocsv.writers import AsyncDictWriter
-from aiocsv.readers import AsyncDictReader
 from alive_progress import alive_bar  # type: ignore
-from csv import Dialect, Sniffer, excel, QUOTE_NONNUMERIC
-from ast import literal_eval
-from os.path import isfile, exists, expanduser
-from os import linesep
-from aiofiles import open
+from inspect import stack, getmembers, currentframe
+from types import FrameType
 import json
 from time import time
 from pathlib import Path
-from aiohttp import ClientSession, ClientResponse, ClientError, ClientResponseError
+from aiohttp import ClientSession, ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
-from asyncio import sleep, CancelledError, Queue
-from configparser import ConfigParser, Error as ConfigParserError
+from asyncio import sleep, CancelledError
 import string
 from tempfile import gettempdir
 from random import choices
@@ -93,6 +78,15 @@ class Countable(ABC):
 #     return None
 
 
+def str2path(filename: str | Path, suffix: str | None = None) -> Path:
+    """convert filename (str) to pathlib.Path"""
+    if isinstance(filename, str):
+        filename = Path(filename)
+    if suffix is not None and not filename.name.lower().endswith(suffix):
+        filename = filename.with_suffix(suffix)
+    return filename
+
+
 def get_datestr(_datetime: datetime = datetime.now()) -> str:
     return _datetime.strftime("%Y%m%d_%H%M")
 
@@ -117,23 +111,47 @@ def chunker(it: Sequence[T], size: int) -> Iterator[list[T]]:
         yield chunk
 
 
-def get_type(name: str) -> type[object] | None:
+def get_type(name: str, _globals: dict[str, Any] | None = None) -> type[object] | None:
     type_class: type[object]
     try:
+        call_scope: FrameType | None
+        if _globals is None:
+            if (call_scope := currentframe()) is not None and (
+                call_scope := call_scope.f_back
+            ) is not None:
+                # _globals = dict(getmembers(stack()[1][0]))["f_globals"]
+                _globals = dict(getmembers(call_scope))["f_globals"]
+            else:
+                raise ValueError("could not get caller environment")
         if is_alphanum(name):
-            type_class = globals()[name]
+            assert _globals is not None, "could not read globals()"
+            type_class = _globals[name]
         else:
             raise ValueError(f"model {name}() contains illegal characters")
         return type_class
-    except Exception as err:
+    except ValueError as err:
+        error(f"{err}")
+    except KeyError as err:
         error(f"Could not find class {name}(): {err}")
     return None
 
 
-def get_sub_type(name: str, parent: type[T]) -> Optional[type[T]]:
-    if (model := get_type(name)) is not None:
-        if issubclass(model, parent):
-            return model
+def get_subtype(
+    name: str, parent: type[T], _globals: dict[str, Any] | None = None
+) -> Optional[type[T]]:
+    type_class: type[object] | None
+    call_scope: FrameType | None
+    if _globals is None:
+        if (call_scope := currentframe()) is not None and (
+            call_scope := call_scope.f_back
+        ) is not None:
+            # _globals = dict(getmembers(stack()[1][0]))["f_globals"]
+            _globals = dict(getmembers(call_scope))["f_globals"]
+        else:
+            raise ValueError("could not get caller environment")
+    if (type_class := get_type(name, _globals)) is not None:
+        if issubclass(type_class, parent):
+            return type_class
     return None
 
 
@@ -204,7 +222,7 @@ async def get_url(
             debug(f"Could not retrieve URL: {url} : {err}")
         except CancelledError as err:
             debug(f"Cancelled while still working: {err}")
-            break
+            raise
         except Exception as err:
             debug(f"Unexpected error {err}")
     verbose(f"Could not retrieve URL: {url}")
@@ -221,18 +239,18 @@ async def get_url_JSON(
 
     try:
         if (content := await get_url(session, url, retries)) is not None:
-            return await json.loads(content)
+            return json.loads(content)
     except ClientResponseError as err:
         debug(f"Client response error: {url}: {err}")
-    except Exception as err:
-        debug(f"Unexpected error: {err}")
+    # except Exception as err:
+    #     debug(f"Unexpected error: {err}")
     return None
 
 
 M = TypeVar("M", bound=BaseModel)
 
 
-async def get_url_JSON_model(
+async def get_url_model(
     session: ClientSession, url: str, resp_model: type[M], retries: int = MAX_RETRIES
 ) -> Optional[M]:
     """Get JSON from URL and return object. Validate JSON against resp_model, if given."""
@@ -253,117 +271,117 @@ async def get_url_JSON_model(
     return None
 
 
-async def get_url_JSON_models(
-    session: ClientSession, url: str, item_model: type[M], retries: int = MAX_RETRIES
-) -> Optional[list[M]]:
-    """Get a list of Pydantic models from URL. Validate JSON against resp_model, if given."""
-    assert session is not None, "session cannot be None"
-    assert url is not None, "url cannot be None"
-    content: str | None = None
-    try:
-        if (content := await get_url(session, url, retries)) is not None:
-            elems: list[Any] | None
-            if (elems := json.loads(content)) is not None:
-                res: list[M] = list()
-                for elem in elems:
-                    try:
-                        res.append(item_model.parse_obj(elem))
-                    except ValidationError as err:
-                        debug(f"Could not validate {elem}: {err}")
-                return res
-    except Exception as err:
-        debug(f"Unexpected error: {err}")
-    return None
+# async def get_url_JSON_models(
+#     session: ClientSession, url: str, item_model: type[M], retries: int = MAX_RETRIES
+# ) -> Optional[list[M]]:
+#     """Get a list of Pydantic models from URL. Validate JSON against resp_model, if given."""
+#     assert session is not None, "session cannot be None"
+#     assert url is not None, "url cannot be None"
+#     content: str | None = None
+#     try:
+#         if (content := await get_url(session, url, retries)) is not None:
+#             elems: list[Any] | None
+#             if (elems := json.loads(content)) is not None:
+#                 res: list[M] = list()
+#                 for elem in elems:
+#                     try:
+#                         res.append(item_model.parse_obj(elem))
+#                     except ValidationError as err:
+#                         debug(f"Could not validate {elem}: {err}")
+#                 return res
+#     except Exception as err:
+#         debug(f"Unexpected error: {err}")
+#     return None
 
 
-async def get_urls(
-    session: ClientSession,
-    queue: UrlQueue,
-    stats: EventCounter = EventCounter(),
-    max_retries: int = MAX_RETRIES,
-) -> AsyncGenerator[tuple[str, str], None]:
-    """Async Generator to retrieve URLs read from an async Queue"""
+# async def get_urls(
+#     session: ClientSession,
+#     queue: UrlQueue,
+#     stats: EventCounter = EventCounter(),
+#     max_retries: int = MAX_RETRIES,
+# ) -> AsyncGenerator[tuple[str, str], None]:
+#     """Async Generator to retrieve URLs read from an async Queue"""
 
-    assert session is not None, "Session must be initialized first"
-    assert queue is not None, "Queue must be initialized first"
+#     assert session is not None, "Session must be initialized first"
+#     assert queue is not None, "Queue must be initialized first"
 
-    while True:
-        try:
-            url_item: UrlQueueItemType = await queue.get()
-            url: str = url_item[0]
-            retry: int = url_item[1]
-            if retry > max_retries:
-                debug(f"URL has been tried more than {max_retries} times: {url}")
-                continue
-            if retry > 0:
-                debug(f"Retrying URL ({retry}/{max_retries}): {url}")
-            else:
-                debug(f"Retrieving URL: {url}")
+#     while True:
+#         try:
+#             url_item: UrlQueueItemType = await queue.get()
+#             url: str = url_item[0]
+#             retry: int = url_item[1]
+#             if retry > max_retries:
+#                 debug(f"URL has been tried more than {max_retries} times: {url}")
+#                 continue
+#             if retry > 0:
+#                 debug(f"Retrying URL ({retry}/{max_retries}): {url}")
+#             else:
+#                 debug(f"Retrieving URL: {url}")
 
-            async with session.get(url) as resp:
-                if resp.status == 200:
-                    debug(f"HTTP request OK/{resp.status}: {url}")
-                    stats.log("OK")
-                    yield await resp.text(), url
-                else:
-                    error(f"HTTP error {resp.status}: {url}")
-                    if retry < max_retries:
-                        retry += 1
-                        stats.log("retries")
-                        await queue.put(url, retry)
-                    else:
-                        error(f"Could not retrieve URL: {url}")
-                        stats.log("failed")
+#             async with session.get(url) as resp:
+#                 if resp.status == 200:
+#                     debug(f"HTTP request OK/{resp.status}: {url}")
+#                     stats.log("OK")
+#                     yield await resp.text(), url
+#                 else:
+#                     error(f"HTTP error {resp.status}: {url}")
+#                     if retry < max_retries:
+#                         retry += 1
+#                         stats.log("retries")
+#                         await queue.put(url, retry)
+#                     else:
+#                         error(f"Could not retrieve URL: {url}")
+#                         stats.log("failed")
 
-        except CancelledError as err:
-            debug(f"Async operation has been cancelled. Ending loop.")
-            break
-
-
-async def get_urls_JSON(
-    session: ClientSession,
-    queue: UrlQueue,
-    stats: EventCounter = EventCounter(),
-    max_retries: int = MAX_RETRIES,
-) -> AsyncGenerator[tuple[Any, str], None]:
-    """Async Generator to retrieve JSON from URLs read from an async Queue"""
-
-    assert session is not None, "Session must be initialized first"
-    assert queue is not None, "Queue must be initialized first"
-
-    async for content, url in get_urls(
-        session, queue=queue, stats=stats, max_retries=max_retries
-    ):
-        try:
-            yield await json.loads(content), url
-        except ClientResponseError as err:
-            debug(f"Client response error: {url}: {err}")
-        except Exception as err:
-            debug(f"Unexpected error: {err}")
+#         except CancelledError as err:
+#             debug(f"Async operation has been cancelled. Ending loop.")
+#             break
 
 
-async def get_urls_JSON_models(
-    session: ClientSession,
-    queue: UrlQueue,
-    resp_model: type[M],
-    stats: EventCounter = EventCounter(),
-    max_retries: int = MAX_RETRIES,
-) -> AsyncGenerator[tuple[M, str], None]:
-    """Async Generator to retrieve JSON from URLs read from an async Queue"""
+# async def get_urls_JSON(
+#     session: ClientSession,
+#     queue: UrlQueue,
+#     stats: EventCounter = EventCounter(),
+#     max_retries: int = MAX_RETRIES,
+# ) -> AsyncGenerator[tuple[Any, str], None]:
+#     """Async Generator to retrieve JSON from URLs read from an async Queue"""
 
-    assert session is not None, "Session must be initialized first"
-    assert queue is not None, "Queue must be initialized first"
+#     assert session is not None, "Session must be initialized first"
+#     assert queue is not None, "Queue must be initialized first"
 
-    async for content, url in get_urls(
-        session, queue=queue, stats=stats, max_retries=max_retries
-    ):
-        try:
-            yield resp_model.parse_raw(content), url
-        except ValidationError as err:
-            debug(f"{resp_model.__name__}(): Validation error: {url}: {err}")
-        except Exception as err:
-            debug(f"Unexpected error: {err}")
+#     async for content, url in get_urls(
+#         session, queue=queue, stats=stats, max_retries=max_retries
+#     ):
+#         try:
+#             yield await json.loads(content), url
+#         except ClientResponseError as err:
+#             debug(f"Client response error: {url}: {err}")
+#         except Exception as err:
+#             debug(f"Unexpected error: {err}")
 
 
-# def mk_id(account_id: int, last_battle_time: int, tank_id: int = 0) -> ObjectId:
-# 	return ObjectId(hex(account_id)[2:].zfill(10) + hex(tank_id)[2:].zfill(6) + hex(last_battle_time)[2:].zfill(8))
+# async def get_urls_JSON_models(
+#     session: ClientSession,
+#     queue: UrlQueue,
+#     resp_model: type[M],
+#     stats: EventCounter = EventCounter(),
+#     max_retries: int = MAX_RETRIES,
+# ) -> AsyncGenerator[tuple[M, str], None]:
+#     """Async Generator to retrieve JSON from URLs read from an async Queue"""
+
+#     assert session is not None, "Session must be initialized first"
+#     assert queue is not None, "Queue must be initialized first"
+
+#     async for content, url in get_urls(
+#         session, queue=queue, stats=stats, max_retries=max_retries
+#     ):
+#         try:
+#             yield resp_model.parse_raw(content), url
+#         except ValidationError as err:
+#             debug(f"{resp_model.__name__}(): Validation error: {url}: {err}")
+#         except Exception as err:
+#             debug(f"Unexpected error: {err}")
+
+
+# # def mk_id(account_id: int, last_battle_time: int, tank_id: int = 0) -> ObjectId:
+# # 	return ObjectId(hex(account_id)[2:].zfill(10) + hex(tank_id)[2:].zfill(6) + hex(last_battle_time)[2:].zfill(8))
