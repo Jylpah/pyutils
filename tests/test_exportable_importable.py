@@ -413,7 +413,7 @@ async def test_4_csv_exportable_importable(tmp_path: Path, csv_data: list[CSVPer
     ), f"could not import all the data correctly: {len(csv_data)} != 0"
 
 
-def test_5_types(
+def test_5_get_type(
     test_model_ok: str, test_model_nok: str, test_model_not_found: str
 ) -> None:
     """Test utils.get_type() and related functions"""
@@ -426,6 +426,13 @@ def test_5_types(
     assert (
         get_type(test_model_not_found) is None
     ), f"did not return None for non-existing type: {test_model_not_found}"
+
+
+def test_6_get_subtype(
+    test_model_ok: str, test_model_nok: str, test_model_not_found: str
+) -> None:
+    """Test utils.get_subtype() and related functions"""
+
     assert (
         get_subtype(name=test_model_ok, parent=JSONExportable) is JSONParent
     ), f"failed to get sub type of 'JSONExportable' type for '{test_model_ok}'"
