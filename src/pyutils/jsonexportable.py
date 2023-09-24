@@ -32,6 +32,7 @@ from bson.objectid import ObjectId
 from abc import abstractmethod
 
 from .eventcounter import EventCounter
+from .utils import str2path
 
 # Setup logging
 logger = logging.getLogger()
@@ -164,8 +165,10 @@ class JSONExportable(BaseModel):
         return None
 
     @classmethod
-    async def import_json(cls, filename: str, **kwargs) -> AsyncGenerator[Self, None]:
-        """Import from filename, one model per line"""
+    async def import_json(
+        cls, filename: Path | str, **kwargs
+    ) -> AsyncGenerator[Self, None]:
+        """Import models from filename, one model per line"""
         try:
             # importable : JSONImportableSelf | None
             async with open(filename, "r") as f:
@@ -280,18 +283,11 @@ class JSONExportable(BaseModel):
 
     async def save_json(self, filename: Path | str) -> int:
         """Save object JSON into a file"""
-        fn: Path
-        if isinstance(filename, str):
-            fn = Path(filename)
-        elif isinstance(filename, Path):
-            fn = filename
-        else:
-            raise TypeError(
-                f"'filename' must be 'str' or 'pathlib.Path', got {type(filename)}"
-            )
+        filename = str2path(filename)
+
         try:
-            if not fn.name.endswith(".json"):
-                fn = fn.with_suffix(".json")
+            if not filename.name.endswith(".json"):
+                filename = filename.with_suffix(".json")
             async with open(filename, mode="w", encoding="utf-8") as rf:
                 return await rf.write(self.json_src())
         except Exception as err:
