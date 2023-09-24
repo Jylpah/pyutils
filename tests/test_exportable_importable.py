@@ -1,12 +1,12 @@
 import sys
 import pytest  # type: ignore
 from typing import Literal, Self
-from pydantic import BaseModel, Field
+from pydantic import Field
 from pathlib import Path
 from time import time
 from datetime import date, datetime
 from asyncio.queues import Queue
-from enum import Enum, StrEnum, IntEnum
+from enum import StrEnum, IntEnum
 import json
 import logging
 
@@ -15,7 +15,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 from pyutils import JSONExportable, export_json, export, Idx
 from pyutils import CSVExportable, export_csv
 from pyutils import TXTExportable, TXTImportable, Importable
-from pyutils import awrap
+from pyutils import awrap, EventCounter
+
 
 ########################################################
 #
@@ -121,7 +122,16 @@ class TXTPerson(TXTExportable, TXTImportable, CSVExportable, Importable):
         """Provide parse object from a line of text"""
         debug(f"line: {text}")
         n, a, h, bd, w, ha, e = text.split(":")
-        debug("name=%s, age=%s height=%s, birthday=%s, woman=%s, hair=%s, eyes=%s", n, a, h, bd, w, ha, e)
+        debug(
+            "name=%s, age=%s height=%s, birthday=%s, woman=%s, hair=%s, eyes=%s",
+            n,
+            a,
+            h,
+            bd,
+            w,
+            ha,
+            e,
+        )
         return cls(
             name=n,
             age=int(a),
@@ -176,7 +186,13 @@ def csv_data() -> list[CSVPerson]:
     res: list[CSVPerson] = list()
     res.append(
         CSVPerson(
-            name="Marie", age=0, height=1.85, woman=True, eyes=Eyes.brown, hair=Hair.red, favorite_func="VLOOKUP()"
+            name="Marie",
+            age=0,
+            height=1.85,
+            woman=True,
+            eyes=Eyes.brown,
+            hair=Hair.red,
+            favorite_func="VLOOKUP()",
         )
     )
     res.append(
@@ -205,13 +221,27 @@ def csv_data() -> list[CSVPerson]:
 @pytest.fixture
 def txt_data() -> list[TXTPerson]:
     res: list[TXTPerson] = list()
-    res.append(TXTPerson(name="Marie", age=0, height=1.85, woman=True, eyes=Eyes.brown, hair=Hair.red))
     res.append(
-        TXTPerson(name="Jack Who", age=45, height=1.43, birthday=datetime.fromisoformat("1977-07-23"), eyes=Eyes.grey)
+        TXTPerson(
+            name="Marie", age=0, height=1.85, woman=True, eyes=Eyes.brown, hair=Hair.red
+        )
     )
     res.append(
         TXTPerson(
-            name="James 3.5", age=18, height=1.76, birthday=datetime.fromisoformat("2005-02-14"), hair=Hair.blonde
+            name="Jack Who",
+            age=45,
+            height=1.43,
+            birthday=datetime.fromisoformat("1977-07-23"),
+            eyes=Eyes.grey,
+        )
+    )
+    res.append(
+        TXTPerson(
+            name="James 3.5",
+            age=18,
+            height=1.76,
+            birthday=datetime.fromisoformat("2005-02-14"),
+            hair=Hair.blonde,
         )
     )
     return res
@@ -219,12 +249,11 @@ def txt_data() -> list[TXTPerson]:
 
 @pytest.mark.asyncio
 async def test_1_json_exportable(tmp_path: Path, json_data: list[JSONParent]):
-    fn: str = f"{tmp_path.resolve()}/export.json"
+    fn: Path = tmp_path / "export.json"
 
-    try:
-        await export(awrap(json_data), "json", filename=fn)  # type: ignore
-    except Exception as err:
-        assert False, f"failed to export test data: {err}"
+    await export(awrap(json_data), format="json", filename="-")  # type: ignore
+    await export(awrap(json_data), format="json", filename=fn)  # type: ignore
+    await export(awrap(json_data), format="json", filename=str(fn.resolve()), force=True)  # type: ignore
 
     imported: set[JSONParent] = set()
     try:
@@ -245,14 +274,20 @@ async def test_1_json_exportable(tmp_path: Path, json_data: list[JSONParent]):
 @pytest.mark.asyncio
 async def test_2_json_exportable_include_exclude() -> None:
     # test for custom include/exclude
-    parent = JSONParent(name="P3", amount=-6, correct=False, child=JSONChild(name="test"))
+    parent = JSONParent(
+        name="P3", amount=-6, correct=False, child=JSONChild(name="test")
+    )
 
     parent_src: dict
     parent_db: dict
     parent_src = json.loads(parent.json_src())
-    assert "array" in parent_src, "json_src() failed: _exclude_unset set 'False', 'array' excluded"
+    assert (
+        "array" in parent_src
+    ), "json_src() failed: _exclude_unset set 'False', 'array' excluded"
     parent_db = json.loads(parent.json_db())
-    assert "c" not in parent_db, "json_db() failed: _exclude_defaults set 'True', 'c' included"
+    assert (
+        "c" not in parent_db
+    ), "json_db() failed: _exclude_defaults set 'True', 'c' included"
 
     for excl, incl in zip(["child", None], ["name", None]):
         kwargs: dict[str, set[str]] = dict()
@@ -264,29 +299,40 @@ async def test_2_json_exportable_include_exclude() -> None:
         parent_src = json.loads(parent.json_src(fields=None, **kwargs))
         parent_db = json.loads(parent.json_db(fields=None, **kwargs))
         if excl is not None:
-            assert excl not in parent_db, f"json_src() failed: excluded field {excl} included"
-            assert excl not in parent_src, f"json_db() failed: excluded field {excl} included"
+            assert (
+                excl not in parent_db
+            ), f"json_src() failed: excluded field {excl} included"
+            assert (
+                excl not in parent_src
+            ), f"json_db() failed: excluded field {excl} included"
         if incl is not None:
-            assert incl in parent_src, f"json_src() failed: included field {incl} excluded"
-            assert incl in parent_db, f"json_db() failed: included field {incl} excluded"
+            assert (
+                incl in parent_src
+            ), f"json_src() failed: included field {incl} excluded"
+            assert (
+                incl in parent_db
+            ), f"json_db() failed: included field {incl} excluded"
 
     parent_src = json.loads(parent.json_src(fields=["name", "array"]))
-    assert "amount" not in parent_src, f"json_src() failed: excluded field 'amount' included"
+    assert (
+        "amount" not in parent_src
+    ), f"json_src() failed: excluded field 'amount' included"
     assert "array" in parent_src, "json_src() failed: included field 'array' excluded"
 
     parent_db = json.loads(parent.json_db(fields=["name", "array"]))
-    assert "amount" not in parent_db, f"json_db() failed: excluded field 'amount' included"
+    assert (
+        "amount" not in parent_db
+    ), f"json_db() failed: excluded field 'amount' included"
     assert "array" in parent_db, "json_db() failed: included field 'array' excluded"
 
 
 @pytest.mark.asyncio
 async def test_3_txt_exportable_importable(tmp_path: Path, txt_data: list[TXTPerson]):
-    fn: str = f"{tmp_path.resolve()}/export.txt"
+    fn: Path = tmp_path / "export.txt"
 
-    try:
-        await export(awrap(txt_data), "txt", filename=fn)  # type: ignore
-    except Exception as err:
-        assert False, f"failed to export test data: {err}"
+    await export(awrap(txt_data), "txt", filename="-")  # type: ignore
+    await export(awrap(txt_data), "txt", filename=fn)  # type: ignore
+    await export(awrap(txt_data), format="txt", filename=str(fn.resolve()), force=True)  # type: ignore
 
     imported: set[TXTPerson] = set()
     try:
@@ -312,12 +358,11 @@ async def test_3_txt_exportable_importable(tmp_path: Path, txt_data: list[TXTPer
 
 @pytest.mark.asyncio
 async def test_4_csv_exportable_importable(tmp_path: Path, csv_data: list[CSVPerson]):
-    fn: str = f"{tmp_path.resolve()}/export.csv"
+    fn: Path = tmp_path / "export.csv"
 
-    try:
-        await export(awrap(csv_data), "csv", filename=fn)  # type: ignore
-    except Exception as err:
-        assert False, f"failed to export test data: {err}"
+    await export(awrap(csv_data), "csv", filename="-")  # type: ignore
+    await export(awrap(csv_data), "csv", filename=fn)  # type: ignore
+    await export(awrap(csv_data), "csv", filename=str(fn.resolve()), force=True)  # type: ignore
 
     imported: set[CSVPerson] = set()
     try:
@@ -327,18 +372,26 @@ async def test_4_csv_exportable_importable(tmp_path: Path, csv_data: list[CSVPer
     except Exception as err:
         assert False, f"failed to import test data: {err}"
 
-    assert len(imported) == len(csv_data), f"could not import all CSV data: {len(imported)} != {len(csv_data)}"
+    assert len(imported) == len(
+        csv_data
+    ), f"could not import all CSV data: {len(imported)} != {len(csv_data)}"
     for data_imported in imported:
         debug("hash(data_imported)=%d", hash(data_imported))
         try:
             if data_imported in csv_data:
                 ndx: int = csv_data.index(data_imported)
                 data = csv_data[ndx]
-                assert data == data_imported, f"imported data different from original: {data_imported} != {data}"
+                assert (
+                    data == data_imported
+                ), f"imported data different from original: {data_imported} != {data}"
                 csv_data.pop(ndx)
             else:
                 assert False, f"imported data not in the original: {data_imported}"
         except ValueError as err:
-            assert False, f"export/import conversion error. imported data={data_imported} is not in input data"
+            assert (
+                False
+            ), f"export/import conversion error. imported data={data_imported} is not in input data"
 
-    assert len(csv_data) == 0, f"could not import all the data correctly: {len(csv_data)} != 0"
+    assert (
+        len(csv_data) == 0
+    ), f"could not import all the data correctly: {len(csv_data)} != 0"
