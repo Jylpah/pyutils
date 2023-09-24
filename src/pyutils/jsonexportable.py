@@ -144,15 +144,21 @@ class JSONExportable(BaseModel):
         ]
 
     @classmethod
-    async def open_json(cls, filename: Path | str) -> Self | None:
+    async def open_json(
+        cls, filename: Path | str, exceptions: bool = False
+    ) -> Self | None:
         """Open replay JSON file and return class instance"""
         try:
             async with open(filename, "r") as f:
                 return cls.parse_raw(await f.read())
         except ValidationError as err:
-            error(f"Error parsing file: {filename}: {err}")
+            debug(f"Error parsing file: {filename}: {err}")
+            if exceptions:
+                raise
         except OSError as err:
-            error(f"Error reading file: {filename}: {err}")
+            debug(f"Error reading file: {filename}: {err}")
+            if exceptions:
+                raise
         return None
 
     @classmethod
