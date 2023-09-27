@@ -14,7 +14,7 @@ import aioconsole  # type: ignore
 from os import scandir, path
 from fnmatch import fnmatch, fnmatchcase
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 from .iterablequeue import IterableQueue, QueueDone
 from .utils import str2path
@@ -74,7 +74,7 @@ class FileQueue(IterableQueue[Path]):
             self._case_sensitive,
         )
 
-    async def mk_queue(self, files: list[str | Path]) -> bool:
+    async def mk_queue(self, files: Sequence[str | Path]) -> bool:
         """Create file queue from arguments given
         '-' denotes for STDIN
         """
