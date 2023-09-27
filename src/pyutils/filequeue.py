@@ -15,7 +15,9 @@ from os import scandir, path
 from fnmatch import fnmatch, fnmatchcase
 from pathlib import Path
 from typing import Optional
+
 from .iterablequeue import IterableQueue, QueueDone
+from .utils import str2path
 
 logger = logging.getLogger(__name__)
 error = logger.error
@@ -72,16 +74,16 @@ class FileQueue(IterableQueue[Path]):
             self._case_sensitive,
         )
 
-    async def mk_queue(self, files: list[str]) -> bool:
+    async def mk_queue(self, files: list[str | Path]) -> bool:
         """Create file queue from arguments given
         '-' denotes for STDIN
         """
         assert files is not None and len(files) > 0, "No files given to process"
         await self.add_producer()
         path: Path
-        file: str
+        file: str | Path
         try:
-            if files[0] == "-":
+            if isinstance(files[0], str) and files[0] == "-":
                 stdin, _ = await aioconsole.get_standard_streams()
                 while (line := await stdin.readline()) is not None:
                     path = Path(line.decode("utf-8").removesuffix("\n"))
@@ -90,7 +92,7 @@ class FileQueue(IterableQueue[Path]):
                     await self.put(path)
             else:
                 for file in files:
-                    path = Path(file)
+                    path = str2path(file)
                     if self._base is not None:
                         path = self._base / path
                     await self.put(path)
