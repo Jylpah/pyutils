@@ -68,7 +68,7 @@ class FileQueue(IterableQueue[Path]):
         self._exclude = exclude
         self._filter = filter
         debug(
-            "filter=%s exclude=%b, case_sensitive=%b",
+            "filter=%s exclude=%s, case_sensitive=%s",
             str(self._filter),
             self._exclude,
             self._case_sensitive,
