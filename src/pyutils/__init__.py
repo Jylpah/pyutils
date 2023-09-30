@@ -50,6 +50,7 @@ from .utils import (
     # get_urls_JSON_models,
     get_temp_filename,
     chunker,
+    set_config,
     str2path,
 )
 
