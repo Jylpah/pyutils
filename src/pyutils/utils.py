@@ -25,6 +25,7 @@ from asyncio import sleep, CancelledError
 import string
 from tempfile import gettempdir
 from random import choices
+from configparser import ConfigParser
 
 from .eventcounter import EventCounter
 from .urlqueue import UrlQueue, UrlQueueItemType, is_url
@@ -385,3 +386,26 @@ async def get_url_model(
 
 # # def mk_id(account_id: int, last_battle_time: int, tank_id: int = 0) -> ObjectId:
 # # 	return ObjectId(hex(account_id)[2:].zfill(10) + hex(tank_id)[2:].zfill(6) + hex(last_battle_time)[2:].zfill(8))
+
+
+def set_config(
+    config: ConfigParser,
+    section: str,
+    option: str,
+    value: Any = None,
+    fallback: str | int | float | bool | None = None,
+) -> None:
+    """Helper for setting ConfigParser config params"""
+    assert isinstance(
+        config, ConfigParser
+    ), "config argument has to be instance of ConfigParser"
+    # opt_type: str | int | float | bool = str
+    # if fallback is not None:
+    #     opt_type = type(fallback)
+
+    if not config.has_section(section):
+        config[section] = {}
+    if value is not None:
+        config[section][option] = str(value)
+    elif not (fallback is None or config.has_option(section=section, option=option)):
+        config[section][option] = str(fallback)
