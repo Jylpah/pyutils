@@ -36,9 +36,9 @@ from .importable import (
 )
 from .utils import (
     Countable as Countable,
-    epoch_now,
     alive_bar_monitor,
-    is_alphanum,
+    chunker,
+    epoch_now,
     # read_config,
     get_datestr,
     get_url,
@@ -49,7 +49,8 @@ from .utils import (
     # get_urls_JSON,
     # get_urls_JSON_models,
     get_temp_filename,
-    chunker,
+    is_alphanum,
+    post_url,
     set_config,
     str2path,
 )

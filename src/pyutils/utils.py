@@ -19,7 +19,7 @@ from types import FrameType
 import json
 from time import time
 from pathlib import Path
-from aiohttp import ClientSession, ClientError, ClientResponseError
+from aiohttp import ClientSession, ClientError, ClientResponseError, FormData
 from pydantic import BaseModel, ValidationError
 from asyncio import sleep, CancelledError
 import string
@@ -196,36 +196,61 @@ async def alive_bar_monitor(
     return None
 
 
-async def get_url(
-    session: ClientSession, url: str, max_retries: int = MAX_RETRIES
+async def post_url(
+    session: ClientSession,
+    url: str,
+    headers: dict | None = None,
+    data: FormData | None = None,
+    retries: int = MAX_RETRIES,
+    **kwargs,
 ) -> str | None:
-    """Retrieve (GET) an URL and return JSON object"""
+    """Do HTTP POST and return content as text"""
+    assert session is not None, "Session must be initialized first"
+    assert url is not None, "url cannot be None"
+    for retry in range(1, retries + 1):
+        debug(f"POST {url}: try {retry} / {retries}")
+        try:
+            async with session.post(
+                url, headers=headers, data=data, **kwargs  # chunked=512 * 1024,
+            ) as resp:
+                debug(f"POST {url}: HTTP response status {resp.status}/{resp.reason}")
+                if resp.ok:
+                    return await resp.text()
+        except ClientError as err:
+            debug(f"POST {url}: Unexpected exception {err}")
+        except CancelledError as err:
+            debug(f"Cancelled while still working: {err}")
+            raise
+        await sleep(SLEEP)
+    verbose(f"Could not retrieve URL: {url}")
+    return None
+
+
+async def get_url(
+    session: ClientSession, url: str, retries: int = MAX_RETRIES
+) -> str | None:
+    """Retrieve (GET) an URL and return content as text"""
     assert session is not None, "Session must be initialized first"
     assert url is not None, "url cannot be None"
 
-    if not is_url(url):
-        raise ValueError(f"URL is malformed: {url}")
+    # if not is_url(url):
+    #     raise ValueError(f"URL is malformed: {url}")
 
-    for retry in range(1, max_retries + 1):
+    for retry in range(1, retries + 1):
+        debug(f"GET {url}: try {retry} / {retries}")
         try:
             async with session.get(url) as resp:
-                if resp.status == 200:
-                    debug(f"HTTP request OK: {url}")
+                debug(f"GET {url}: HTTP response status {resp.status}/{resp.reason}")
+                if resp.ok:
                     return await resp.text()
-                else:
-                    debug(f"HTTP error {resp.status}: {url}")
-                if retry == max_retries:
-                    break
-                debug(f"Retrying URL [ {retry}/{max_retries} ]: {url}")
-            await sleep(SLEEP)
-
         except ClientError as err:
             debug(f"Could not retrieve URL: {url} : {err}")
         except CancelledError as err:
             debug(f"Cancelled while still working: {err}")
             raise
-        except Exception as err:
-            debug(f"Unexpected error {err}")
+        # except Exception as err:
+        #     debug(f"Unexpected error {err}")
+        await sleep(SLEEP)
     verbose(f"Could not retrieve URL: {url}")
     return None
 
@@ -299,7 +324,7 @@ async def get_url_model(
 #     session: ClientSession,
 #     queue: UrlQueue,
 #     stats: EventCounter = EventCounter(),
-#     max_retries: int = MAX_RETRIES,
+#     retries: int = MAX_RETRIES,
 # ) -> AsyncGenerator[tuple[str, str], None]:
 #     """Async Generator to retrieve URLs read from an async Queue"""
 
@@ -311,11 +336,11 @@ async def get_url_model(
 #             url_item: UrlQueueItemType = await queue.get()
 #             url: str = url_item[0]
 #             retry: int = url_item[1]
-#             if retry > max_retries:
-#                 debug(f"URL has been tried more than {max_retries} times: {url}")
+#             if retry > retries:
+#                 debug(f"URL has been tried more than {retries} times: {url}")
 #                 continue
 #             if retry > 0:
-#                 debug(f"Retrying URL ({retry}/{max_retries}): {url}")
+#                 debug(f"Retrying URL ({retry}/{retries}): {url}")
 #             else:
 #                 debug(f"Retrieving URL: {url}")
 
@@ -326,7 +351,7 @@ async def get_url_model(
 #                     yield await resp.text(), url
 #                 else:
 #                     error(f"HTTP error {resp.status}: {url}")
-#                     if retry < max_retries:
+#                     if retry < retries:
 #                         retry += 1
 #                         stats.log("retries")
 #                         await queue.put(url, retry)
@@ -343,7 +368,7 @@ async def get_url_model(
 #     session: ClientSession,
 #     queue: UrlQueue,
 #     stats: EventCounter = EventCounter(),
-#     max_retries: int = MAX_RETRIES,
+#     retries: int = MAX_RETRIES,
 # ) -> AsyncGenerator[tuple[Any, str], None]:
 #     """Async Generator to retrieve JSON from URLs read from an async Queue"""
 
@@ -351,7 +376,7 @@ async def get_url_model(
 #     assert queue is not None, "Queue must be initialized first"
 
 #     async for content, url in get_urls(
-#         session, queue=queue, stats=stats, max_retries=max_retries
+#         session, queue=queue, stats=stats, retries=retries
 #     ):
 #         try:
 #             yield await json.loads(content), url
@@ -366,7 +391,7 @@ async def get_url_model(
 #     queue: UrlQueue,
 #     resp_model: type[M],
 #     stats: EventCounter = EventCounter(),
-#     max_retries: int = MAX_RETRIES,
+#     retries: int = MAX_RETRIES,
 # ) -> AsyncGenerator[tuple[M, str], None]:
 #     """Async Generator to retrieve JSON from URLs read from an async Queue"""
 
@@ -374,7 +399,7 @@ async def get_url_model(
 #     assert queue is not None, "Queue must be initialized first"
 
 #     async for content, url in get_urls(
-#         session, queue=queue, stats=stats, max_retries=max_retries
+#         session, queue=queue, stats=stats, retries=retries
 #     ):
 #         try:
 #             yield resp_model.parse_raw(content), url

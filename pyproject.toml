@@ -1,6 +1,6 @@
 [project]
 name = "pyutils"
-version = "0.3.10"
+version = "0.4"
 authors = [{ name = "Jylpah", email = "jylpah@gmail.com" }]
 description = "Misc Python utils and classes"
 readme = "README.md"
@@ -17,7 +17,9 @@ classifiers = [
 ]
 dependencies = [
     "aiofiles>=23.1.0",
-    "aiohttp>=3.8.4",
+    "aiohttp>=3.8.5",
+    "Brotli>=1.1.0",
+    "aiodns>=3.0.0",
     "aioconsole>=0.6.1",
 #    "aiosqlite>=0.19.0",
     "aiocsv>=1.2.4",
