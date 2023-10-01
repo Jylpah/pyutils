@@ -201,16 +201,18 @@ async def post_url(
     url: str,
     headers: dict | None = None,
     data: FormData | None = None,
-    max_retries: int = MAX_RETRIES,
+    retries: int = MAX_RETRIES,
     **kwargs,
 ) -> str | None:
     """Do HTTP POST and return content as text"""
     assert session is not None, "Session must be initialized first"
     assert url is not None, "url cannot be None"
-    for retry in range(1, max_retries + 1):
-        debug(f"POST {url}: try {retry} / {max_retries}")
+    for retry in range(1, retries + 1):
+        debug(f"POST {url}: try {retry} / {retries}")
         try:
-            async with session.post(url, headers=headers, data=data, **kwargs) as resp:
+            async with session.post(
+                url, headers=headers, data=data, **kwargs  # chunked=512 * 1024,
+            ) as resp:
                 debug(f"POST {url}: HTTP response status {resp.status}/{resp.reason}")
                 if resp.ok:
                     return await resp.text()
@@ -225,7 +227,7 @@ async def post_url(
 
 
 async def get_url(
-    session: ClientSession, url: str, max_retries: int = MAX_RETRIES
+    session: ClientSession, url: str, retries: int = MAX_RETRIES
 ) -> str | None:
     """Retrieve (GET) an URL and return content as text"""
     assert session is not None, "Session must be initialized first"
@@ -234,8 +236,8 @@ async def get_url(
     # if not is_url(url):
     #     raise ValueError(f"URL is malformed: {url}")
 
-    for retry in range(1, max_retries + 1):
-        debug(f"GET {url}: try {retry} / {max_retries}")
+    for retry in range(1, retries + 1):
+        debug(f"GET {url}: try {retry} / {retries}")
         try:
             async with session.get(url) as resp:
                 debug(f"GET {url}: HTTP response status {resp.status}/{resp.reason}")
@@ -322,7 +324,7 @@ async def get_url_model(
 #     session: ClientSession,
 #     queue: UrlQueue,
 #     stats: EventCounter = EventCounter(),
-#     max_retries: int = MAX_RETRIES,
+#     retries: int = MAX_RETRIES,
 # ) -> AsyncGenerator[tuple[str, str], None]:
 #     """Async Generator to retrieve URLs read from an async Queue"""
 
@@ -334,11 +336,11 @@ async def get_url_model(
 #             url_item: UrlQueueItemType = await queue.get()
 #             url: str = url_item[0]
 #             retry: int = url_item[1]
-#             if retry > max_retries:
-#                 debug(f"URL has been tried more than {max_retries} times: {url}")
+#             if retry > retries:
+#                 debug(f"URL has been tried more than {retries} times: {url}")
 #                 continue
 #             if retry > 0:
-#                 debug(f"Retrying URL ({retry}/{max_retries}): {url}")
+#                 debug(f"Retrying URL ({retry}/{retries}): {url}")
 #             else:
 #                 debug(f"Retrieving URL: {url}")
 
@@ -349,7 +351,7 @@ async def get_url_model(
 #                     yield await resp.text(), url
 #                 else:
 #                     error(f"HTTP error {resp.status}: {url}")
-#                     if retry < max_retries:
+#                     if retry < retries:
 #                         retry += 1
 #                         stats.log("retries")
 #                         await queue.put(url, retry)
@@ -366,7 +368,7 @@ async def get_url_model(
 #     session: ClientSession,
 #     queue: UrlQueue,
 #     stats: EventCounter = EventCounter(),
-#     max_retries: int = MAX_RETRIES,
+#     retries: int = MAX_RETRIES,
 # ) -> AsyncGenerator[tuple[Any, str], None]:
 #     """Async Generator to retrieve JSON from URLs read from an async Queue"""
 
@@ -374,7 +376,7 @@ async def get_url_model(
 #     assert queue is not None, "Queue must be initialized first"
 
 #     async for content, url in get_urls(
-#         session, queue=queue, stats=stats, max_retries=max_retries
+#         session, queue=queue, stats=stats, retries=retries
 #     ):
 #         try:
 #             yield await json.loads(content), url
@@ -389,7 +391,7 @@ async def get_url_model(
 #     queue: UrlQueue,
 #     resp_model: type[M],
 #     stats: EventCounter = EventCounter(),
-#     max_retries: int = MAX_RETRIES,
+#     retries: int = MAX_RETRIES,
 # ) -> AsyncGenerator[tuple[M, str], None]:
 #     """Async Generator to retrieve JSON from URLs read from an async Queue"""
 
@@ -397,7 +399,7 @@ async def get_url_model(
 #     assert queue is not None, "Queue must be initialized first"
 
 #     async for content, url in get_urls(
-#         session, queue=queue, stats=stats, max_retries=max_retries
+#         session, queue=queue, stats=stats, retries=retries
 #     ):
 #         try:
 #             yield resp_model.parse_raw(content), url
