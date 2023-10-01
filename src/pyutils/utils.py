@@ -227,33 +227,28 @@ async def post_url(
 async def get_url(
     session: ClientSession, url: str, max_retries: int = MAX_RETRIES
 ) -> str | None:
-    """Retrieve (GET) an URL and return JSON object"""
+    """Retrieve (GET) an URL and return content as text"""
     assert session is not None, "Session must be initialized first"
     assert url is not None, "url cannot be None"
 
-    if not is_url(url):
-        raise ValueError(f"URL is malformed: {url}")
+    # if not is_url(url):
+    #     raise ValueError(f"URL is malformed: {url}")
 
     for retry in range(1, max_retries + 1):
+        debug(f"GET {url}: try {retry} / {max_retries}")
         try:
             async with session.get(url) as resp:
-                if resp.status == 200:
-                    debug(f"HTTP request OK: {url}")
+                debug(f"GET {url}: HTTP response status {resp.status}/{resp.reason}")
+                if resp.ok:
                     return await resp.text()
-                else:
-                    debug(f"HTTP error {resp.status}: {url}")
-                if retry == max_retries:
-                    break
-                debug(f"Retrying URL [ {retry}/{max_retries} ]: {url}")
-            await sleep(SLEEP)
-
         except ClientError as err:
             debug(f"Could not retrieve URL: {url} : {err}")
         except CancelledError as err:
             debug(f"Cancelled while still working: {err}")
             raise
-        except Exception as err:
-            debug(f"Unexpected error {err}")
+        # except Exception as err:
+        #     debug(f"Unexpected error {err}")
+        await sleep(SLEEP)
     verbose(f"Could not retrieve URL: {url}")
     return None
 
