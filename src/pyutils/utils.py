@@ -19,7 +19,7 @@ from types import FrameType
 import json
 from time import time
 from pathlib import Path
-from aiohttp import ClientSession, ClientError, ClientResponseError
+from aiohttp import ClientSession, ClientError, ClientResponseError, FormData
 from pydantic import BaseModel, ValidationError
 from asyncio import sleep, CancelledError
 import string
@@ -193,6 +193,34 @@ async def alive_bar_monitor(
         except CancelledError:
             pass
 
+    return None
+
+
+async def post_url(
+    session: ClientSession,
+    url: str,
+    headers: dict | None = None,
+    data: FormData | None = None,
+    max_retries: int = MAX_RETRIES,
+    **kwargs,
+) -> str | None:
+    """Do HTTP POST and return content as text"""
+    assert session is not None, "Session must be initialized first"
+    assert url is not None, "url cannot be None"
+    for retry in range(1, max_retries + 1):
+        debug(f"POST {url}: try {retry} / {max_retries}")
+        try:
+            async with session.post(url, headers=headers, data=data, **kwargs) as resp:
+                debug(f"POST {url}: HTTP response status {resp.status}/{resp.reason}")
+                if resp.ok:
+                    return await resp.text()
+        except ClientError as err:
+            debug(f"POST {url}: Unexpected exception {err}")
+        except CancelledError as err:
+            debug(f"Cancelled while still working: {err}")
+            raise
+        await sleep(SLEEP)
+    verbose(f"Could not retrieve URL: {url}")
     return None
 
 
