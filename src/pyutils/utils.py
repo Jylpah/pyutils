@@ -200,7 +200,7 @@ async def post_url(
     session: ClientSession,
     url: str,
     headers: dict | None = None,
-    data: FormData | None = None,
+    data: FormData | dict[str, Any] | None = None,
     retries: int = MAX_RETRIES,
     **kwargs,
 ) -> str | None:
