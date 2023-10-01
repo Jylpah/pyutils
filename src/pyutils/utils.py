@@ -213,16 +213,16 @@ async def post_url(
             async with session.post(
                 url, headers=headers, data=data, **kwargs  # chunked=512 * 1024,
             ) as resp:
-                debug(f"POST {url}: HTTP response status {resp.status}/{resp.reason}")
+                debug(f"POST {url} HTTP response status {resp.status}/{resp.reason}")
                 if resp.ok:
                     return await resp.text()
         except ClientError as err:
-            debug(f"POST {url}: Unexpected exception {err}")
+            debug(f"POST {url} Unexpected exception {err}")
         except CancelledError as err:
             debug(f"Cancelled while still working: {err}")
             raise
         await sleep(SLEEP)
-    verbose(f"Could not retrieve URL: {url}")
+    verbose(f"POST {url} FAILED")
     return None
 
 
@@ -237,10 +237,10 @@ async def get_url(
     #     raise ValueError(f"URL is malformed: {url}")
 
     for retry in range(1, retries + 1):
-        debug(f"GET {url}: try {retry} / {retries}")
+        debug(f"GET {url} try {retry} / {retries}")
         try:
             async with session.get(url) as resp:
-                debug(f"GET {url}: HTTP response status {resp.status}/{resp.reason}")
+                debug(f"GET {url} HTTP response status {resp.status}/{resp.reason}")
                 if resp.ok:
                     return await resp.text()
         except ClientError as err:
