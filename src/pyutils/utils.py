@@ -26,6 +26,7 @@ import string
 from tempfile import gettempdir
 from random import choices
 from configparser import ConfigParser
+from functools import wraps
 
 from .eventcounter import EventCounter
 from .urlqueue import UrlQueue, UrlQueueItemType, is_url
@@ -60,23 +61,14 @@ class Countable(ABC):
 ##############################################
 
 
-# def read_config(
-#     config: str | None = None, files: list[str] = list()
-# ) -> ConfigParser | None:
-#     """Read config file and if found return a ConfigParser"""
-#     if config is not None:
-#         files = [config] + files
-#     for fn in [expanduser(f) for f in files]:
-#         try:
-#             if isfile(fn):
-#                 debug("reading config file: %s", fn)
-#                 cfg = ConfigParser()
-#                 cfg.read(fn)
-#                 return cfg
-#         except ConfigParserError as err:
-#             error(f"could not parse config file: {fn}: {err}")
-#             break
-#     return None
+def coro(f):
+    """decorator for async coroutines"""
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        return asyncio.run(f(*args, **kwargs))
+
+    return wrapper
 
 
 def str2path(filename: str | Path, suffix: str | None = None) -> Path:
