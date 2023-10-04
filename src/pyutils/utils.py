@@ -287,7 +287,7 @@ def set_config(
     fallback: T,
     section: str,
     option: str,
-    value: Any = None,
+    value: str | int | float | bool | None = None,
 ) -> T:
     """Helper for setting ConfigParser config params"""
     assert isinstance(
