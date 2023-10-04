@@ -1,14 +1,7 @@
 import logging
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
-from typing import (
-    Optional,
-    Any,
-    Sequence,
-    TypeVar,
-    Iterator,
-    AsyncGenerator,
-)
+from typing import Optional, Any, Sequence, TypeVar, Iterator, AsyncGenerator, cast
 from abc import ABC, abstractmethod
 from re import compile
 from itertools import islice
@@ -289,129 +282,13 @@ async def get_url_model(
     return None
 
 
-# async def get_url_JSON_models(
-#     session: ClientSession, url: str, item_model: type[M], retries: int = MAX_RETRIES
-# ) -> Optional[list[M]]:
-#     """Get a list of Pydantic models from URL. Validate JSON against resp_model, if given."""
-#     assert session is not None, "session cannot be None"
-#     assert url is not None, "url cannot be None"
-#     content: str | None = None
-#     try:
-#         if (content := await get_url(session, url, retries)) is not None:
-#             elems: list[Any] | None
-#             if (elems := json.loads(content)) is not None:
-#                 res: list[M] = list()
-#                 for elem in elems:
-#                     try:
-#                         res.append(item_model.parse_obj(elem))
-#                     except ValidationError as err:
-#                         debug(f"Could not validate {elem}: {err}")
-#                 return res
-#     except Exception as err:
-#         debug(f"Unexpected error: {err}")
-#     return None
-
-
-# async def get_urls(
-#     session: ClientSession,
-#     queue: UrlQueue,
-#     stats: EventCounter = EventCounter(),
-#     retries: int = MAX_RETRIES,
-# ) -> AsyncGenerator[tuple[str, str], None]:
-#     """Async Generator to retrieve URLs read from an async Queue"""
-
-#     assert session is not None, "Session must be initialized first"
-#     assert queue is not None, "Queue must be initialized first"
-
-#     while True:
-#         try:
-#             url_item: UrlQueueItemType = await queue.get()
-#             url: str = url_item[0]
-#             retry: int = url_item[1]
-#             if retry > retries:
-#                 debug(f"URL has been tried more than {retries} times: {url}")
-#                 continue
-#             if retry > 0:
-#                 debug(f"Retrying URL ({retry}/{retries}): {url}")
-#             else:
-#                 debug(f"Retrieving URL: {url}")
-
-#             async with session.get(url) as resp:
-#                 if resp.status == 200:
-#                     debug(f"HTTP request OK/{resp.status}: {url}")
-#                     stats.log("OK")
-#                     yield await resp.text(), url
-#                 else:
-#                     error(f"HTTP error {resp.status}: {url}")
-#                     if retry < retries:
-#                         retry += 1
-#                         stats.log("retries")
-#                         await queue.put(url, retry)
-#                     else:
-#                         error(f"Could not retrieve URL: {url}")
-#                         stats.log("failed")
-
-#         except asyncio.CancelledError as err:
-#             debug(f"Async operation has been cancelled. Ending loop.")
-#             break
-
-
-# async def get_urls_JSON(
-#     session: ClientSession,
-#     queue: UrlQueue,
-#     stats: EventCounter = EventCounter(),
-#     retries: int = MAX_RETRIES,
-# ) -> AsyncGenerator[tuple[Any, str], None]:
-#     """Async Generator to retrieve JSON from URLs read from an async Queue"""
-
-#     assert session is not None, "Session must be initialized first"
-#     assert queue is not None, "Queue must be initialized first"
-
-#     async for content, url in get_urls(
-#         session, queue=queue, stats=stats, retries=retries
-#     ):
-#         try:
-#             yield await json.loads(content), url
-#         except ClientResponseError as err:
-#             debug(f"Client response error: {url}: {err}")
-#         except Exception as err:
-#             debug(f"Unexpected error: {err}")
-
-
-# async def get_urls_JSON_models(
-#     session: ClientSession,
-#     queue: UrlQueue,
-#     resp_model: type[M],
-#     stats: EventCounter = EventCounter(),
-#     retries: int = MAX_RETRIES,
-# ) -> AsyncGenerator[tuple[M, str], None]:
-#     """Async Generator to retrieve JSON from URLs read from an async Queue"""
-
-#     assert session is not None, "Session must be initialized first"
-#     assert queue is not None, "Queue must be initialized first"
-
-#     async for content, url in get_urls(
-#         session, queue=queue, stats=stats, retries=retries
-#     ):
-#         try:
-#             yield resp_model.parse_raw(content), url
-#         except ValidationError as err:
-#             debug(f"{resp_model.__name__}(): Validation error: {url}: {err}")
-#         except Exception as err:
-#             debug(f"Unexpected error: {err}")
-
-
-# # def mk_id(account_id: int, last_battle_time: int, tank_id: int = 0) -> ObjectId:
-# # 	return ObjectId(hex(account_id)[2:].zfill(10) + hex(tank_id)[2:].zfill(6) + hex(last_battle_time)[2:].zfill(8))
-
-
 def set_config(
     config: ConfigParser,
+    fallback: T,
     section: str,
     option: str,
     value: Any = None,
-    fallback: str | int | float | bool | None = None,
-) -> None:
+) -> T:
     """Helper for setting ConfigParser config params"""
     assert isinstance(
         config, ConfigParser
@@ -426,3 +303,4 @@ def set_config(
         config[section][option] = str(value)
     elif not (fallback is None or config.has_option(section=section, option=option)):
         config[section][option] = str(fallback)
+    return cast(T, config[section][option])
