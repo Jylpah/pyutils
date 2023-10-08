@@ -59,24 +59,26 @@ class ClickApp:
 
     def add_command(self, command: list[str]):
         """Add a command without '--help'"""
-        if command[-1] == "--help":
+        if len(command) > 0 and command[-1] == "--help":
             command = command[:-1]
         self.commands.append(command)
 
-    def print_docs(self):
+    def mk_docs(self) -> str:
         """Print help for all the commands"""
+        res: list[str] = list()
         for command in self.commands:
             if len(command) > 0:
-                print(f"### `{self.name} {' '.join(command[:-1])}` usage")
+                res.append(f"### `{self.name} {' '.join(command[:-1])}` usage")
             else:
-                print(f"## `{self.name}` usage")
-            print("")
-            print("```")
+                res.append(f"## `{self.name}` usage")
+            res.append("")
+            res.append("```")
             result = CliRunner().invoke(
-                self.cli, args=command + "--help", prog_name=self.name
+                self.cli, args=command + ["--help"], prog_name=self.name
             )
-            print(result.stdout)
-            print("```")
+            res.append(result.stdout)
+            res.append("```")
+        return "\n".join(res)
 
 
 ##############################################
