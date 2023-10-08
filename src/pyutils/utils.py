@@ -20,6 +20,8 @@ from tempfile import gettempdir
 from random import choices
 from configparser import ConfigParser
 from functools import wraps
+from click import BaseCommand
+from click.testing import CliRunner
 
 from .eventcounter import EventCounter
 from .urlqueue import UrlQueue, UrlQueueItemType, is_url
@@ -45,6 +47,36 @@ class Countable(ABC):
     @abstractmethod
     def count(self) -> int:
         raise NotImplementedError
+
+
+class ClickApp:
+    """Helper class to write Markdown docs for a Click CLI program"""
+
+    def __init__(self, cli: BaseCommand, name: str):
+        self.cli: BaseCommand = cli
+        self.name: str = name
+        self.commands: list[list[str]] = list()
+
+    def add_command(self, command: list[str]):
+        """Add a command without '--help'"""
+        if command[-1] == "--help":
+            command = command[:-1]
+        self.commands.append(command)
+
+    def print_docs(self):
+        """Print help for all the commands"""
+        for command in self.commands:
+            if len(command) > 0:
+                print(f"### `{self.name} {' '.join(command[:-1])}` usage")
+            else:
+                print(f"## `{self.name}` usage")
+            print("")
+            print("```")
+            result = CliRunner().invoke(
+                self.cli, args=command + "--help", prog_name=self.name
+            )
+            print(result.stdout)
+            print("```")
 
 
 ##############################################
