@@ -36,6 +36,7 @@ from .importable import (
 )
 from .utils import (
     Countable as Countable,
+    ClickApp as ClickApp,
     alive_bar_monitor,
     coro,
     chunker,
