@@ -51,7 +51,7 @@ class CSVExportable(BaseModel):
 
     def csv_headers(self) -> list[str]:
         """Provide CSV headers as list"""
-        return list(self.dict(exclude_unset=False, by_alias=False).keys())
+        return list(self.model_dump(exclude_unset=False, by_alias=False).keys())
 
     def _csv_write_fields(
         self, left: dict[str, Any]
@@ -78,7 +78,7 @@ class CSVExportable(BaseModel):
         """CSVExportable._csv_row() takes care of str,int,float,bool,Enum, date and datetime.
         Class specific implementation needs to take care or serializing other fields."""
         res: dict[str, Any]
-        res, left = self._csv_write_fields(self.dict(by_alias=False))
+        res, left = self._csv_write_fields(self.model_dump(by_alias=False))
 
         for key in left.keys():
             value = getattr(self, key)
@@ -142,7 +142,8 @@ class CSVExportable(BaseModel):
         for field in row.keys():
             if row[field] != "":
                 try:
-                    field_type = cls.__fields__[field].type_
+                    if (field_type := cls.model_fields[field].annotation) is None:
+                        field_type = str
                     # debug ("field=%s, field_type=%s, value=%s", field, field_type, row[field])
                     if field_type in {int, float, str}:
                         res[field] = (field_type)(str(row[field]))
@@ -167,7 +168,7 @@ class CSVExportable(BaseModel):
                     res[field] = str(row[field])
         try:
             # debug ("from_csv(): trying parse: %s", str(res))
-            return cls.parse_obj(res)
+            return cls.model_validate(res)
         except ValidationError as err:
             error(f"Could not parse row ({row}): {err}")
         return None
