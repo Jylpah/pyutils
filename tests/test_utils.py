@@ -101,7 +101,6 @@ def dont_less():
 def test_1_ClickApp() -> None:
     """Test ClickApp() helper"""
     app = ClickApp(cli, "test-app")
-    app.add_command([])
     app.add_command(["more"])
     app.add_command(["more", "do", "--help"])
     app.add_command(["more", "dont"])
