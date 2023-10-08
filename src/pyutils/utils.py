@@ -56,6 +56,7 @@ class ClickApp:
         self.cli: BaseCommand = cli
         self.name: str = name
         self.commands: list[list[str]] = list()
+        self.add_command([])
 
     def add_command(self, command: list[str]):
         """Add a command without '--help'"""
