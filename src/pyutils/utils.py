@@ -69,7 +69,7 @@ class ClickApp:
         res: list[str] = list()
         for command in self.commands:
             if len(command) > 0:
-                res.append(f"### `{self.name} {' '.join(command[:-1])}` usage")
+                res.append(f"### `{self.name} {' '.join(command)}` usage")
             else:
                 res.append(f"## `{self.name}` usage")
             res.append("")
