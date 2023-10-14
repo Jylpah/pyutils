@@ -336,6 +336,10 @@ def set_config(
         config[section] = {}
     if value is not None:
         config[section][option] = str(value)
-    elif not (fallback is None or config.has_option(section=section, option=option)):
+    elif config.has_option(section=section, option=option):
+        pass
+    elif fallback is not None:
         config[section][option] = str(fallback)
+    else:
+        return None
     return cast(T, config[section][option])
