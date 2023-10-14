@@ -307,8 +307,8 @@ async def get_url_model(
         if (content := await get_url(session, url, retries)) is None:
             debug("get_url() returned None")
             return None
-        return resp_model.parse_raw(content)
-    except ValidationError as err:
+        return resp_model.model_validate_json(content)
+    except ValueError as err:
         debug(
             f"{resp_model.__name__}: {url}: response={content}: Validation error={err}"
         )

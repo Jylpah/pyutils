@@ -119,12 +119,12 @@ class JSONExportable(BaseModel):
         obj_in: BaseModel
         if in_type is None:
             try:
-                return cls.parse_obj(obj)
+                return cls.model_validate(obj)
             except ValidationError as err:
                 error("could not parse object as %s: %s", cls.__name__, str(err))
         else:
             try:
-                if (obj_in := in_type.parse_obj(obj)) is not None:
+                if (obj_in := in_type.model_validate(obj)) is not None:
                     return cls.transform(obj_in)
             except ValidationError as err:
                 error("could not parse object as %s: %s", cls.__name__, str(err))
@@ -150,9 +150,9 @@ class JSONExportable(BaseModel):
         """Open replay JSON file and return class instance"""
         try:
             async with open(filename, "r") as f:
-                return cls.parse_raw(await f.read())
-        except ValidationError as err:
-            debug(f"Error parsing file: {filename}: {err}")
+                return cls.model_validate_json(await f.read())
+        except ValueError as err:
+            debug(f"Could not parse {type(cls)} from file: {filename}: {err}")
             if exceptions:
                 raise
         except OSError as err:
@@ -165,8 +165,8 @@ class JSONExportable(BaseModel):
     def parse_str(cls, content: str) -> Self | None:
         """return class instance from a JSON string"""
         try:
-            return cls.parse_raw(content)
-        except ValidationError as err:
+            return cls.model_validate_json(content)
+        except ValueError as err:
             debug(f"Could not parse {type(cls)} from JSON: {err}")
         return None
 
@@ -238,7 +238,7 @@ class JSONExportable(BaseModel):
     def example_instance(cls) -> Self:
         """return a example instance of the class"""
         if len(cls._example) > 0:
-            return cls.parse_raw(cls._example)
+            return cls.model_validate_json(cls._example)
         raise NotImplementedError
 
     def __hash__(self) -> int:
@@ -253,7 +253,7 @@ class JSONExportable(BaseModel):
             "by_alias": self._export_DB_by_alias,
         }
         params = self._export_helper(params=params, fields=fields, **kwargs)
-        return self.dict(**params)
+        return self.model_dump(**params)
 
     def obj_src(self, fields: list[str] | None = None, **kwargs) -> dict:
         params: dict[str, Any] = {
@@ -264,7 +264,7 @@ class JSONExportable(BaseModel):
             "by_alias": not self._export_DB_by_alias,
         }
         params = self._export_helper(params=params, fields=fields, **kwargs)
-        return self.dict(**params)
+        return self.model_dump(**params)
 
     def json_db(self, fields: list[str] | None = None, **kwargs) -> str:
         params: dict[str, Any] = {
@@ -274,7 +274,7 @@ class JSONExportable(BaseModel):
             "by_alias": self._export_DB_by_alias,
         }
         params = self._export_helper(params=params, fields=fields, **kwargs)
-        return self.json(**params)
+        return self.model_dump_json(**params)
 
     def json_src(self, fields: list[str] | None = None, **kwargs) -> str:
         params: dict[str, Any] = {
@@ -285,7 +285,7 @@ class JSONExportable(BaseModel):
             "by_alias": not self._export_DB_by_alias,
         }
         params = self._export_helper(params=params, fields=fields, **kwargs)
-        return self.json(**params)
+        return self.model_dump_json(**params)
 
     async def save_json(self, filename: Path | str) -> int:
         """Save object JSON into a file"""

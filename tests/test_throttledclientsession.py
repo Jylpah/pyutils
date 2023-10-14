@@ -89,7 +89,9 @@ class _HttpRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         if self.url.path == MODEL_PATH:
             message(f"POST {self.url.path} @ {datetime.utcnow()}")
-            if (_ := JSONParent.parse_raw(self.rfile.read().decode())) is not None:
+            if (
+                _ := JSONParent.model_validate_json(self.rfile.read().decode())
+            ) is not None:
                 # assert False, "POST read content OK"
                 message(f"POST OK @ {datetime.utcnow()}")
                 self.wfile.write("OK".encode())
@@ -249,7 +251,7 @@ async def test_4_get_json(server_url: str, model_path: str) -> None:
         for _ in range(N):
             if (res := await get_url_JSON(session=session, url=url, retries=2)) is None:
                 assert False, "get_url_JSON() returned None"
-            if (_ := JSONParent.parse_obj(res)) is None:
+            if (_ := JSONParent.model_validate(res)) is None:
                 assert False, "could not parse returned model"
 
 
