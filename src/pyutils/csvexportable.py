@@ -7,7 +7,7 @@
 import logging
 from typing import cast, Type, Any, Self, AsyncGenerator, Callable, Self, ClassVar
 from collections.abc import MutableMapping
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, ConfigDict
 from aiocsv.readers import AsyncDictReader
 from csv import Dialect, excel, QUOTE_NONNUMERIC
 from datetime import date, datetime
@@ -34,6 +34,13 @@ class CSVExportable(BaseModel):
     # Do not store directly into these
     _csv_writers: ClassVar[MutableMapping[str, Callable[[Any], Any]]] = dict()
     _csv_readers: ClassVar[MutableMapping[str, Callable[[Any], Any]]] = dict()
+
+    model_config = ConfigDict(
+        frozen=False,
+        validate_assignment=True,
+        populate_by_name=True,
+        from_attributes=True,
+    )
 
     def __init_subclass__(cls, **kwargs) -> None:
         """Use PEP 487 sub class constructor instead a custom one"""

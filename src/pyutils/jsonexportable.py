@@ -23,7 +23,7 @@ from pathlib import Path
 from enum import Enum
 from datetime import date, datetime
 from collections.abc import MutableMapping
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, ConfigDict
 from asyncio import CancelledError
 from aiofiles import open
 from os.path import isfile, exists
@@ -71,6 +71,13 @@ class JSONExportable(BaseModel):
     _exclude_unset: bool = True
     _exclude_none: bool = True
     _example: str = ""
+
+    model_config = ConfigDict(
+        frozen=False,
+        validate_assignment=True,
+        populate_by_name=True,
+        from_attributes=True,
+    )
 
     # This is set in every subclass using __init_subclass__()
     _transformations: ClassVar[

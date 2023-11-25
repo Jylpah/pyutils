@@ -9,7 +9,7 @@ from typing import (
     get_args,
 )
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from asyncio import CancelledError
 from aiofiles import open
 from os import linesep
@@ -50,6 +50,13 @@ I = TypeVar("I", bound=Idx)
 
 class TXTExportable(BaseModel):
     """Abstract class to provide TXT export"""
+
+    model_config = ConfigDict(
+        frozen=False,
+        validate_assignment=True,
+        populate_by_name=True,
+        from_attributes=True,
+    )
 
     @abstractmethod
     def txt_row(self, format: str = "") -> str:
