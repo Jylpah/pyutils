@@ -97,6 +97,7 @@ class JSONExportable(BaseModel):
     def __pydantic_init_subclass__(cls, **kwargs) -> None:
         """Use PEP 487 sub class constructor instead a custom one"""
         # make sure each subclass has its own transformation register
+        super().__pydantic_init_subclass__(**kwargs)
         cls._transformations = dict()
 
     @classmethod
