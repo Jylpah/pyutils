@@ -42,11 +42,12 @@ class CSVExportable(BaseModel):
         from_attributes=True,
     )
 
-    def __init_subclass__(cls, **kwargs) -> None:
+    @classmethod
+    def __pydantic_init_subclass__(cls, **kwargs) -> None:
         """Use PEP 487 sub class constructor instead a custom one"""
         # makes sure each subclass has its own CSV field readers/writers.
         # Inherits the parents field functions using copy.deepcopy()
-        super().__init_subclass__(**kwargs)
+        super().__pydantic_init_subclass__(**kwargs)
         try:
             cls._csv_writers = cls._csv_writers.copy()  # type: ignore
             cls._csv_readers = cls._csv_readers.copy()  # type: ignore
@@ -69,6 +70,7 @@ class CSVExportable(BaseModel):
         """
         res: dict[str, Any] = dict()
         # debug ("_csv_write_fields(): starting: %s", str(type(self)))
+        # debug("Class: %s: csv_writers: %s", type(self), str(self._csv_writers))
 
         for field, encoder in self._csv_writers.items():
             # debug ("class=%s, field=%s, encoder=%s", str(type(self)), field, str(encoder))
@@ -79,6 +81,8 @@ class CSVExportable(BaseModel):
             except KeyError as err:
                 debug("field=%s not found: %s", field, err)
 
+        # debug("Class: %s: res: %s", type(self), str(res))
+        # debug("Class: %s: left: %s", type(self), str(left))
         return res, left
 
     def csv_row(self) -> dict[str, str | int | float | bool]:
@@ -87,8 +91,8 @@ class CSVExportable(BaseModel):
         res: dict[str, Any]
         res, left = self._csv_write_fields(self.model_dump(by_alias=False))
 
-        for key in left.keys():
-            value = getattr(self, key)
+        for key, value in left.items():
+            # value = getattr(self, key)
             if type(value) in {int, str, float, bool}:
                 res[key] = value
             elif isinstance(value, Enum):
@@ -100,6 +104,7 @@ class CSVExportable(BaseModel):
             else:
                 error(f"no field encoder defined for field={key}")
                 res[key] = None
+        # debug("%s", str(res))
         return self._clear_None(res)
 
     def _clear_None(
