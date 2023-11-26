@@ -84,7 +84,17 @@ class JSONExportable(BaseModel):
         MutableMapping[Type, Callable[[Any], Optional[Self]]]
     ] = dict()
 
-    def __init_subclass__(cls, **kwargs) -> None:
+    def _set_skip_validation(self, name: str, value: Any) -> None:
+        """Workaround to be able to set fields without validation."""
+        attr = getattr(self.__class__, name, None)
+        if isinstance(attr, property):
+            attr.__set__(self, value)
+        else:
+            self.__dict__[name] = value
+            self.__pydantic_fields_set__.add(name)
+
+    @classmethod
+    def __pydantic_init_subclass__(cls, **kwargs) -> None:
         """Use PEP 487 sub class constructor instead a custom one"""
         # make sure each subclass has its own transformation register
         cls._transformations = dict()
