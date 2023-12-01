@@ -1,5 +1,6 @@
 from .aliasmapper import AliasMapper as AliasMapper
 from .asyncqueue import AsyncQueue as AsyncQueue
+from .asynctyper import AsyncTyper as AsyncTyper
 from .awrap import awrap as awrap
 from .bucketmapper import BucketMapper as BucketMapper
 from .counterqueue import CounterQueue as CounterQueue, QCounter as QCounter
@@ -61,6 +62,7 @@ from .utils import (
 __all__ = [
     "aliasmapper",
     "asyncqueue",
+    "asynctyper",
     "awrap",
     "bucketmapper",
     "counterqueue",
