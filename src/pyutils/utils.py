@@ -342,4 +342,11 @@ def set_config(
         config[section][option] = str(fallback)
     else:
         return None
-    return cast(T, config[section][option])
+    if isinstance(fallback, bool):
+        return config.getboolean(section, option)  # type: ignore
+    elif isinstance(fallback, int):
+        return config.getint(section, option)  # type: ignore
+    elif isinstance(fallback, float):
+        return config.getfloat(section, option)  # type: ignore
+    else:
+        return config.get(section, option)  # type: ignore
