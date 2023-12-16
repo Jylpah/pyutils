@@ -1,6 +1,6 @@
 import sys
 import pytest  # type: ignore
-from pydantic import BaseModel
+from dataclasses import dataclass
 from random import randrange
 from pathlib import Path
 
@@ -27,7 +27,8 @@ LOOPS: int = 4
 _KEYS: list[int] = [0, -5, 0, 1, 2, 3, 7, 3, 6, 8, -5]
 
 
-class _TestItem(BaseModel):
+@dataclass
+class _TestItem:
     key: int
     data: int
 
