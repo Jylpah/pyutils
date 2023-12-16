@@ -5,7 +5,7 @@ from datetime import datetime
 from itertools import pairwise, accumulate
 from functools import cached_property
 from math import ceil
-from typing import Generator, Any
+from typing import Generator, Any, List, Dict
 from multiprocessing import Process
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
@@ -16,6 +16,7 @@ from asyncio.queues import QueueEmpty, QueueFull
 from asyncio import Task, create_task, sleep, gather, timeout, TimeoutError
 from random import random
 import logging
+import json
 
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
@@ -30,7 +31,7 @@ from pyutils import (
 
 HOST: str = "localhost"
 PORT: int = 8889
-MODEL_PATH: str = "/JSONParent"
+JSON_PATH: str = "/json"
 RATE_FAST: float = 100
 RATE_SLOW: float = 0.6
 
@@ -44,8 +45,185 @@ logger = logging.getLogger()
 message = logger.warning
 
 
+def json_data() -> List[Dict[str, str | int | float | None]]:
+    """Generate JSON test data"""
+
+    txt: str = """[{
+            "id": "024092b5fd17f4896062dac7b4dbd42d",
+            "map_id": 35,
+            "battle_duration": 335.84668,
+            "title": "VK 72.01 (K) @ Naval Frontier",
+            "player_name": "jylpah",
+            "protagonist": 521458531,
+            "vehicle_descr": 58641,
+            "mastery_badge": 0,
+            "exp_base": 486,
+            "enemies_spotted": 3,
+            "enemies_destroyed": 0,
+            "damage_assisted": 0,
+            "damage_made": 618,
+            "details_url": "https://replays.wotinspector.com/en/view/024092b5fd17f4896062dac7b4dbd42d",
+            "download_url": "https://replays.wotinspector.com/download/024092b5fd17f4896062dac7b4dbd42d",
+            "game_version": {
+                "name": "10.1.0_apple",
+                "package": "blitz10.1"
+            },
+            "arena_unique_id": "2318447090649727840"
+        }, {
+            "id": "e9c332bec8d527753c1f2209a1e8cf03",
+            "map_id": 38,
+            "battle_duration": 261.1665,
+            "title": "VK 72.01 (K) @ Horrorstadt",
+            "player_name": "jylpah",
+            "protagonist": 521458531,
+            "vehicle_descr": 58641,
+            "mastery_badge": 0,
+            "exp_base": 272,
+            "enemies_spotted": 3,
+            "enemies_destroyed": 1,
+            "damage_assisted": 0,
+            "damage_made": 228,
+            "details_url": "https://replays.wotinspector.com/en/view/e9c332bec8d527753c1f2209a1e8cf03",
+            "download_url": "https://replays.wotinspector.com/download/e9c332bec8d527753c1f2209a1e8cf03",
+            "game_version": {
+                "name": "10.1.0_apple",
+                "package": "blitz10.1"
+            },
+            "arena_unique_id": "2318447481491751496"
+        }, {
+            "id": "a66b6ec64a72c60691cf60f502eba0d7",
+            "map_id": 19,
+            "battle_duration": 289.8519,
+            "title": "VK 72.01 (K) @ Winter Malinovka",
+            "player_name": "jylpah",
+            "protagonist": 521458531,
+            "vehicle_descr": 58641,
+            "mastery_badge": 0,
+            "exp_base": 505,
+            "enemies_spotted": 0,
+            "enemies_destroyed": 0,
+            "damage_assisted": 0,
+            "damage_made": 2140,
+            "details_url": "https://replays.wotinspector.com/en/view/a66b6ec64a72c60691cf60f502eba0d7",
+            "download_url": "https://replays.wotinspector.com/download/a66b6ec64a72c60691cf60f502eba0d7",
+            "game_version": {
+                "name": "10.1.0_apple",
+                "package": "blitz10.1"
+            },
+            "arena_unique_id": "2318441056220676378"
+        }, {
+            "id": "31f20c9a1438fe4bbd95fc86d9eee2b7",
+            "map_id": 11,
+            "battle_duration": 230.93056,
+            "title": "VK 72.01 (K) @ Oasis Palms",
+            "player_name": "jylpah",
+            "protagonist": 521458531,
+            "vehicle_descr": 58641,
+            "mastery_badge": 0,
+            "exp_base": 245,
+            "enemies_spotted": 2,
+            "enemies_destroyed": 0,
+            "damage_assisted": 0,
+            "damage_made": 624,
+            "details_url": "https://replays.wotinspector.com/en/view/31f20c9a1438fe4bbd95fc86d9eee2b7",
+            "download_url": "https://replays.wotinspector.com/download/31f20c9a1438fe4bbd95fc86d9eee2b7",
+            "game_version": {
+                "name": "10.1.0_apple",
+                "package": "blitz10.1"
+            },
+            "arena_unique_id": "2318447146484301852"
+        }, {
+            "id": "c7cb7fab94e7eced8dee9aea1ed11500",
+            "map_id": 10,
+            "battle_duration": 287.48947,
+            "title": "VK 72.01 (K) @ Black Goldville",
+            "player_name": "jylpah",
+            "protagonist": 521458531,
+            "vehicle_descr": 58641,
+            "mastery_badge": 0,
+            "exp_base": 502,
+            "enemies_spotted": 0,
+            "enemies_destroyed": 0,
+            "damage_assisted": 0,
+            "damage_made": 3649,
+            "details_url": "https://replays.wotinspector.com/en/view/c7cb7fab94e7eced8dee9aea1ed11500",
+            "download_url": "https://replays.wotinspector.com/download/c7cb7fab94e7eced8dee9aea1ed11500",
+            "game_version": {
+                "name": "10.1.0_apple",
+                "package": "blitz10.1"
+            },
+            "arena_unique_id": "2318447575981031129"
+        }, {
+            "id": "dcc06a7e8872e3f06bf9472c40e5fc89",
+            "map_id": 14,
+            "battle_duration": 238.07674,
+            "title": "VK 72.01 (K) @ Molendijk",
+            "player_name": "jylpah",
+            "protagonist": 521458531,
+            "vehicle_descr": 58641,
+            "mastery_badge": 0,
+            "exp_base": 247,
+            "enemies_spotted": 0,
+            "enemies_destroyed": 0,
+            "damage_assisted": 0,
+            "damage_made": 1411,
+            "details_url": "https://replays.wotinspector.com/en/view/dcc06a7e8872e3f06bf9472c40e5fc89",
+            "download_url": "https://replays.wotinspector.com/download/dcc06a7e8872e3f06bf9472c40e5fc89",
+            "game_version": {
+                "name": "10.1.0_apple",
+                "package": "blitz10.1"
+            },
+            "arena_unique_id": "2318439978183884222"
+        }, {
+            "id": "4e82956ce42fd8090a70d02a886a18be",
+            "map_id": 5,
+            "battle_duration": 245.33473,
+            "title": "VK 72.01 (K) @ Falls Creek",
+            "player_name": "jylpah",
+            "protagonist": 521458531,
+            "vehicle_descr": 58641,
+            "mastery_badge": 0,
+            "exp_base": 592,
+            "enemies_spotted": 0,
+            "enemies_destroyed": 0,
+            "damage_assisted": 999,
+            "damage_made": 2650,
+            "details_url": "https://replays.wotinspector.com/en/view/4e82956ce42fd8090a70d02a886a18be",
+            "download_url": "https://replays.wotinspector.com/download/4e82956ce42fd8090a70d02a886a18be",
+            "game_version": {
+                "name": "10.1.0_apple",
+                "package": "blitz10.1"
+            },
+            "arena_unique_id": "16117927324875930"
+        }, {
+            "id": "22a56c4be013915002b82403fa8cf375",
+            "map_id": 42,
+            "battle_duration": 140.49388,
+            "title": "VK 72.01 (K) @ Normandy",
+            "player_name": "jylpah",
+            "protagonist": 521458531,
+            "vehicle_descr": 58641,
+            "mastery_badge": null,
+            "exp_base": null,
+            "enemies_spotted": null,
+            "enemies_destroyed": 0,
+            "damage_assisted": null,
+            "damage_made": 1575,
+            "details_url": "https://replays.wotinspector.com/en/view/22a56c4be013915002b82403fa8cf375",
+            "download_url": "https://replays.wotinspector.com/download/22a56c4be013915002b82403fa8cf375",
+            "game_version": {
+                "name": "10.1.0_apple",
+                "package": "blitz10.1"
+            },
+            "arena_unique_id": "2318440424860482440"
+        }]"""
+    return json.loads(txt)
+
+
 class _HttpRequestHandler(BaseHTTPRequestHandler):
     """HTTPServer mock request handler"""
+
+    _res_json: list[Dict[str, str | int | float | None]] = json_data()
 
     @cached_property
     def url(self):
@@ -54,9 +232,18 @@ class _HttpRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # pylint: disable=invalid-name
         """Handle GET requests"""
         self.send_response(200)
-        self.send_header("Content-Type", "application/txt")
-        self.end_headers()
-        self.wfile.write(datetime.utcnow().isoformat().encode())
+        if self.url.path == JSON_PATH:
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            l: int = len(self._res_json)
+            idx: int = epoch_now() % l
+            res: Dict[str, str | int | float | None] = self._res_json[idx]
+            self.wfile.write(json.dumps(res).encode())
+
+        else:
+            self.send_header("Content-Type", "application/txt")
+            self.end_headers()
+            self.wfile.write(datetime.utcnow().isoformat().encode())
 
     # def do_POST(self) -> None:  # pylint: disable=invalid-name
     #     """Handle POST requests
@@ -65,7 +252,7 @@ class _HttpRequestHandler(BaseHTTPRequestHandler):
     #     self.send_response(200)
     #     self.send_header("Content-Type", "application/txt")
     #     self.end_headers()
-    #     if self.url.path == MODEL_PATH:
+    #     if self.url.path == JSON_PATH:
     #         message(f"POST {self.url.path} @ {datetime.utcnow()}")
     #         if (
     #             _ := JSONParent.model_validate_json(self.rfile.read().decode())
@@ -153,8 +340,8 @@ def server_url(server_host: str, server_port: int) -> Generator[str, None, None]
 
 
 @pytest.fixture()
-def model_path() -> str:
-    return MODEL_PATH
+def json_path() -> str:
+    return JSON_PATH
 
 
 @pytest.mark.timeout(20)
@@ -199,28 +386,26 @@ async def test_2_slow_get(server_url: str) -> None:
                                         {', '.join([str(t) for t in timings])}"""
 
 
-# @pytest.mark.timeout(20)
-# @pytest.mark.asyncio
-# async def test_3_get_json(server_url: str, model_path: str) -> None:
-#     """Test get_url_JSON()"""
-#     rate_limit: float = RATE_SLOW
-#     N: int = N_SLOW
-#     url: str = server_url + model_path
-#     res: Any | None
-#     async with ThrottledClientSession(rate_limit=rate_limit) as session:
-#         for _ in range(N):
-#             if (res := await get_url_JSON(session=session, url=url, retries=2)) is None:
-#                 assert False, "get_url_JSON() returned None"
-#             if (_ := JSONParent.model_validate(res)) is None:
-#                 assert False, "could not parse returned model"
+@pytest.mark.timeout(20)
+@pytest.mark.asyncio
+async def test_3_get_json(server_url: str, json_path: str) -> None:
+    """Test get_url_JSON()"""
+    rate_limit: float = RATE_SLOW
+    N: int = N_SLOW
+    url: str = server_url + json_path
+    res: Any | None
+    async with ThrottledClientSession(rate_limit=rate_limit) as session:
+        for _ in range(N):
+            if (_ := await get_url_JSON(session=session, url=url, retries=2)) is None:
+                assert False, "get_url_JSON() returned None"
 
 
 # @pytest.mark.timeout(10)
 # @pytest.mark.asyncio
-# async def test_5_post_json(server_url: str, model_path: str) -> None:
+# async def test_5_post_json(server_url: str, json_path: str) -> None:
 #     """Test post_url_JSON()"""
 #     rate_limit: float = RATE_FAST
-#     url: str = server_url + model_path
+#     url: str = server_url + json_path
 #     res: Any | None
 #     parents: list[JSONParent] = json_data()
 #     async with ThrottledClientSession(rate_limit=rate_limit) as session:
