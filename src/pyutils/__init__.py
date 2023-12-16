@@ -11,6 +11,7 @@ from .throttledclientsession import ThrottledClientSession as ThrottledClientSes
 from .urlqueue import UrlQueue as UrlQueue, UrlQueueItemType, is_url
 from .utils import (
     Countable as Countable,
+    ClickHelpGen as ClickHelpGen,
     TyperHelpGen as TyperHelpGen,
     alive_bar_monitor,
     coro,

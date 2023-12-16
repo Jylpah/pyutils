@@ -22,6 +22,8 @@ from functools import wraps
 
 from typer import Typer
 from typer.testing import CliRunner as TyperRunner
+
+import click
 from click import BaseCommand
 from click.testing import CliRunner
 
@@ -51,7 +53,7 @@ class Countable(ABC):
         raise NotImplementedError
 
 
-class ClickApp:
+class ClickHelpGen:
     """Helper class to write Markdown docs for a Click CLI program"""
 
     def __init__(self, cli: BaseCommand, name: str):
@@ -145,6 +147,7 @@ def epoch_now() -> int:
 
 
 def is_alphanum(string: str) -> bool:
+    """test whether the string is composed of ASCII letters, numbers, hyphens or underscores only"""
     try:
         return not compile(r"[^a-zA-Z0-9_]").search(string)
     except:
