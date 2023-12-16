@@ -1,7 +1,7 @@
 from enum import Enum
 from math import ceil
 import sys
-from typing import Annotated, Optional, List
+from typing import Annotated, Optional, List, Sequence
 import pytest  # type: ignore
 from pathlib import Path
 import click
@@ -22,6 +22,7 @@ from pyutils.utils import (
     get_type,
     get_subtype,
 )
+from pyutils import awrap
 
 logger = logging.getLogger()
 error = logger.error
@@ -322,3 +323,12 @@ def test_7_get_subtype(
     assert (
         get_subtype(name=test_model_not_found, parent=_TestCountable) is None
     ), f"returned model that is not child of '_TestCountableChild' type for '{test_model_not_found}'"
+
+
+@pytest.mark.asyncio
+async def test_8_awrap() -> None:
+    t: Sequence[int] = range(10)
+    s: int = -1
+    async for i in awrap(t):
+        assert i == s + 1, f"invalid value returned: {i} != {s+1}"
+        s = i
