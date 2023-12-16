@@ -24,7 +24,6 @@ dependencies = [
     "alive-progress>=3.1.1",
     "click>=8.1",
     "typer>=0.9.0",
-    "pymongo>=4.3.3",
 ]
 
 [project.optional-dependencies]
