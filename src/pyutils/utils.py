@@ -13,13 +13,17 @@ import json
 from time import time
 from pathlib import Path
 from aiohttp import ClientSession, ClientError, ClientResponseError, FormData
-from pydantic import BaseModel, ValidationError
 import asyncio
 import string
 from tempfile import gettempdir
 from random import choices
 from configparser import ConfigParser
 from functools import wraps
+
+from typer import Typer
+from typer.testing import CliRunner as TyperRunner
+
+import click
 from click import BaseCommand
 from click.testing import CliRunner
 
@@ -49,7 +53,7 @@ class Countable(ABC):
         raise NotImplementedError
 
 
-class ClickApp:
+class ClickHelpGen:
     """Helper class to write Markdown docs for a Click CLI program"""
 
     def __init__(self, cli: BaseCommand, name: str):
@@ -82,11 +86,37 @@ class ClickApp:
         return "\n".join(res)
 
 
-##############################################
-#
-## Functions
-#
-##############################################
+class TyperHelpGen:
+    """Helper class to write Markdown docs for a Click CLI program"""
+
+    def __init__(self, app: Typer, name: str):
+        self.app: Typer = app
+        self.name: str = name
+        self.commands: list[list[str]] = list()
+        self.add_command([])
+
+    def add_command(self, command: list[str]):
+        """Add a command without '--help'"""
+        if len(command) > 0 and command[-1] == "--help":
+            command = command[:-1]
+        self.commands.append(command)
+
+    def mk_docs(self) -> str:
+        """Print help for all the commands"""
+        res: list[str] = list()
+        for command in self.commands:
+            if len(command) > 0:
+                res.append(f"### `{self.name} {' '.join(command)}` usage")
+            else:
+                res.append(f"## `{self.name}` usage")
+            res.append("")
+            res.append("```")
+            result = TyperRunner().invoke(
+                self.app, args=command + ["--help"], prog_name=self.name
+            )
+            res.append(result.stdout)
+            res.append("```")
+        return "\n".join(res)
 
 
 def coro(f):
@@ -117,6 +147,7 @@ def epoch_now() -> int:
 
 
 def is_alphanum(string: str) -> bool:
+    """test whether the string is composed of ASCII letters, numbers, hyphens or underscores only"""
     try:
         return not compile(r"[^a-zA-Z0-9_]").search(string)
     except:
@@ -293,30 +324,6 @@ async def get_url_JSON(
     return None
 
 
-M = TypeVar("M", bound=BaseModel)
-
-
-async def get_url_model(
-    session: ClientSession, url: str, resp_model: type[M], retries: int = MAX_RETRIES
-) -> Optional[M]:
-    """Get JSON from URL and return object. Validate JSON against resp_model, if given."""
-    assert session is not None, "session cannot be None"
-    assert url is not None, "url cannot be None"
-    content: str | None = None
-    try:
-        if (content := await get_url(session, url, retries)) is None:
-            debug("get_url() returned None")
-            return None
-        return resp_model.parse_raw(content)
-    except ValidationError as err:
-        debug(
-            f"{resp_model.__name__}: {url}: response={content}: Validation error={err}"
-        )
-    except Exception as err:
-        debug(f"Unexpected error: {err}")
-    return None
-
-
 def set_config(
     config: ConfigParser,
     fallback: T,
@@ -342,4 +349,11 @@ def set_config(
         config[section][option] = str(fallback)
     else:
         return None
-    return cast(T, config[section][option])
+    if isinstance(fallback, bool):
+        return config.getboolean(section, option)  # type: ignore
+    elif isinstance(fallback, int):
+        return config.getint(section, option)  # type: ignore
+    elif isinstance(fallback, float):
+        return config.getfloat(section, option)  # type: ignore
+    else:
+        return config.get(section, option)  # type: ignore
