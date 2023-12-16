@@ -1,6 +1,6 @@
 [project]
 name = "pyutils"
-version = "1.0.0a5"
+version = "1.0.0"
 authors = [{ name = "Jylpah", email = "jylpah@gmail.com" }]
 description = "Misc Python utils and classes"
 readme = "README.md"
@@ -21,7 +21,6 @@ dependencies = [
     "Brotli>=1.1.0",
     "aiodns>=3.0.0",
     "aioconsole>=0.6.1",
-    "aiocsv>=1.2.4",
     "alive-progress>=3.1.1",
     "click>=8.1",
     "typer>=0.9.0",
