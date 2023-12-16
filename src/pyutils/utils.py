@@ -19,6 +19,9 @@ from tempfile import gettempdir
 from random import choices
 from configparser import ConfigParser
 from functools import wraps
+
+from typer import Typer
+from typer.testing import CliRunner as TyperRunner
 from click import BaseCommand
 from click.testing import CliRunner
 
@@ -81,11 +84,37 @@ class ClickApp:
         return "\n".join(res)
 
 
-##############################################
-#
-## Functions
-#
-##############################################
+class TyperHelpGen:
+    """Helper class to write Markdown docs for a Click CLI program"""
+
+    def __init__(self, app: Typer, name: str):
+        self.app: Typer = app
+        self.name: str = name
+        self.commands: list[list[str]] = list()
+        self.add_command([])
+
+    def add_command(self, command: list[str]):
+        """Add a command without '--help'"""
+        if len(command) > 0 and command[-1] == "--help":
+            command = command[:-1]
+        self.commands.append(command)
+
+    def mk_docs(self) -> str:
+        """Print help for all the commands"""
+        res: list[str] = list()
+        for command in self.commands:
+            if len(command) > 0:
+                res.append(f"### `{self.name} {' '.join(command)}` usage")
+            else:
+                res.append(f"## `{self.name}` usage")
+            res.append("")
+            res.append("```")
+            result = TyperRunner().invoke(
+                self.app, args=command + ["--help"], prog_name=self.name
+            )
+            res.append(result.stdout)
+            res.append("```")
+        return "\n".join(res)
 
 
 def coro(f):
