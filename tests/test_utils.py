@@ -1,3 +1,5 @@
+from enum import Enum
+from math import ceil
 import sys
 from typing import Annotated, Optional, List
 import pytest  # type: ignore
@@ -210,3 +212,113 @@ def test_2_TyperHelpGen() -> None:
     docs: str = typer_app.mk_docs()
     assert len(docs) > 100, "making docs failed"
 
+
+########################################################
+#
+# test Countable()
+#
+########################################################
+
+
+class _TestCountable(Countable):
+    def __init__(self, lst: List[int] = list()) -> None:
+        super().__init__()
+        self.lst: List[int] = lst
+
+    @property
+    def count(self) -> int:
+        return len(self.lst)
+
+
+class _TestCountableChild(_TestCountable):
+    def items(self) -> List[int]:
+        return self.lst
+
+
+def test_3_Countable() -> None:
+    """Test Countable"""
+
+    l = _TestCountable([1, 2, 3, 4, 5])
+
+    assert l.count == 5, f"count returned incorrect value"
+
+
+def test_4_is_alphanum() -> None:
+    """Test is_alphanum()"""
+    test_ok: str = "234asefw43rt_wq343wq4_234_234_"
+    assert is_alphanum(test_ok), f"test failed for {test_ok}"
+
+    test_nok: str = "23.34-"
+    assert not is_alphanum(test_nok), f"false positive for {test_nok}"
+
+
+def test_5_chunker() -> None:
+    i: int = 0
+    size: int = 52
+    chunk_size: int = 5
+
+    for chunk in chunker(range(size), chunk_size):
+        if i < size // chunk_size:
+            assert (
+                len(chunk) == chunk_size
+            ), f"chunk size is wrong: {len(chunk)} != {chunk_size}"
+        else:
+            assert (
+                len(chunk) == size - (size // chunk_size) * chunk_size
+            ), "last chunk is wrong size: {len(chunk)}"
+        i += 1
+
+    assert i == ceil(size / chunk_size), f"incorrect number of chunks"
+
+
+########################################################
+#
+# test get_type(), get_sub_type()
+#
+########################################################
+
+
+@pytest.fixture
+def test_model_ok() -> str:
+    return "_TestCountableChild"
+
+
+@pytest.fixture
+def test_model_not_found() -> str:
+    return "_TestCountable_NOT_FOUND"
+
+
+@pytest.fixture
+def test_model_nok() -> str:
+    return "_TestCountable::NOT_OK"
+
+
+def test_6_get_type(
+    test_model_ok: str, test_model_nok: str, test_model_not_found: str
+) -> None:
+    """Test utils.get_type() and related functions"""
+    assert (
+        get_type(test_model_ok) is _TestCountableChild
+    ), f"failed to get type for '{test_model_ok}'"
+    assert (
+        get_type(test_model_nok) is None
+    ), f"did not return None for NOT OK type: {test_model_nok}"
+    assert (
+        get_type(test_model_not_found) is None
+    ), f"did not return None for non-existing type: {test_model_not_found}"
+
+
+def test_7_get_subtype(
+    test_model_ok: str, test_model_nok: str, test_model_not_found: str
+) -> None:
+    """Test utils.get_subtype() and related functions"""
+
+    assert (
+        get_subtype(name=test_model_ok, parent=_TestCountable) is _TestCountableChild
+    ), f"failed to get sub type of '_TestCountable' type for '{test_model_ok}'"
+    assert (
+        get_subtype(name=test_model_ok, parent=Enum) is None
+    ), f"returned model that is not child of '_TestCountableChild' type for '{test_model_ok}': {get_subtype(name=test_model_ok, parent=_TestCountableChild)}"
+    assert (
+        get_subtype(name=test_model_not_found, parent=_TestCountable) is None
+    ), f"returned model that is not child of '_TestCountableChild' type for '{test_model_not_found}'"
