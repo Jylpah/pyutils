@@ -13,7 +13,6 @@ import json
 from time import time
 from pathlib import Path
 from aiohttp import ClientSession, ClientError, ClientResponseError, FormData
-from pydantic import BaseModel, ValidationError
 import asyncio
 import string
 from tempfile import gettempdir
@@ -290,30 +289,6 @@ async def get_url_JSON(
         debug(f"Client response error: {url}: {err}")
     # except Exception as err:
     #     debug(f"Unexpected error: {err}")
-    return None
-
-
-M = TypeVar("M", bound=BaseModel)
-
-
-async def get_url_model(
-    session: ClientSession, url: str, resp_model: type[M], retries: int = MAX_RETRIES
-) -> Optional[M]:
-    """Get JSON from URL and return object. Validate JSON against resp_model, if given."""
-    assert session is not None, "session cannot be None"
-    assert url is not None, "url cannot be None"
-    content: str | None = None
-    try:
-        if (content := await get_url(session, url, retries)) is None:
-            debug("get_url() returned None")
-            return None
-        return resp_model.model_validate_json(content)
-    except ValueError as err:
-        debug(
-            f"{resp_model.__name__}: {url}: response={content}: Validation error={err}"
-        )
-    except Exception as err:
-        debug(f"Unexpected error: {err}")
     return None
 
 

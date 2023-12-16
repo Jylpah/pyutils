@@ -1,7 +1,7 @@
 import sys
 import pytest  # type: ignore
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 from itertools import pairwise, accumulate
 from functools import cached_property
 from math import ceil
@@ -17,17 +17,16 @@ from asyncio import Task, create_task, sleep, gather, timeout, TimeoutError
 from random import random
 import logging
 
+
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 
 from pyutils import (
     ThrottledClientSession,
     epoch_now,
     get_url_JSON,
-    get_url_model,
     post_url,
 )
 
-from test_exportable_importable import JSONParent, JSONChild  # type: ignore
 
 HOST: str = "localhost"
 PORT: int = 8889
@@ -45,20 +44,8 @@ logger = logging.getLogger()
 message = logger.warning
 
 
-def json_data() -> list[JSONParent]:
-    c1 = JSONChild(name="c1")
-    c3 = JSONChild(name="c3")
-    res: list[JSONParent] = list()
-    res.append(JSONParent(name="P1", amount=1, array=["one", "two"], child=c1))
-    res.append(JSONParent(name="P2", amount=-6, array=["three", "four"]))
-    res.append(JSONParent(name="P3", amount=-6, child=c3))
-    return res
-
-
 class _HttpRequestHandler(BaseHTTPRequestHandler):
     """HTTPServer mock request handler"""
-
-    _res_JSONParent: list[JSONParent] = json_data()
 
     @cached_property
     def url(self):
@@ -67,40 +54,31 @@ class _HttpRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # pylint: disable=invalid-name
         """Handle GET requests"""
         self.send_response(200)
-        if self.url.path == MODEL_PATH:
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            l: int = len(self._res_JSONParent)
-            idx: int = epoch_now() % l
-            res: JSONParent = self._res_JSONParent[idx]
-            self.wfile.write(res.json_src().encode())
-
-        else:
-            self.send_header("Content-Type", "application/txt")
-            self.end_headers()
-            self.wfile.write(datetime.utcnow().isoformat().encode())
-
-    def do_POST(self) -> None:  # pylint: disable=invalid-name
-        """Handle POST requests
-        DOES NOT WORK YET"""
-        message(f"POST @ {datetime.utcnow()}")
-        self.send_response(200)
         self.send_header("Content-Type", "application/txt")
         self.end_headers()
-        if self.url.path == MODEL_PATH:
-            message(f"POST {self.url.path} @ {datetime.utcnow()}")
-            if (
-                _ := JSONParent.model_validate_json(self.rfile.read().decode())
-            ) is not None:
-                # assert False, "POST read content OK"
-                message(f"POST OK @ {datetime.utcnow()}")
-                self.wfile.write("OK".encode())
-                # assert False, "POST did write"
-            else:
-                # assert False, "POST read content ERROR"
-                message(f"POST ERROR @ {datetime.utcnow()}")
-                self.wfile.write("ERROR".encode())
-        # assert False, "do_POST()"
+        self.wfile.write(datetime.utcnow().isoformat().encode())
+
+    # def do_POST(self) -> None:  # pylint: disable=invalid-name
+    #     """Handle POST requests
+    #     DOES NOT WORK YET"""
+    #     message(f"POST @ {datetime.utcnow()}")
+    #     self.send_response(200)
+    #     self.send_header("Content-Type", "application/txt")
+    #     self.end_headers()
+    #     if self.url.path == MODEL_PATH:
+    #         message(f"POST {self.url.path} @ {datetime.utcnow()}")
+    #         if (
+    #             _ := JSONParent.model_validate_json(self.rfile.read().decode())
+    #         ) is not None:
+    #             # assert False, "POST read content OK"
+    #             message(f"POST OK @ {datetime.utcnow()}")
+    #             self.wfile.write("OK".encode())
+    #             # assert False, "POST did write"
+    #         else:
+    #             # assert False, "POST read content ERROR"
+    #             message(f"POST ERROR @ {datetime.utcnow()}")
+    #             self.wfile.write("ERROR".encode())
+    #     # assert False, "do_POST()"
 
     def log_request(self, code=None, size=None):
         """Don't log anything"""
@@ -221,38 +199,20 @@ async def test_2_slow_get(server_url: str) -> None:
                                         {', '.join([str(t) for t in timings])}"""
 
 
-@pytest.mark.timeout(20)
-@pytest.mark.asyncio
-async def test_3_get_model(server_url: str, model_path: str) -> None:
-    """Test get_url_model()"""
-    rate_limit: float = RATE_SLOW
-    N: int = N_SLOW
-    url: str = server_url + model_path
-    res: JSONParent | None
-    async with ThrottledClientSession(rate_limit=rate_limit) as session:
-        for _ in range(N):
-            if (
-                _ := await get_url_model(
-                    session=session, url=url, resp_model=JSONParent, retries=2
-                )
-            ) is None:
-                assert False, "get_url_model() returned None"
-
-
-@pytest.mark.timeout(20)
-@pytest.mark.asyncio
-async def test_4_get_json(server_url: str, model_path: str) -> None:
-    """Test get_url_JSON()"""
-    rate_limit: float = RATE_SLOW
-    N: int = N_SLOW
-    url: str = server_url + model_path
-    res: Any | None
-    async with ThrottledClientSession(rate_limit=rate_limit) as session:
-        for _ in range(N):
-            if (res := await get_url_JSON(session=session, url=url, retries=2)) is None:
-                assert False, "get_url_JSON() returned None"
-            if (_ := JSONParent.model_validate(res)) is None:
-                assert False, "could not parse returned model"
+# @pytest.mark.timeout(20)
+# @pytest.mark.asyncio
+# async def test_3_get_json(server_url: str, model_path: str) -> None:
+#     """Test get_url_JSON()"""
+#     rate_limit: float = RATE_SLOW
+#     N: int = N_SLOW
+#     url: str = server_url + model_path
+#     res: Any | None
+#     async with ThrottledClientSession(rate_limit=rate_limit) as session:
+#         for _ in range(N):
+#             if (res := await get_url_JSON(session=session, url=url, retries=2)) is None:
+#                 assert False, "get_url_JSON() returned None"
+#             if (_ := JSONParent.model_validate(res)) is None:
+#                 assert False, "could not parse returned model"
 
 
 # @pytest.mark.timeout(10)
