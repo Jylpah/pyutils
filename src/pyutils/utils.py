@@ -147,7 +147,7 @@ def epoch_now() -> int:
     return int(time())
 
 
-@deprecated(version="1.0.0", reason="Use 'is_valid_obj()' instead")
+@deprecated(version="1.1.0", reason="Use 'is_valid_obj()' instead")
 def is_alphanum(string: str) -> bool:
     """test whether the string is composed of ASCII letters, numbers, hyphens or underscores only"""
     try:
