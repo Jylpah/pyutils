@@ -1,13 +1,11 @@
 import logging
-from bson.objectid import ObjectId
-from datetime import datetime, timedelta
-from typing import Optional, Any, Sequence, TypeVar, Iterator, AsyncGenerator, cast
+from datetime import datetime
+from typing import Optional, Any, Sequence, TypeVar, Iterator
 from abc import ABC, abstractmethod
 from re import compile
 from itertools import islice
-from aiofiles import open
 from alive_progress import alive_bar  # type: ignore
-from inspect import stack, getmembers, currentframe
+from inspect import getmembers, currentframe
 from types import FrameType
 import json
 from time import time
@@ -24,12 +22,8 @@ from deprecated import deprecated  # type: ignore
 from typer import Typer
 from typer.testing import CliRunner as TyperRunner
 
-import click
 from click import BaseCommand
 from click.testing import CliRunner
-
-from .eventcounter import EventCounter
-from .urlqueue import UrlQueue, UrlQueueItemType, is_url
 
 
 # Setup logging
