@@ -19,6 +19,7 @@ from tempfile import gettempdir
 from random import choices
 from configparser import ConfigParser
 from functools import wraps
+from deprecated import deprecated  # type: ignore
 
 from typer import Typer
 from typer.testing import CliRunner as TyperRunner
@@ -146,8 +147,21 @@ def epoch_now() -> int:
     return int(time())
 
 
+@deprecated(version="1.1.0", reason="Use 'is_valid_obj()' instead")
 def is_alphanum(string: str) -> bool:
     """test whether the string is composed of ASCII letters, numbers, hyphens or underscores only"""
+    try:
+        return not compile(r"[^a-zA-Z0-9_]").search(string)
+    except:
+        error(f"Illegal characters in the table name: {string}")
+    return False
+
+
+def is_valid_obj(string: str) -> bool:
+    """
+    test whether the string is a valid Python object name, i.e.
+    composed of ASCII letters, numbers, hyphens or underscores only
+    """
     try:
         return not compile(r"[^a-zA-Z0-9_]").search(string)
     except:
@@ -175,7 +189,7 @@ def get_type(name: str, _globals: dict[str, Any] | None = None) -> type[object] 
                 _globals = dict(getmembers(call_scope))["f_globals"]
             else:
                 raise ValueError("could not get caller environment")
-        if is_alphanum(name):
+        if is_valid_obj(name):
             assert _globals is not None, "could not read globals()"
             type_class = _globals[name]
         else:
