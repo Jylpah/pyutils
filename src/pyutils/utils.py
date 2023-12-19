@@ -155,6 +155,18 @@ def is_alphanum(string: str) -> bool:
     return False
 
 
+def is_valid_obj(string: str) -> bool:
+    """
+    test whether the string is a valid Python object name, i.e.
+    composed of ASCII letters, numbers, hyphens or underscores only
+    """
+    try:
+        return not compile(r"[^a-zA-Z0-9_]").search(string)
+    except:
+        error(f"Illegal characters in the table name: {string}")
+    return False
+
+
 def chunker(it: Sequence[T], size: int) -> Iterator[list[T]]:
     """Makes fixed sized chunks out of Sequence"""
     assert size > 0, "size has to be positive"
