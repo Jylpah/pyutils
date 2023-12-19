@@ -245,7 +245,7 @@ def test_3_Countable() -> None:
 
 
 def test_4_is_valid_obj() -> None:
-    """Test is_alphanum()"""
+    """Test is_valid_obj()"""
     test_ok: str = "234asefw43rt_wq343wq4_234_234_"
     assert is_valid_obj(test_ok), f"test failed for {test_ok}"
 

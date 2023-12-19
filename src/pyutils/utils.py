@@ -189,7 +189,7 @@ def get_type(name: str, _globals: dict[str, Any] | None = None) -> type[object] 
                 _globals = dict(getmembers(call_scope))["f_globals"]
             else:
                 raise ValueError("could not get caller environment")
-        if is_alphanum(name):
+        if is_valid_obj(name):
             assert _globals is not None, "could not read globals()"
             type_class = _globals[name]
         else:
