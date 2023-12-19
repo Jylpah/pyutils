@@ -26,7 +26,7 @@ from .utils import (
     get_url_JSON,
     # get_urls_JSON,
     get_temp_filename,
-    is_alphanum,
+    is_valid_obj,
     post_url,
     set_config,
     str2path,

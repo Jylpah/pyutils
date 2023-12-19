@@ -18,7 +18,7 @@ from pyutils.utils import (
     Countable,
     TyperHelpGen,
     chunker,
-    is_alphanum,
+    is_valid_obj,
     get_type,
     get_subtype,
 )
@@ -244,13 +244,13 @@ def test_3_Countable() -> None:
     assert l.count == 5, f"count returned incorrect value"
 
 
-def test_4_is_alphanum() -> None:
+def test_4_is_valid_obj() -> None:
     """Test is_alphanum()"""
     test_ok: str = "234asefw43rt_wq343wq4_234_234_"
-    assert is_alphanum(test_ok), f"test failed for {test_ok}"
+    assert is_valid_obj(test_ok), f"test failed for {test_ok}"
 
     test_nok: str = "23.34-"
-    assert not is_alphanum(test_nok), f"false positive for {test_nok}"
+    assert not is_valid_obj(test_nok), f"false positive for {test_nok}"
 
 
 def test_5_chunker() -> None:
