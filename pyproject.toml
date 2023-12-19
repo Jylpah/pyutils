@@ -22,6 +22,7 @@ dependencies = [
     "aiodns>=3.0.0",
     "aioconsole>=0.6.1",
     "alive-progress>=3.1.1",
+    "Deprecated~=1.2.14",
     "click>=8.1",
     "typer>=0.9.0",
 ]

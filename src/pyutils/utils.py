@@ -19,6 +19,7 @@ from tempfile import gettempdir
 from random import choices
 from configparser import ConfigParser
 from functools import wraps
+from deprecated import deprecated  # type: ignore
 
 from typer import Typer
 from typer.testing import CliRunner as TyperRunner
@@ -146,6 +147,7 @@ def epoch_now() -> int:
     return int(time())
 
 
+@deprecated(version="1.0.0", reason="Use 'is_valid_obj()' instead")
 def is_alphanum(string: str) -> bool:
     """test whether the string is composed of ASCII letters, numbers, hyphens or underscores only"""
     try:
