@@ -309,7 +309,7 @@ def avg_rate(timings: list[float]) -> float:
 async def _get(url: str, rate: float, N: int) -> list[float]:
     """Test timings of N/sec get"""
     timings: list[float] = list()
-    async with ThrottledClientSession(rate_limit=rate) as session:
+    async with ThrottledClientSession(rate_limit=rate, trust_env=True) as session:
         for _ in range(N):
             async with session.get(url, ssl=False) as resp:
                 assert resp.status == 200, f"request failed, HTTP STATUS={resp.status}"
@@ -394,7 +394,7 @@ async def test_3_get_json(server_url: str, json_path: str) -> None:
     N: int = N_SLOW
     url: str = server_url + json_path
     res: Any | None
-    async with ThrottledClientSession(rate_limit=rate_limit) as session:
+    async with ThrottledClientSession(rate_limit=rate_limit, trust_env=True) as session:
         for _ in range(N):
             if (_ := await get_url_JSON(session=session, url=url, retries=2)) is None:
                 assert False, "get_url_JSON() returned None"
@@ -408,7 +408,7 @@ async def test_3_get_json(server_url: str, json_path: str) -> None:
 #     url: str = server_url + json_path
 #     res: Any | None
 #     parents: list[JSONParent] = json_data()
-#     async with ThrottledClientSession(rate_limit=rate_limit) as session:
+#     async with ThrottledClientSession(rate_limit=rate_limit, trust_env=True) as session:
 #         for parent in parents:
 #             if (
 #                 res := await post_url(
