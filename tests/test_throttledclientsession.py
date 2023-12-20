@@ -372,7 +372,7 @@ async def test_2_slow_get(server_url: str) -> None:
     """Test timings of N/sec get"""
     rate_limit: float = RATE_SLOW
     N: int = N_SLOW
-    await sleep(1)  # wait the server to start
+    # await sleep(1)  # wait the server to start
     timings: list[float] = await _get(server_url, rate=rate_limit, N=N)
     rate_max: float = max_rate(timings, rate_limit)
     rate_avg: float = avg_rate(timings)
@@ -395,7 +395,7 @@ async def test_3_get_json(server_url: str, json_path: str) -> None:
     rate_limit: float = RATE_SLOW
     N: int = N_SLOW
     url: str = server_url + json_path
-    await sleep(1)  # wait the server to start
+    # await sleep(1)  # wait the server to start
     async with ThrottledClientSession(rate_limit=rate_limit, trust_env=True) as session:
         for _ in range(N):
             if (_ := await get_url_JSON(session=session, url=url, retries=2)) is None:
