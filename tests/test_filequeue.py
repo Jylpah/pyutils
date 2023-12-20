@@ -1,8 +1,6 @@
 import sys
 import pytest  # type: ignore
-from os.path import dirname, realpath, join as pjoin, basename
 from pathlib import Path
-from random import choice
 from os import makedirs
 from fnmatch import fnmatch, fnmatchcase
 import logging
@@ -34,7 +32,7 @@ from pyutils import FileQueue, QueueDone
 #
 ########################################################
 
-FIXTURE_DIR = Path(dirname(realpath(__file__)))
+FIXTURE_DIR = Path(__file__).parent
 
 TEST_BASE = Path("06_FileQueue")
 
