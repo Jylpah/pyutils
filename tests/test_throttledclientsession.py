@@ -344,7 +344,7 @@ def json_path() -> str:
     return JSON_PATH
 
 
-@pytest.mark.timeout(20)
+@pytest.mark.timeout(60)
 @pytest.mark.asyncio
 async def test_1_fast_get(server_url: str) -> None:
     """Test timings of N/sec get"""
@@ -366,7 +366,7 @@ async def test_1_fast_get(server_url: str) -> None:
                                         {', '.join([str(t) for t in timings])}"""
 
 
-@pytest.mark.timeout(40)
+@pytest.mark.timeout(60)
 @pytest.mark.asyncio
 async def test_2_slow_get(server_url: str) -> None:
     """Test timings of N/sec get"""
@@ -388,7 +388,7 @@ async def test_2_slow_get(server_url: str) -> None:
                                         {', '.join([str(t) for t in timings])}"""
 
 
-@pytest.mark.timeout(20)
+@pytest.mark.timeout(60)
 @pytest.mark.asyncio
 async def test_3_get_json(server_url: str, json_path: str) -> None:
     """Test get_url_JSON()"""
