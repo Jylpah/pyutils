@@ -45,6 +45,9 @@ logger = logging.getLogger()
 message = logger.warning
 
 
+# TODO: should I use pytest-httpserver instead?
+
+
 def json_data() -> List[Dict[str, str | int | float | None]]:
     """Generate JSON test data"""
 
