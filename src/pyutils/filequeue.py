@@ -101,14 +101,12 @@ class FileQueue(IterableQueue[Path]):
         return await self.finish()
 
     async def put(self, path: Path) -> None:
-        """Recursive function to build process queueu. Sanitize filename"""
+        """Recursive function to build process queue. Sanitize filename"""
         assert isinstance(path, Path), "path has to be type Path()"
         try:
             if path.is_dir():
-                for child in path.rglob(self._filter):
-                    if child.is_file():
-                        debug("Adding file to queue: %s", str(child))
-                        await super().put(child)
+                for child in path.iterdir():
+                    await self.put(child)
             elif path.is_file() and self.match(path):
                 debug("Adding file to queue: %s", str(path))
                 await super().put(path)
