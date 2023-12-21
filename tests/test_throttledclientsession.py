@@ -347,6 +347,10 @@ def json_path() -> str:
     return JSON_PATH
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="not supported on windows: asyncio.loop.create_unix_connection",
+)
 @pytest.mark.timeout(60)
 @pytest.mark.asyncio
 async def test_1_fast_get(server_url: str) -> None:
@@ -369,6 +373,10 @@ async def test_1_fast_get(server_url: str) -> None:
                                         {', '.join([str(t) for t in timings])}"""
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="not supported on windows: asyncio.loop.create_unix_connection",
+)
 @pytest.mark.timeout(60)
 @pytest.mark.asyncio
 async def test_2_slow_get(server_url: str) -> None:
@@ -391,6 +399,10 @@ async def test_2_slow_get(server_url: str) -> None:
                                         {', '.join([str(t) for t in timings])}"""
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="not supported on windows: asyncio.loop.create_unix_connection",
+)
 @pytest.mark.timeout(60)
 @pytest.mark.asyncio
 async def test_3_get_json(server_url: str, json_path: str) -> None:
