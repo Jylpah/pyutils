@@ -7,11 +7,9 @@
 ## -----------------------------------------------------------
 
 import logging
-import asyncio
 
 # from asyncio import Queue
 import aioconsole  # type: ignore
-from os import scandir, path
 from fnmatch import fnmatch, fnmatchcase
 from pathlib import Path
 from typing import Optional, Sequence
