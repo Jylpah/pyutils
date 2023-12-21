@@ -353,7 +353,7 @@ async def test_1_fast_get(server_url: str) -> None:
     """Test timings of N/sec get"""
     rate_limit: float = RATE_FAST
     N: int = N_FAST
-    await sleep(1)  # wait the server to start
+    await sleep(2)  # wait the server to start
     timings: list[float] = await _get(server_url, rate=rate_limit, N=N)
     rate_max: float = max_rate(timings, rate_limit)
     rate_avg: float = avg_rate(timings)
