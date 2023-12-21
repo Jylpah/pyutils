@@ -17,7 +17,7 @@ from tempfile import gettempdir
 from random import choices
 from configparser import ConfigParser
 from functools import wraps
-from deprecated import deprecated  # type: ignore
+from deprecated import deprecated
 
 from typer import Typer
 from typer.testing import CliRunner as TyperRunner

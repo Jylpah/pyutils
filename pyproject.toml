@@ -38,6 +38,7 @@ dev = [
     "pytest-cov~=4.1",
     "pytest-timeout",
     "types-aiofiles>=23.1.0.1",
+    "types-Deprecated>=1.2.9.3",
 ]
 
 

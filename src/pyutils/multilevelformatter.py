@@ -29,6 +29,10 @@ def set_mlevel_logging(
 
 
 class MultilevelFormatter(logging.Formatter):
+    """
+    logging.Formatter that simplifies setting different log formats for different log levels
+    """
+
     _levels: list[int] = [
         logging.NOTSET,
         logging.DEBUG,

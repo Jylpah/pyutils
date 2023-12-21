@@ -5,16 +5,12 @@ from datetime import datetime
 from itertools import pairwise, accumulate
 from functools import cached_property
 from math import ceil
-from typing import Generator, Any, List, Dict
+from typing import Generator, List, Dict
 from multiprocessing import Process
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 from socketserver import ThreadingMixIn
-
-# from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from asyncio.queues import QueueEmpty, QueueFull
-from asyncio import Task, create_task, sleep, gather, timeout, TimeoutError
-from random import random
+from asyncio import sleep
 import logging
 import json
 
@@ -43,6 +39,9 @@ THREADS: int = 5
 
 logger = logging.getLogger()
 message = logger.warning
+
+
+# TODO: should I use pytest-httpserver instead?
 
 
 def json_data() -> List[Dict[str, str | int | float | None]]:
@@ -309,7 +308,7 @@ def avg_rate(timings: list[float]) -> float:
 async def _get(url: str, rate: float, N: int) -> list[float]:
     """Test timings of N/sec get"""
     timings: list[float] = list()
-    async with ThrottledClientSession(rate_limit=rate) as session:
+    async with ThrottledClientSession(rate_limit=rate, trust_env=True) as session:
         for _ in range(N):
             async with session.get(url, ssl=False) as resp:
                 assert resp.status == 200, f"request failed, HTTP STATUS={resp.status}"
@@ -344,12 +343,17 @@ def json_path() -> str:
     return JSON_PATH
 
 
-@pytest.mark.timeout(20)
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="not supported on windows: asyncio.loop.create_unix_connection",
+)
+@pytest.mark.timeout(60)
 @pytest.mark.asyncio
 async def test_1_fast_get(server_url: str) -> None:
     """Test timings of N/sec get"""
     rate_limit: float = RATE_FAST
     N: int = N_FAST
+    await sleep(2)  # wait the server to start
     timings: list[float] = await _get(server_url, rate=rate_limit, N=N)
     rate_max: float = max_rate(timings, rate_limit)
     rate_avg: float = avg_rate(timings)
@@ -365,12 +369,17 @@ async def test_1_fast_get(server_url: str) -> None:
                                         {', '.join([str(t) for t in timings])}"""
 
 
-@pytest.mark.timeout(40)
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="not supported on windows: asyncio.loop.create_unix_connection",
+)
+@pytest.mark.timeout(60)
 @pytest.mark.asyncio
 async def test_2_slow_get(server_url: str) -> None:
     """Test timings of N/sec get"""
     rate_limit: float = RATE_SLOW
     N: int = N_SLOW
+    # await sleep(1)  # wait the server to start
     timings: list[float] = await _get(server_url, rate=rate_limit, N=N)
     rate_max: float = max_rate(timings, rate_limit)
     rate_avg: float = avg_rate(timings)
@@ -386,15 +395,19 @@ async def test_2_slow_get(server_url: str) -> None:
                                         {', '.join([str(t) for t in timings])}"""
 
 
-@pytest.mark.timeout(20)
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="not supported on windows: asyncio.loop.create_unix_connection",
+)
+@pytest.mark.timeout(60)
 @pytest.mark.asyncio
 async def test_3_get_json(server_url: str, json_path: str) -> None:
     """Test get_url_JSON()"""
     rate_limit: float = RATE_SLOW
     N: int = N_SLOW
     url: str = server_url + json_path
-    res: Any | None
-    async with ThrottledClientSession(rate_limit=rate_limit) as session:
+    # await sleep(1)  # wait the server to start
+    async with ThrottledClientSession(rate_limit=rate_limit, trust_env=True) as session:
         for _ in range(N):
             if (_ := await get_url_JSON(session=session, url=url, retries=2)) is None:
                 assert False, "get_url_JSON() returned None"
@@ -408,7 +421,7 @@ async def test_3_get_json(server_url: str, json_path: str) -> None:
 #     url: str = server_url + json_path
 #     res: Any | None
 #     parents: list[JSONParent] = json_data()
-#     async with ThrottledClientSession(rate_limit=rate_limit) as session:
+#     async with ThrottledClientSession(rate_limit=rate_limit, trust_env=True) as session:
 #         for parent in parents:
 #             if (
 #                 res := await post_url(
