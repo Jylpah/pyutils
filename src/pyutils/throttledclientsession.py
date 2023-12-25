@@ -193,7 +193,7 @@ class ThrottledClientSession(ClientSession):
                 await wait_for(self._fillerTask, timeout=0.5)
         except TimeoutError as err:
             debug(f"Timeout while cancelling bucket filler: {err}")
-        except CancelledError as err:
+        except CancelledError:
             debug("Cancelled")
         await super().close()
 
