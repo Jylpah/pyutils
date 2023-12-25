@@ -1,6 +1,6 @@
 [project]
 name = "pyutils"
-version = "1.0.0"
+version = "1.0.1"
 authors = [{ name = "Jylpah", email = "jylpah@gmail.com" }]
 description = "Misc Python utils and classes"
 readme = "README.md"
@@ -37,6 +37,7 @@ dev = [
     "pytest-datafiles>=3.0",
     "pytest-cov>=4.1",
     "pytest-timeout>=2.2",
+    "ruff>=0.1.9",
     "types-aiofiles>=23.1.0.1",
     "types-Deprecated>=1.2.9.3",
 ]
@@ -60,9 +61,11 @@ packages = ["src/pyutils"]
 exclude = ['tmp']
 mypy_path = ['src']
 
-[tool.black]
-# line-length = 100
-include = '\.pyi?$'
+[tool.ruff]
+include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py"]
+indent-width = 4
+extend-include = ["*.ipynb"]
+fixable = ["ALL"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
