@@ -1,7 +1,6 @@
 import sys
 import pytest  # type: ignore
 from pathlib import Path
-from queue import Queue
 from asyncio.queues import QueueEmpty, QueueFull
 from asyncio import Task, create_task, sleep, gather, timeout, TimeoutError, CancelledError
 from random import random

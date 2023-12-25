@@ -8,28 +8,11 @@ from .filequeue import FileQueue as FileQueue
 from .iterablequeue import IterableQueue as IterableQueue, QueueDone as QueueDone
 from .multilevelformatter import MultilevelFormatter as MultilevelFormatter
 from .throttledclientsession import ThrottledClientSession as ThrottledClientSession
-from .urlqueue import UrlQueue as UrlQueue, UrlQueueItemType, is_url
+from .urlqueue import UrlQueue as UrlQueue
 from .utils import (
     Countable as Countable,
     ClickHelpGen as ClickHelpGen,
     TyperHelpGen as TyperHelpGen,
-    alive_bar_monitor,
-    coro,
-    chunker,
-    epoch_now,
-    # read_config,
-    get_datestr,
-    get_subtype,
-    get_type,
-    get_url,
-    # get_urls,
-    get_url_JSON,
-    # get_urls_JSON,
-    get_temp_filename,
-    is_valid_obj,
-    post_url,
-    set_config,
-    str2path,
 )
 
 

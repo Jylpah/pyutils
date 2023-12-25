@@ -1,6 +1,5 @@
 import sys
 import pytest # type: ignore
-from os.path import dirname, realpath, join as pjoin
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / 'src'))

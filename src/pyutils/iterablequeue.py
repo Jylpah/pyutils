@@ -1,4 +1,4 @@
-from asyncio import Queue, QueueFull, QueueEmpty, Event, Lock, sleep
+from asyncio import Queue, QueueFull, QueueEmpty, Event, Lock
 from typing import AsyncIterable, TypeVar, Optional
 from .utils import Countable
 import logging
@@ -206,11 +206,11 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
         self.check_done()
 
     async def join(self) -> None:
-        debug(f"Waiting queue to be filled")
+        debug("Waiting queue to be filled")
         await self._filled.wait()
-        debug(f"Queue filled, waiting when queue is done")
+        debug("Queue filled, waiting when queue is done")
         await self._done.wait()
-        debug(f"queue is done")
+        debug("queue is done")
         return None
 
     def __aiter__(self):

@@ -14,7 +14,7 @@ from fnmatch import fnmatch, fnmatchcase
 from pathlib import Path
 from typing import Optional, Sequence
 
-from .iterablequeue import IterableQueue, QueueDone
+from .iterablequeue import IterableQueue
 from .utils import str2path
 
 logger = logging.getLogger(__name__)

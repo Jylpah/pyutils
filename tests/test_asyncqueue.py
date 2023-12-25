@@ -4,8 +4,7 @@ from pathlib import Path
 from queue import Queue
 
 # from asyncio.queues import QueueEmpty, QueueFull
-from asyncio import Task, create_task, sleep, wait_for, timeout, TimeoutError, QueueEmpty, QueueFull
-import asyncio
+from asyncio import Task, create_task, sleep, timeout, TimeoutError, QueueEmpty, QueueFull
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 

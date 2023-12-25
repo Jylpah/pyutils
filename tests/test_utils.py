@@ -241,7 +241,7 @@ def test_3_Countable() -> None:
 
     l = _TestCountable([1, 2, 3, 4, 5])
 
-    assert l.count == 5, f"count returned incorrect value"
+    assert l.count == 5, "count returned incorrect value"
 
 
 def test_4_is_valid_obj() -> None:
@@ -269,7 +269,7 @@ def test_5_chunker() -> None:
             ), "last chunk is wrong size: {len(chunk)}"
         i += 1
 
-    assert i == ceil(size / chunk_size), f"incorrect number of chunks"
+    assert i == ceil(size / chunk_size), "incorrect number of chunks"
 
 
 ########################################################
