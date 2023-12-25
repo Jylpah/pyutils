@@ -14,7 +14,7 @@ debug = logger.debug
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 
-from pyutils import FileQueue
+from pyutils import FileQueue  # noqa: E402
 
 ########################################################
 #

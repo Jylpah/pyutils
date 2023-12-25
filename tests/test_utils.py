@@ -13,7 +13,7 @@ import typer
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 
-from pyutils.utils import (
+from pyutils.utils import (  # noqa: E402
     ClickHelpGen,
     Countable,
     TyperHelpGen,
@@ -22,7 +22,7 @@ from pyutils.utils import (
     get_type,
     get_subtype,
 )
-from pyutils import awrap
+from pyutils import awrap  # noqa: E402
 
 logger = logging.getLogger()
 error = logger.error
@@ -239,9 +239,9 @@ class _TestCountableChild(_TestCountable):
 def test_3_Countable() -> None:
     """Test Countable"""
 
-    l = _TestCountable([1, 2, 3, 4, 5])
+    list_ = _TestCountable([1, 2, 3, 4, 5])
 
-    assert l.count == 5, "count returned incorrect value"
+    assert list_.count == 5, "count returned incorrect value"
 
 
 def test_4_is_valid_obj() -> None:

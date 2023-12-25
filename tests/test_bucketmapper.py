@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 
-from pyutils import BucketMapper
+from pyutils import BucketMapper  # noqa: E402
 
 ########################################################
 #
@@ -95,7 +95,7 @@ def test_3_get_fails(
     bm_keys: list[int] = _get_keys(bm)
     max_key: int = max(bm_keys)
     for _ in range(LOOPS):
-        if (item := bm.get(max_key + randrange(1, N))) is None:
+        if (_ := bm.get(max_key + randrange(1, N))) is None:
             pass  # OK
         else:
             assert False, "get() should always return None if key outside key range"

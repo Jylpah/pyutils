@@ -4,11 +4,19 @@ from pathlib import Path
 from queue import Queue
 
 # from asyncio.queues import QueueEmpty, QueueFull
-from asyncio import Task, create_task, sleep, timeout, TimeoutError, QueueEmpty, QueueFull
+from asyncio import (
+    Task,
+    create_task,
+    sleep,
+    timeout,
+    TimeoutError,
+    QueueEmpty,
+    QueueFull,
+)
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 
-from pyutils import AsyncQueue
+from pyutils import AsyncQueue  # noqa: E402
 
 QSIZE: int = 10
 N: int = 100  # N >> QSIZE
@@ -85,6 +93,7 @@ async def test_2_put_get_nowait(test_asyncqueue_int: AsyncQueue[int]):
             await Q.join()
     except TimeoutError:
         assert False, "Queue.join() took longer than it should"
+    assert producer.done(), "producer has not finished"
     assert Q.qsize() == 0, "queue not empty"
     assert Q.empty(), "queue not empty"
 

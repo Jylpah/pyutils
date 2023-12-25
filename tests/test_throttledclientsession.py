@@ -16,11 +16,8 @@ import json
 
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
 
-from pyutils import (
-    ThrottledClientSession,
-    epoch_now,
-    get_url_JSON,
-)
+from pyutils import ThrottledClientSession  # noqa: E402
+from pyutils.utils import epoch_now, get_url_JSON  # noqa: E402
 
 
 HOST: str = "localhost"
@@ -232,8 +229,8 @@ class _HttpRequestHandler(BaseHTTPRequestHandler):
         if self.url.path == JSON_PATH:
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            l: int = len(self._res_json)
-            idx: int = epoch_now() % l
+            length: int = len(self._res_json)
+            idx: int = epoch_now() % length
             res: Dict[str, str | int | float | None] = self._res_json[idx]
             self.wfile.write(json.dumps(res).encode())
 

@@ -1,4 +1,5 @@
-import logging, sys
+import logging
+import sys
 from typing import Literal, Optional
 from pathlib import Path
 

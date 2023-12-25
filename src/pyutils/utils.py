@@ -146,7 +146,7 @@ def is_alphanum(string: str) -> bool:
     """test whether the string is composed of ASCII letters, numbers, hyphens or underscores only"""
     try:
         return not compile(r"[^a-zA-Z0-9_]").search(string)
-    except:
+    except Exception:
         error(f"Illegal characters in the table name: {string}")
     return False
 
@@ -158,7 +158,7 @@ def is_valid_obj(string: str) -> bool:
     """
     try:
         return not compile(r"[^a-zA-Z0-9_]").search(string)
-    except:
+    except Exception:
         error(f"Illegal characters in the table name: {string}")
     return False
 

@@ -93,8 +93,9 @@ class EventCounter:
         assert category is not None, "param 'category' cannot be None"
         try:
             return self._log[category]
-        except:
-            logger.error(f"invalid categgory: {category}")
+        except Exception as err:
+            error(f"invalid categgory: {category}")
+            debug(f"{err}")
             return 0
 
     def get_values(self) -> dict[str, int]:
@@ -120,7 +121,7 @@ class EventCounter:
 
         try:
             if not isinstance(B, EventCounter):
-                logger.error(f"input is not type of 'EventCounter' but: {type(B)}")
+                error(f"input is not type of 'EventCounter' but: {type(B)}")
                 return False
             for cat in B.get_categories():
                 value: int = B.get_value(cat)
@@ -130,7 +131,7 @@ class EventCounter:
                 self._error_status = self._error_status or B.get_error_status()
             return True
         except Exception as err:
-            logger.error(f"{err}")
+            error(f"{err}")
         return False
 
     def merge_child(self, B: "EventCounter") -> bool:
@@ -148,7 +149,7 @@ class EventCounter:
             self._error_status = self._error_status or B.get_error_status()
             return True
         except Exception as err:
-            logger.error(f"{err}")
+            error(f"{err}")
         return False
 
     def get_header(self) -> str:
@@ -171,7 +172,7 @@ class EventCounter:
                     ret += f"\n{self._get_str(cat)}"
                 return ret
         except Exception as err:
-            logger.error(f"{err}")
+            error(f"{err}")
         return None
 
     async def gather_stats(
