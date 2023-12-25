@@ -43,7 +43,7 @@ jobs:
     #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Lint with ruff
       run: | 
-        ruff src tests
+        ruff check src tests
     - name: Test with mypy
       run: |
         mypy -m pyutils
