@@ -16,29 +16,29 @@ classifiers = [
     "Topic :: Games/Entertainment",
 ]
 dependencies = [
-    "aiofiles~=23.1",
-    "aiohttp~=3.9.1",
-    "aiodns~=3.0",
-    "aioconsole~=0.6",
-    "alive-progress~=3.1",
-    "Brotli~=1.1",
-    "Deprecated~=1.2",
-    "click~=8.1",
-    "typer~=0.9",
+    "aiofiles>=23.1",
+    "aiohttp>=3.9.1",
+    "aiodns>=3.0",
+    "aioconsole>=0.6",
+    "alive-progress>=3.1",
+    "Brotli>=1.1",
+    "Deprecated>=1.2",
+    "click>=8.1",
+    "typer>=0.9",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "build~=0.10",
-    "mypy~=1.7",
-    "pip-chill~=1.0",
-    "pytest~=7.4",
-    "pytest-asyncio~=0.23",
-    "pytest-datafiles~=3.0",
-    "pytest-cov~=4.1",
-    "pytest-timeout~=2.2",
-    "types-aiofiles~=23.1.0.1",
-    "types-Deprecated~=1.2.9.3",
+    "build>=0.10",
+    "mypy>=1.7",
+    "pip-chill>=1.0",
+    "pytest>=7.4",
+    "pytest-asyncio>=0.23",
+    "pytest-datafiles>=3.0",
+    "pytest-cov>=4.1",
+    "pytest-timeout>=2.2",
+    "types-aiofiles>=23.1.0.1",
+    "types-Deprecated>=1.2.9.3",
 ]
 
 
