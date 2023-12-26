@@ -6,7 +6,7 @@
 #  Inherits aiohttp.ClientSession
 ## -----------------------------------------------------------
 
-from typing import Optional, Union
+from typing import Any, Literal, Optional, Tuple, TypeGuard, Union, get_args
 from aiohttp import ClientSession, ClientResponse
 from asyncio import (
     Queue,
@@ -17,6 +17,7 @@ from asyncio import (
     create_task,
     wait_for,
 )
+
 import time
 import logging
 from warnings import warn
@@ -31,6 +32,15 @@ message = logger.warning
 verbose = logger.info
 debug = logger.debug
 
+HTTPmethod = Literal[
+    "GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT", "PATCH"
+]
+
+
+def is_HTTP_method(method: Any) -> TypeGuard[HTTPmethod]:
+    """Check if method is a valid HTTP method"""
+    return isinstance(method, str) and method in get_args(HTTPmethod)
+
 
 class ThrottledClientSession(ClientSession):
     """
@@ -44,9 +54,9 @@ class ThrottledClientSession(ClientSession):
     def __init__(
         self,
         rate_limit: float = 0,
-        filters: list[str] = list(),
-        limit_filtered: bool = False,
-        re_filter: bool = False,
+        filters: list[str | Tuple[Optional[str], str]] = list(),
+        limit_filtered: bool = False,  # whether 'filters' allow/whitelists URLs
+        re_filter: bool = False,  # use regexp filters
         *args,
         **kwargs,
     ) -> None:
@@ -68,15 +78,29 @@ class ThrottledClientSession(ClientSession):
         self._errors: int = 0
         self._limit_filtered: bool = limit_filtered
         self._re_filter: bool = re_filter
-        self._filters: list[Union[str, re.Pattern]] = list()
+        self._filters: list[
+            Tuple[Optional[HTTPmethod], Union[str, re.Pattern]]
+        ] = list()
+        for filter in filters:
+            url: str = ""
+            method: Any = None
+            if isinstance(filter, tuple) and len(filter) == 2:
+                method = filter[0]
+                url = filter[1]
+            elif isinstance(filter, str):
+                url = filter
+            self.add_filter(filter=url, method=method)
 
-        if re_filter:
-            for filter in filters:
-                self._filters.append(re.compile(filter))
-        else:
-            for filter in filters:
-                self._filters.append(filter)
         self._set_limit()
+
+    def add_filter(self, filter: str, method: str | None = None):
+        """Add a filter to filter list"""
+        if not (method is None or is_HTTP_method(method=method)):
+            raise ValueError(f"'method' is not None or a valid HTTP method: {method}")
+        if self._re_filter:
+            self._filters.append((method, re.compile(filter)))
+        else:
+            self._filters.append((method, filter))
 
     @deprecated(version="1.1.0", reason="Use 'rate' property instead")
     def get_rate(self) -> float:
@@ -233,7 +257,7 @@ class ThrottledClientSession(ClientSession):
 
     async def _request(self, *args, **kwargs) -> ClientResponse:
         """Throttled _request()"""
-        if self.is_limited(*args):
+        if self.is_limited(method=args[0], url=args[1]):
             await self._queue.get()
             self._queue.task_done()
         resp: ClientResponse = await super()._request(*args, **kwargs)
@@ -242,17 +266,39 @@ class ThrottledClientSession(ClientSession):
             self._errors += 1
         return resp
 
-    def is_limited(self, *args: str) -> bool:
-        """Check wether the rate limit should be applied"""
+    # def is_limited(self, *args: str) -> bool:
+    #     """Check wether the rate limit should be applied"""
+    #     try:
+    #         if self._rate_limit == 0:
+    #             return False
+    #         url: str = args[1]
+    #         for filter in self._filters:
+    #             if isinstance(filter, re.Pattern) and filter.match(url) is not None:
+    #                 return self._limit_filtered
+    #             elif isinstance(filter, str) and url.startswith(filter):
+    #                 return self._limit_filtered
+
+    #         return not self._limit_filtered
+    #     except Exception as err:
+    #         error(f"{err}")
+    #     return True
+
+    def is_limited(self, method: str, url: str) -> bool:
+        """Check whether the rate limit should be applied"""
         try:
             if self._rate_limit == 0:
                 return False
-            url: str = args[1]
-            for filter in self._filters:
-                if isinstance(filter, re.Pattern) and filter.match(url) is not None:
-                    return self._limit_filtered
-                elif isinstance(filter, str) and url.startswith(filter):
-                    return self._limit_filtered
+            if not is_HTTP_method(method):
+                raise ValueError(f"'method' is not a valid HTTP method: {method}")
+            for method_filter, url_filter in self._filters:
+                if method_filter is None or method == method_filter:
+                    if (
+                        isinstance(url_filter, re.Pattern)
+                        and url_filter.match(url) is not None
+                    ):
+                        return self._limit_filtered
+                    elif isinstance(url_filter, str) and url.startswith(url_filter):
+                        return self._limit_filtered
 
             return not self._limit_filtered
         except Exception as err:
