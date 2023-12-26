@@ -1,6 +1,4 @@
-import sys
 import pytest  # type: ignore
-from pathlib import Path
 from queue import Queue
 
 # from asyncio.queues import QueueEmpty, QueueFull
@@ -14,9 +12,7 @@ from asyncio import (
     QueueFull,
 )
 
-sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
-
-from pyutils import AsyncQueue  # noqa: E402
+from pyutils import AsyncQueue
 
 QSIZE: int = 10
 N: int = 100  # N >> QSIZE

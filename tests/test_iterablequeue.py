@@ -1,6 +1,4 @@
-import sys
 import pytest  # type: ignore
-from pathlib import Path
 from asyncio.queues import QueueEmpty, QueueFull
 from asyncio import (
     Task,
@@ -13,9 +11,7 @@ from asyncio import (
 )
 from random import random
 
-sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
-
-from pyutils import IterableQueue, QueueDone  # noqa: E402
+from pyutils import IterableQueue, QueueDone
 
 QSIZE: int = 10
 N: int = 100  # N >> QSIZE

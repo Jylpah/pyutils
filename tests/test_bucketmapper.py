@@ -1,12 +1,8 @@
-import sys
 import pytest  # type: ignore
 from dataclasses import dataclass
 from random import randrange
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
-
-from pyutils import BucketMapper  # noqa: E402
+from pyutils import BucketMapper
 
 ########################################################
 #

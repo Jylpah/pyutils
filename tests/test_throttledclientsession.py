@@ -1,6 +1,5 @@
 import sys
 import pytest  # type: ignore
-from pathlib import Path
 from datetime import datetime
 from itertools import pairwise, accumulate, product
 from functools import cached_property
@@ -13,11 +12,8 @@ from asyncio import sleep
 import logging
 import json
 
-
-sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
-
-from pyutils import ThrottledClientSession  # noqa: E402
-from pyutils.utils import epoch_now, get_url_JSON  # noqa: E402
+from pyutils import ThrottledClientSession
+from pyutils.utils import epoch_now, get_url_JSON
 
 
 HOST: str = "localhost"
