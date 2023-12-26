@@ -42,6 +42,17 @@ FILTERS_RE: List[str | Tuple[Optional[str], str]] = [
     ("GET", ".+/localhost"),
 ]
 
+FILTERS_FAIL: List[str | Tuple[Optional[str], str]] = [
+    "http://notworking",
+    (None, "http://notworking"),
+    ("POST", "http://localhost"),
+]
+FILTERS_RE_FAIL: List[str | Tuple[Optional[str], str]] = [
+    "notworking",
+    (None, "http://notworking"),
+    ("POST", ".+/localhost"),
+]
+
 # N : int = int(1e10)
 
 logger = logging.getLogger()
@@ -498,6 +509,102 @@ async def test_5_filters_regexp(
         f"rate limit: {rate_limit:.2f}, avg rate: {rate_avg:.2f}, max rate: {rate_max:.2f}"
     )
     if limit_filtered:
+        assert (
+            rate_avg <= rate_limit * 1.05
+        ), f"Avg. rate is above rate_limit: {rate_avg:.2f} > {rate_limit:.2f}"
+        assert (
+            rate_max <= rate_limit * 1.1
+        ), f""""max_rate is above rate_limit: {rate_max:.2f} > {rate_limit:.2f}\n
+                                            {', '.join([str(t) for t in timings])}"""
+    else:
+        assert (
+            rate_avg > rate_limit * 2
+        ), f"request are rate_limited even limit_filtered={limit_filtered}: {rate_avg:.2f} > {rate_limit:.2f}"
+        assert (
+            rate_max > rate_limit * 2
+        ), f"""request are rate_limited even limit_filtered={limit_filtered}: {rate_max:.2f} > {rate_limit:.2f}\n
+                                            {', '.join([str(t) for t in timings])}"""
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="not supported on windows: asyncio.loop.create_unix_connection",
+)
+@pytest.mark.timeout(60)
+@pytest.mark.asyncio
+@pytest.mark.parametrize("limit_filtered,filter", product([True, False], FILTERS_FAIL))
+async def test_6_filters_no_match(
+    server_url: str,
+    limit_filtered: bool,
+    filter: str | Tuple[Optional[str], str],
+) -> None:
+    """Test timings of N/sec get"""
+    rate_limit: float = RATE_SLOW
+    N: int = N_SLOW
+    await sleep(2)  # wait the server to start
+    timings: list[float] = await _get(
+        server_url,
+        rate=rate_limit,
+        N=N,
+        limit_filtered=limit_filtered,
+        filters=[filter],
+    )
+    rate_max: float = max_rate(timings, rate_limit)
+    rate_avg: float = avg_rate(timings)
+    message(
+        f"rate limit: {rate_limit:.2f}, avg rate: {rate_avg:.2f}, max rate: {rate_max:.2f}"
+    )
+    if not limit_filtered:
+        ## mismatching filters are whitelisting i.e. rate-limit is applied to the requests
+        assert (
+            rate_avg <= rate_limit * 1.05
+        ), f"Avg. rate is above rate_limit: {rate_avg:.2f} > {rate_limit:.2f}"
+        assert (
+            rate_max <= rate_limit * 1.1
+        ), f""""max_rate is above rate_limit: {rate_max:.2f} > {rate_limit:.2f}\n
+                                            {', '.join([str(t) for t in timings])}"""
+    else:
+        assert (
+            rate_avg > rate_limit * 2
+        ), f"request are rate_limited even limit_filtered={limit_filtered}: {rate_avg:.2f} > {rate_limit:.2f}"
+        assert (
+            rate_max > rate_limit * 2
+        ), f"""request are rate_limited even limit_filtered={limit_filtered}: {rate_max:.2f} > {rate_limit:.2f}\n
+                                            {', '.join([str(t) for t in timings])}"""
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="not supported on windows: asyncio.loop.create_unix_connection",
+)
+@pytest.mark.timeout(60)
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "limit_filtered,filter", product([True, False], FILTERS_RE_FAIL)
+)
+async def test_7_filters_regexp_no_match(
+    server_url: str,
+    limit_filtered: bool,
+    filter: str | Tuple[Optional[str], str],
+) -> None:
+    """Test timings of N/sec get"""
+    rate_limit: float = RATE_SLOW
+    N: int = N_SLOW
+    await sleep(2)  # wait the server to start
+    timings: list[float] = await _get(
+        server_url,
+        rate=rate_limit,
+        N=N,
+        limit_filtered=limit_filtered,
+        filters=[filter],
+        re_filter=True,
+    )
+    rate_max: float = max_rate(timings, rate_limit)
+    rate_avg: float = avg_rate(timings)
+    message(
+        f"rate limit: {rate_limit:.2f}, avg rate: {rate_avg:.2f}, max rate: {rate_max:.2f}"
+    )
+    if not limit_filtered:
         assert (
             rate_avg <= rate_limit * 1.05
         ), f"Avg. rate is above rate_limit: {rate_avg:.2f} > {rate_limit:.2f}"
