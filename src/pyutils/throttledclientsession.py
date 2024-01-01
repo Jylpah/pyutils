@@ -42,6 +42,9 @@ def is_HTTP_method(method: Any) -> TypeGuard[HTTPmethod]:
     return isinstance(method, str) and method in get_args(HTTPmethod)
 
 
+UrlFilter = Union[str, re.Pattern]
+
+
 class ThrottledClientSession(ClientSession):
     """
     Rate-throttled client session class inherited from aiohttp.ClientSession)
@@ -54,7 +57,7 @@ class ThrottledClientSession(ClientSession):
     def __init__(
         self,
         rate_limit: float = 0,
-        filters: list[str | Tuple[Optional[str], str]] = list(),
+        filters: list[UrlFilter | Tuple[Optional[str], UrlFilter]] = list(),
         limit_filtered: bool = False,  # whether 'filters' allow/whitelists URLs
         re_filter: bool = False,  # use regexp filters
         *args,
@@ -77,12 +80,9 @@ class ThrottledClientSession(ClientSession):
         self._count: int = 0
         self._errors: int = 0
         self._limit_filtered: bool = limit_filtered
-        self._re_filter: bool = re_filter
-        self._filters: list[
-            Tuple[Optional[HTTPmethod], Union[str, re.Pattern]]
-        ] = list()
+        self._filters: list[Tuple[Optional[HTTPmethod], UrlFilter]] = list()
         for filter in filters:
-            url: str = ""
+            url: UrlFilter = ""
             method: Any = None
             if isinstance(filter, tuple) and len(filter) == 2:
                 method = filter[0]
