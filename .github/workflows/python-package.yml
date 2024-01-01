@@ -37,7 +37,7 @@ jobs:
         mypy src
     - name: Test with pytest
       run: |
-        pytest --cov .
+        pytest --cov=src tests
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       env:
