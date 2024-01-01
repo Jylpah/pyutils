@@ -160,25 +160,25 @@ class ThrottledClientSession(ClientSession):
         }
         return res
 
-    # @classmethod
-    # def print_stats(cls, stats: dict[str, float | int]) -> str:
-    #     try:
-    #         rate_limit: float = stats["rate_limit"]
-    #         rate: float = stats["rate"]
-    #         count: float = stats["count"]
-    #         errors: float = stats["errors"]
+    @classmethod
+    def print_stats(cls, stats: dict[str, float | int]) -> str:
+        try:
+            rate_limit: float = stats["rate_limit"]
+            rate: float = stats["rate"]
+            count: float = stats["count"]
+            errors: float = stats["errors"]
 
-    #         rate_limit_str: str
-    #         if rate_limit >= 1 or rate_limit == 0:
-    #             rate_limit_str = f"{rate_limit:.1f} requests/sec"
-    #         else:
-    #             rate_limit_str = f"{1/rate_limit:.1f} secs/request"
+            rate_limit_str: str
+            if rate_limit >= 1 or rate_limit == 0:
+                rate_limit_str = f"{rate_limit:.1f} requests/sec"
+            else:
+                rate_limit_str = f"{1/rate_limit:.1f} secs/request"
 
-    #         return f"rate limit: {rate_limit_str}, rate: {rate:.1f} request/sec, requests: {count:.0f}, errors: {errors:.0f}"
-    #     except KeyError as err:
-    #         return f"Incorrect stats format: {err}"
-    #     except Exception as err:
-    #         return f"Unexpected error: {err}"
+            return f"rate limit: {rate_limit_str}, rate: {rate:.1f} request/sec, requests: {count:.0f}, errors: {errors:.0f}"
+        except KeyError as err:
+            return f"Incorrect stats format: {err}"
+        except Exception as err:
+            return f"Unexpected error: {err}"
 
     def reset_counters(self) -> dict[str, float | int]:
         """Reset rate counters and return current results"""

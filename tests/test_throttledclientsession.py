@@ -424,6 +424,7 @@ async def test_3_get_json(server_url: str, json_path: str) -> None:
         for _ in range(N):
             if (_ := await get_url_JSON(session=session, url=url, retries=2)) is None:
                 assert False, "get_url_JSON() returned None"
+        ThrottledClientSession.print_stats(session.stats_dict)  # type: ignore
 
 
 @pytest.mark.skipif(
