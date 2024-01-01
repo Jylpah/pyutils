@@ -94,7 +94,7 @@ class ThrottledClientSession(ClientSession):
 
         self._set_limit()
 
-    def add_filter(self, filter: str | re.Pattern, method: str | None = None):
+    def add_filter(self, filter: UrlFilter, method: str | None = None):
         """Add a filter to filter list"""
         if not (method is None or is_HTTP_method(method=method)):
             raise ValueError(f"'method' is not None or a valid HTTP method: {method}")
@@ -144,11 +144,6 @@ class ThrottledClientSession(ClientSession):
     def errors(self) -> int:
         return self._errors
 
-    # def get_stats(self) -> dict[str, float]:
-    # 	"""Get session statistics"""
-    # 	res = {'rate' : self.rate, 'rate_limit': self.rate_limit, 'count' : self.count, 'errors': self.errors }
-    # 	return res
-
     @property
     def stats(self) -> str:
         """Get session statistics as string"""
@@ -165,30 +160,25 @@ class ThrottledClientSession(ClientSession):
         }
         return res
 
-    # def get_stats_str(self) -> str:
-    #     """Print session statistics"""
-    #     error("DEPRECIATED: use self.stats")
-    #     return self.print_stats(self.stats_dict)
+    # @classmethod
+    # def print_stats(cls, stats: dict[str, float | int]) -> str:
+    #     try:
+    #         rate_limit: float = stats["rate_limit"]
+    #         rate: float = stats["rate"]
+    #         count: float = stats["count"]
+    #         errors: float = stats["errors"]
 
-    @classmethod
-    def print_stats(cls, stats: dict[str, float | int]) -> str:
-        try:
-            rate_limit: float = stats["rate_limit"]
-            rate: float = stats["rate"]
-            count: float = stats["count"]
-            errors: float = stats["errors"]
+    #         rate_limit_str: str
+    #         if rate_limit >= 1 or rate_limit == 0:
+    #             rate_limit_str = f"{rate_limit:.1f} requests/sec"
+    #         else:
+    #             rate_limit_str = f"{1/rate_limit:.1f} secs/request"
 
-            rate_limit_str: str
-            if rate_limit >= 1 or rate_limit == 0:
-                rate_limit_str = f"{rate_limit:.1f} requests/sec"
-            else:
-                rate_limit_str = f"{1/rate_limit:.1f} secs/request"
-
-            return f"rate limit: {rate_limit_str}, rate: {rate:.1f} request/sec, requests: {count:.0f}, errors: {errors:.0f}"
-        except KeyError as err:
-            return f"Incorrect stats format: {err}"
-        except Exception as err:
-            return f"Unexpected error: {err}"
+    #         return f"rate limit: {rate_limit_str}, rate: {rate:.1f} request/sec, requests: {count:.0f}, errors: {errors:.0f}"
+    #     except KeyError as err:
+    #         return f"Incorrect stats format: {err}"
+    #     except Exception as err:
+    #         return f"Unexpected error: {err}"
 
     def reset_counters(self) -> dict[str, float | int]:
         """Reset rate counters and return current results"""
@@ -266,23 +256,6 @@ class ThrottledClientSession(ClientSession):
         if not resp.ok:
             self._errors += 1
         return resp
-
-    # def is_limited(self, *args: str) -> bool:
-    #     """Check wether the rate limit should be applied"""
-    #     try:
-    #         if self._rate_limit == 0:
-    #             return False
-    #         url: str = args[1]
-    #         for filter in self._filters:
-    #             if isinstance(filter, re.Pattern) and filter.match(url) is not None:
-    #                 return self._limit_filtered
-    #             elif isinstance(filter, str) and url.startswith(filter):
-    #                 return self._limit_filtered
-
-    #         return not self._limit_filtered
-    #     except Exception as err:
-    #         error(f"{err}")
-    #     return True
 
     def is_limited(self, method: str, url: str) -> bool:
         """Check whether the rate limit should be applied"""
