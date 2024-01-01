@@ -7,7 +7,10 @@ from .eventcounter import EventCounter as EventCounter
 from .filequeue import FileQueue as FileQueue
 from .iterablequeue import IterableQueue as IterableQueue, QueueDone as QueueDone
 from .multilevelformatter import MultilevelFormatter as MultilevelFormatter
-from .throttledclientsession import ThrottledClientSession as ThrottledClientSession
+from .throttledclientsession import (
+    ThrottledClientSession as ThrottledClientSession,
+    UrlFilter as UrlFilter,
+)
 from .urlqueue import UrlQueue as UrlQueue
 from .utils import (
     Countable as Countable,
