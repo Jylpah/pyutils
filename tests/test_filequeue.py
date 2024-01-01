@@ -1,21 +1,16 @@
-import sys
 import pytest  # type: ignore
 from pathlib import Path
 from os import makedirs
 from fnmatch import fnmatch, fnmatchcase
 import logging
 
+from pyutils import FileQueue
 
 logger = logging.getLogger()
 error = logger.error
 message = logger.warning
 verbose = logger.info
 debug = logger.debug
-
-sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
-
-from pyutils import FileQueue  # noqa: E402
-
 ########################################################
 #
 # Test Plan

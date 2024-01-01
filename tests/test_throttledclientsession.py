@@ -1,6 +1,5 @@
 import sys
 import pytest  # type: ignore
-from pathlib import Path
 from datetime import datetime
 from itertools import pairwise, accumulate, product
 from functools import cached_property
@@ -12,12 +11,10 @@ from socketserver import ThreadingMixIn
 from asyncio import sleep
 import logging
 import json
+import re
 
-
-sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
-
-from pyutils import ThrottledClientSession  # noqa: E402
-from pyutils.utils import epoch_now, get_url_JSON  # noqa: E402
+from pyutils import ThrottledClientSession, UrlFilter
+from pyutils.utils import epoch_now, get_url_JSON
 
 
 HOST: str = "localhost"
@@ -31,26 +28,22 @@ N_SLOW: int = 3
 
 THREADS: int = 5
 
-FILTERS: List[str | Tuple[Optional[str], str]] = [
+FILTERS: List[UrlFilter | Tuple[Optional[str], UrlFilter]] = [
     "http://localhost",
     (None, "http://local"),
     ("GET", "http://localhost"),
-]
-FILTERS_RE: List[str | Tuple[Optional[str], str]] = [
-    ".*localhost",
-    (None, "http://local"),
-    ("GET", ".+/localhost"),
+    re.compile(".*localhost"),
+    (None, re.compile("http://local")),
+    ("GET", re.compile(".+/localhost")),
 ]
 
-FILTERS_FAIL: List[str | Tuple[Optional[str], str]] = [
+FILTERS_FAIL: List[UrlFilter | Tuple[Optional[str], UrlFilter]] = [
     "http://notworking",
     (None, "http://notworking"),
     ("POST", "http://localhost"),
-]
-FILTERS_RE_FAIL: List[str | Tuple[Optional[str], str]] = [
-    "notworking",
-    (None, "http://notworking"),
-    ("POST", ".+/localhost"),
+    re.compile("^notwork.+ing"),
+    (None, re.compile("http://notworking")),
+    ("POST", re.compile(".+/localhost")),
 ]
 
 # N : int = int(1e10)
@@ -443,7 +436,7 @@ async def test_3_get_json(server_url: str, json_path: str) -> None:
 async def test_4_filters(
     server_url: str,
     limit_filtered: bool,
-    filter: str | Tuple[Optional[str], str],
+    filter: UrlFilter | Tuple[Optional[str], UrlFilter],
 ) -> None:
     """Test timings of N/sec get"""
     rate_limit: float = RATE_SLOW
@@ -479,51 +472,51 @@ async def test_4_filters(
                                             {', '.join([str(t) for t in timings])}"""
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="not supported on windows: asyncio.loop.create_unix_connection",
-)
-@pytest.mark.timeout(60)
-@pytest.mark.asyncio
-@pytest.mark.parametrize("limit_filtered,filter", product([True, False], FILTERS_RE))
-async def test_5_filters_regexp(
-    server_url: str,
-    limit_filtered: bool,
-    filter: str | Tuple[Optional[str], str],
-) -> None:
-    """Test timings of N/sec get"""
-    rate_limit: float = RATE_SLOW
-    N: int = N_SLOW
-    await sleep(2)  # wait the server to start
-    timings: list[float] = await _get(
-        server_url,
-        rate=rate_limit,
-        N=N,
-        limit_filtered=limit_filtered,
-        filters=[filter],
-        re_filter=True,
-    )
-    rate_max: float = max_rate(timings, rate_limit)
-    rate_avg: float = avg_rate(timings)
-    message(
-        f"rate limit: {rate_limit:.2f}, avg rate: {rate_avg:.2f}, max rate: {rate_max:.2f}"
-    )
-    if limit_filtered:
-        assert (
-            rate_avg <= rate_limit * 1.05
-        ), f"Avg. rate is above rate_limit: {rate_avg:.2f} > {rate_limit:.2f}"
-        assert (
-            rate_max <= rate_limit * 1.1
-        ), f""""max_rate is above rate_limit: {rate_max:.2f} > {rate_limit:.2f}\n
-                                            {', '.join([str(t) for t in timings])}"""
-    else:
-        assert (
-            rate_avg > rate_limit * 2
-        ), f"request are rate_limited even limit_filtered={limit_filtered}: {rate_avg:.2f} > {rate_limit:.2f}"
-        assert (
-            rate_max > rate_limit * 2
-        ), f"""request are rate_limited even limit_filtered={limit_filtered}: {rate_max:.2f} > {rate_limit:.2f}\n
-                                            {', '.join([str(t) for t in timings])}"""
+# @pytest.mark.skipif(
+#     sys.platform == "win32",
+#     reason="not supported on windows: asyncio.loop.create_unix_connection",
+# )
+# @pytest.mark.timeout(60)
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("limit_filtered,filter", product([True, False], FILTERS_RE))
+# async def test_5_filters_regexp(
+#     server_url: str,
+#     limit_filtered: bool,
+#     filter: str | Tuple[Optional[str], str],
+# ) -> None:
+#     """Test timings of N/sec get"""
+#     rate_limit: float = RATE_SLOW
+#     N: int = N_SLOW
+#     await sleep(2)  # wait the server to start
+#     timings: list[float] = await _get(
+#         server_url,
+#         rate=rate_limit,
+#         N=N,
+#         limit_filtered=limit_filtered,
+#         filters=[filter],
+#         re_filter=True,
+#     )
+#     rate_max: float = max_rate(timings, rate_limit)
+#     rate_avg: float = avg_rate(timings)
+#     message(
+#         f"rate limit: {rate_limit:.2f}, avg rate: {rate_avg:.2f}, max rate: {rate_max:.2f}"
+#     )
+#     if limit_filtered:
+#         assert (
+#             rate_avg <= rate_limit * 1.05
+#         ), f"Avg. rate is above rate_limit: {rate_avg:.2f} > {rate_limit:.2f}"
+#         assert (
+#             rate_max <= rate_limit * 1.1
+#         ), f""""max_rate is above rate_limit: {rate_max:.2f} > {rate_limit:.2f}\n
+#                                             {', '.join([str(t) for t in timings])}"""
+#     else:
+#         assert (
+#             rate_avg > rate_limit * 2
+#         ), f"request are rate_limited even limit_filtered={limit_filtered}: {rate_avg:.2f} > {rate_limit:.2f}"
+#         assert (
+#             rate_max > rate_limit * 2
+#         ), f"""request are rate_limited even limit_filtered={limit_filtered}: {rate_max:.2f} > {rate_limit:.2f}\n
+#                                             {', '.join([str(t) for t in timings])}"""
 
 
 @pytest.mark.skipif(
@@ -533,10 +526,10 @@ async def test_5_filters_regexp(
 @pytest.mark.timeout(60)
 @pytest.mark.asyncio
 @pytest.mark.parametrize("limit_filtered,filter", product([True, False], FILTERS_FAIL))
-async def test_6_filters_no_match(
+async def test_5_filters_no_match(
     server_url: str,
     limit_filtered: bool,
-    filter: str | Tuple[Optional[str], str],
+    filter: UrlFilter | Tuple[Optional[str], UrlFilter],
 ) -> None:
     """Test timings of N/sec get"""
     rate_limit: float = RATE_SLOW
@@ -573,53 +566,53 @@ async def test_6_filters_no_match(
                                             {', '.join([str(t) for t in timings])}"""
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="not supported on windows: asyncio.loop.create_unix_connection",
-)
-@pytest.mark.timeout(60)
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "limit_filtered,filter", product([True, False], FILTERS_RE_FAIL)
-)
-async def test_7_filters_regexp_no_match(
-    server_url: str,
-    limit_filtered: bool,
-    filter: str | Tuple[Optional[str], str],
-) -> None:
-    """Test timings of N/sec get"""
-    rate_limit: float = RATE_SLOW
-    N: int = N_SLOW
-    await sleep(2)  # wait the server to start
-    timings: list[float] = await _get(
-        server_url,
-        rate=rate_limit,
-        N=N,
-        limit_filtered=limit_filtered,
-        filters=[filter],
-        re_filter=True,
-    )
-    rate_max: float = max_rate(timings, rate_limit)
-    rate_avg: float = avg_rate(timings)
-    message(
-        f"rate limit: {rate_limit:.2f}, avg rate: {rate_avg:.2f}, max rate: {rate_max:.2f}"
-    )
-    if not limit_filtered:
-        assert (
-            rate_avg <= rate_limit * 1.05
-        ), f"Avg. rate is above rate_limit: {rate_avg:.2f} > {rate_limit:.2f}"
-        assert (
-            rate_max <= rate_limit * 1.1
-        ), f""""max_rate is above rate_limit: {rate_max:.2f} > {rate_limit:.2f}\n
-                                            {', '.join([str(t) for t in timings])}"""
-    else:
-        assert (
-            rate_avg > rate_limit * 2
-        ), f"request are rate_limited even limit_filtered={limit_filtered}: {rate_avg:.2f} > {rate_limit:.2f}"
-        assert (
-            rate_max > rate_limit * 2
-        ), f"""request are rate_limited even limit_filtered={limit_filtered}: {rate_max:.2f} > {rate_limit:.2f}\n
-                                            {', '.join([str(t) for t in timings])}"""
+# @pytest.mark.skipif(
+#     sys.platform == "win32",
+#     reason="not supported on windows: asyncio.loop.create_unix_connection",
+# )
+# @pytest.mark.timeout(60)
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize(
+#     "limit_filtered,filter", product([True, False], FILTERS_RE_FAIL)
+# )
+# async def test_7_filters_regexp_no_match(
+#     server_url: str,
+#     limit_filtered: bool,
+#     filter: str | Tuple[Optional[str], str],
+# ) -> None:
+#     """Test timings of N/sec get"""
+#     rate_limit: float = RATE_SLOW
+#     N: int = N_SLOW
+#     await sleep(2)  # wait the server to start
+#     timings: list[float] = await _get(
+#         server_url,
+#         rate=rate_limit,
+#         N=N,
+#         limit_filtered=limit_filtered,
+#         filters=[filter],
+#         re_filter=True,
+#     )
+#     rate_max: float = max_rate(timings, rate_limit)
+#     rate_avg: float = avg_rate(timings)
+#     message(
+#         f"rate limit: {rate_limit:.2f}, avg rate: {rate_avg:.2f}, max rate: {rate_max:.2f}"
+#     )
+#     if not limit_filtered:
+#         assert (
+#             rate_avg <= rate_limit * 1.05
+#         ), f"Avg. rate is above rate_limit: {rate_avg:.2f} > {rate_limit:.2f}"
+#         assert (
+#             rate_max <= rate_limit * 1.1
+#         ), f""""max_rate is above rate_limit: {rate_max:.2f} > {rate_limit:.2f}\n
+#                                             {', '.join([str(t) for t in timings])}"""
+#     else:
+#         assert (
+#             rate_avg > rate_limit * 2
+#         ), f"request are rate_limited even limit_filtered={limit_filtered}: {rate_avg:.2f} > {rate_limit:.2f}"
+#         assert (
+#             rate_max > rate_limit * 2
+#         ), f"""request are rate_limited even limit_filtered={limit_filtered}: {rate_max:.2f} > {rate_limit:.2f}\n
+#                                             {', '.join([str(t) for t in timings])}"""
 
 
 # @pytest.mark.timeout(10)

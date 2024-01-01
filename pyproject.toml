@@ -1,6 +1,6 @@
 [project]
 name = "pyutils"
-version = "1.1.0"
+version = "1.2.0"
 authors = [{ name = "Jylpah", email = "jylpah@gmail.com" }]
 description = "Misc Python utils and classes"
 readme = "README.md"
@@ -65,11 +65,13 @@ mypy_path = ['src']
 include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py"]
 indent-width = 4
 extend-include = ["*.ipynb"]
+extend-exclude = [".venv", ".vscode" ] 
 fixable = ["ALL"]
 
 [tool.pytest.ini_options]
-minversion = "7.0"
+minversion = "7.4"
 addopts = "-v --cov=src"
+pythonpath = "src" # avoid import path append in test files
 filterwarnings = [
     'ignore:Inheritance class ThrottledClientSession from ClientSession is discouraged:DeprecationWarning',
 ]

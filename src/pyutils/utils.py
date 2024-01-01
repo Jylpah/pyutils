@@ -270,7 +270,10 @@ async def post_url(
         debug(f"POST {url}: try {retry} / {retries}")
         try:
             async with session.post(
-                url, headers=headers, data=data, **kwargs  # chunked=512 * 1024,
+                url,
+                headers=headers,
+                data=data,
+                **kwargs,  # chunked=512 * 1024,
             ) as resp:
                 debug(f"POST {url} HTTP response status {resp.status}/{resp.reason}")
                 if resp.ok:

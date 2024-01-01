@@ -1,28 +1,23 @@
 from enum import Enum
 from math import ceil
-import sys
 from typing import Annotated, Optional, List, Sequence
 import pytest  # type: ignore
 from pathlib import Path
 import click
 from typer import Typer, Context, Option
-
 import logging
-
 import typer
 
-sys.path.insert(0, str(Path(__file__).parent.parent.resolve() / "src"))
-
-from pyutils.utils import (  # noqa: E402
-    ClickHelpGen,
+from pyutils.utils import (
     Countable,
+    ClickHelpGen,
     TyperHelpGen,
     chunker,
     is_valid_obj,
     get_type,
     get_subtype,
 )
-from pyutils import awrap  # noqa: E402
+from pyutils import awrap
 
 logger = logging.getLogger()
 error = logger.error

@@ -42,6 +42,9 @@ def is_HTTP_method(method: Any) -> TypeGuard[HTTPmethod]:
     return isinstance(method, str) and method in get_args(HTTPmethod)
 
 
+UrlFilter = Union[str, re.Pattern]
+
+
 class ThrottledClientSession(ClientSession):
     """
     Rate-throttled client session class inherited from aiohttp.ClientSession)
@@ -54,7 +57,7 @@ class ThrottledClientSession(ClientSession):
     def __init__(
         self,
         rate_limit: float = 0,
-        filters: list[str | Tuple[Optional[str], str]] = list(),
+        filters: list[UrlFilter | Tuple[Optional[str], UrlFilter]] = list(),
         limit_filtered: bool = False,  # whether 'filters' allow/whitelists URLs
         re_filter: bool = False,  # use regexp filters
         *args,
@@ -63,7 +66,7 @@ class ThrottledClientSession(ClientSession):
         assert isinstance(rate_limit, (int, float)), "rate_limit has to be float"
         assert isinstance(filters, list), "filters has to be list"
         assert isinstance(limit_filtered, bool), "limit_filtered has to be bool"
-        assert isinstance(re_filter, bool), "re_filter has to be bool"
+        # assert isinstance(re_filter, bool), "re_filter has to be bool"
 
         super().__init__(*args, **kwargs)
 
@@ -77,30 +80,28 @@ class ThrottledClientSession(ClientSession):
         self._count: int = 0
         self._errors: int = 0
         self._limit_filtered: bool = limit_filtered
-        self._re_filter: bool = re_filter
-        self._filters: list[
-            Tuple[Optional[HTTPmethod], Union[str, re.Pattern]]
-        ] = list()
+        # self._re_filter: bool = re_filter
+        self._filters: list[Tuple[Optional[HTTPmethod], UrlFilter]] = list()
         for filter in filters:
-            url: str = ""
-            method: Any = None
+            url: UrlFilter = ""
+            method: str | None = None
             if isinstance(filter, tuple) and len(filter) == 2:
                 method = filter[0]
                 url = filter[1]
-            elif isinstance(filter, str):
+            elif isinstance(filter, str) or isinstance(filter, re.Pattern):
                 url = filter
             self.add_filter(filter=url, method=method)
 
         self._set_limit()
 
-    def add_filter(self, filter: str, method: str | None = None):
+    def add_filter(self, filter: str | re.Pattern, method: str | None = None):
         """Add a filter to filter list"""
         if not (method is None or is_HTTP_method(method=method)):
             raise ValueError(f"'method' is not None or a valid HTTP method: {method}")
-        if self._re_filter:
-            self._filters.append((method, re.compile(filter)))
-        else:
-            self._filters.append((method, filter))
+        # if self._re_filter:
+        #     self._filters.append((method, re.compile(filter)))
+        # else:
+        self._filters.append((method, filter))
 
     @deprecated(version="1.1.0", reason="Use 'rate' property instead")
     def get_rate(self) -> float:
