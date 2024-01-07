@@ -50,6 +50,10 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
     @property
     def is_filled(self) -> bool:
         return self._filled.is_set()
+    
+    @property
+    def is_done(self) -> bool:
+        return self.is_filled and self.empty() and not self.has_wip
 
     @property
     def maxsize(self) -> int:
@@ -61,6 +65,8 @@ class IterableQueue(Queue[T], AsyncIterable[T], Countable):
 
     def full(self) -> bool:
         return self._Q.full()
+
+
 
     def check_done(self) -> bool:
         if self.is_filled and self.empty() and not self.has_wip:

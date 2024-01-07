@@ -67,10 +67,10 @@ async def test_1_put_get_async(test_interablequeue_int: IterableQueue[int]):
     assert Q.qsize() == QSIZE - 1, f"qsize() returned {Q.qsize()}, should be {QSIZE-1}"
     try:
         await Q.put(1)
-        assert False, "Queue is done and put() should raise an exception"
+        assert False, "Queue is filled and put() should raise an exception"
     except QueueDone:
         pass  # Queue is done and put() should raise an exception
-
+    assert not Q.is_done, "is_done returned True even queue is not finished"
     consumer: Task = create_task(_consumer_int(Q))
     try:
         async with timeout(5):
@@ -132,6 +132,7 @@ async def test_3_multiple_producers(test_interablequeue_int: IterableQueue[int])
     for _ in range(THREADS):
         workers.append(create_task(_producer_int(Q, N, finish=True, wait=0.05)))
     try:
+        assert not Q.is_done, "is_done returned True even queue is not finished"
         async with timeout(10):
             async for _ in Q:
                 pass
@@ -181,8 +182,10 @@ async def test_5_empty_join(test_interablequeue_int: IterableQueue[int]):
     """Test for await join when an empty queue is finished"""
     Q = test_interablequeue_int
     producer: Task = create_task(_producer_int(Q, n=0, finish=True, wait=2))
+    assert not Q.is_done, "is_done returned True even queue is not finished"
     consumer: Task = create_task(_consumer_int(Q))
     try:
+        
         async with timeout(3):
             await Q.join()
         assert (
@@ -215,9 +218,11 @@ async def test_6_finish_full_queue(test_interablequeue_int: IterableQueue[int]):
         assert (
             Q.empty()
         ), f"Queue should be empty: qsize={Q._Q.qsize()}: {Q._Q.get_nowait()}, {Q._Q.get_nowait()}"
+        assert Q.is_done, "Queue is not done"
     except TimeoutError:
         assert False, "await IterableQueue.join() failed with an empty queue finished"
     await sleep(0.1)
+    assert Q.is_done, "Queue is not done"
     producer.cancel()
 
 
@@ -232,9 +237,10 @@ async def test_7_aiter(test_interablequeue_int: IterableQueue[int]):
         await sleep(0.5)
         async for i in Q:
             assert i >= 0, "Did not receive an int"
-        assert (
-            True
-        ), "Queue is done after 3 secs and the join() should finish before timeout(5)"
+        assert Q.is_done, "Queue is not done"
+        # assert (
+        #     True
+        # ), "Queue is done after 3 secs and the join() should finish before timeout(5)"
     except TimeoutError:
         assert False, "await IterableQueue.join() failed with an empty queue finished"
 
