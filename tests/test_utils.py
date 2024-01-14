@@ -1,6 +1,8 @@
 from enum import Enum
 from math import ceil
 from typing import Annotated, Optional, List, Sequence
+
+# from unittest import result
 import pytest  # type: ignore
 from pathlib import Path
 import click
@@ -16,6 +18,7 @@ from pyutils.utils import (
     is_valid_obj,
     get_type,
     get_subtype,
+    add_suffix,
 )
 from pyutils import awrap
 
@@ -327,3 +330,17 @@ async def test_8_awrap() -> None:
     async for i in awrap(t):
         assert i == s + 1, f"invalid value returned: {i} != {s+1}"
         s = i
+
+
+@pytest.mark.parametrize(
+    "path,suffix,res",
+    [
+        (Path("dir/test"), ".sfx", Path("dir/test.sfx")),
+        (Path("dir/test.sfx"), ".sfx", Path("dir/test.sfx")),
+        (Path("dir/test.sfx.py"), ".sfx", Path("dir/test.sfx.py.sfx")),
+    ],
+)
+def test_9_add_suffix(path: Path, suffix: str, res: Path) -> None:
+    assert (
+        add_suffix(path, suffix) == res
+    ), f"incorrect result: {str(path)} != {str(res)}"
