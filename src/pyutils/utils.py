@@ -368,3 +368,11 @@ def set_config(
         return config.getfloat(section, option)  # type: ignore
     else:
         return config.get(section, option)  # type: ignore
+
+
+def add_suffix(path : Path, suffix: str) -> Path:
+    """add suffix if it does not exists. Does not replace the suffix"""
+    if path.suffix == suffix:
+        return path
+    else:
+        return path.parent / (path.name + suffix)
