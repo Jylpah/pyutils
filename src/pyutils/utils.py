@@ -49,7 +49,22 @@ class Countable(ABC):
 
 
 class ClickHelpGen:
-    """Helper class to write Markdown docs for a Click CLI program"""
+    """
+    Helper class to write Markdown docs for a Click CLI program
+
+    Usage:
+
+        from pyutils.utils import ClickHelpGen
+        from blitzreplays.blitzdata import app as blitzdata
+
+        bd = ClickHelpGen(blitzdata, "blitz-data")
+        bd.add_command(["tankopedia"])
+        bd.add_command(["tankopedia", "wg"])
+        bd.add_command(["tankopedia", "app"])
+        bd.add_command(["maps"])
+        bd.add_command(["maps", "app"])
+        print(bd.mk_docs())
+    """
 
     def __init__(self, cli: BaseCommand, name: str):
         self.cli: BaseCommand = cli
@@ -82,7 +97,22 @@ class ClickHelpGen:
 
 
 class TyperHelpGen:
-    """Helper class to write Markdown docs for a Click CLI program"""
+    """
+    Helper class to write Markdown docs for a Click CLI program
+
+    Usage:
+
+        from pyutils.utils import TyperHelpGen
+        from blitzreplays.blitzdata import app as blitzdata
+
+        bd = TyperHelpGen(blitzdata, "blitz-data")
+        bd.add_command(["tankopedia"])
+        bd.add_command(["tankopedia", "wg"])
+        bd.add_command(["tankopedia", "app"])
+        bd.add_command(["maps"])
+        bd.add_command(["maps", "app"])
+        print(bd.mk_docs())
+    """
 
     def __init__(self, app: Typer, name: str):
         self.app: Typer = app
@@ -341,11 +371,11 @@ def set_config(
     section: str,
     option: str,
     value: str | int | float | bool | None = None,
-) -> T:
+) -> T | None:
     """Helper for setting ConfigParser config params"""
-    assert isinstance(
-        config, ConfigParser
-    ), "config argument has to be instance of ConfigParser"
+    assert isinstance(config, ConfigParser), (
+        "config argument has to be instance of ConfigParser"
+    )
     # opt_type: str | int | float | bool = str
     # if fallback is not None:
     #     opt_type = type(fallback)
@@ -370,7 +400,7 @@ def set_config(
         return config.get(section, option)  # type: ignore
 
 
-def add_suffix(path : Path, suffix: str) -> Path:
+def add_suffix(path: Path, suffix: str) -> Path:
     """add suffix if it does not exists. Does not replace the suffix"""
     if path.suffix == suffix:
         return path
