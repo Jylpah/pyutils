@@ -371,11 +371,11 @@ def set_config(
     section: str,
     option: str,
     value: str | int | float | bool | None = None,
-) -> T:
+) -> T | None:
     """Helper for setting ConfigParser config params"""
-    assert isinstance(
-        config, ConfigParser
-    ), "config argument has to be instance of ConfigParser"
+    assert isinstance(config, ConfigParser), (
+        "config argument has to be instance of ConfigParser"
+    )
     # opt_type: str | int | float | bool = str
     # if fallback is not None:
     #     opt_type = type(fallback)
