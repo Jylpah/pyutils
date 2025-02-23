@@ -37,7 +37,7 @@ class EventCounter:
         assert errors is not None, "param 'errors' cannot be None"
 
         self.name: str = name
-        self._log: defaultdict[str, int] = defaultdict(self._def_value_zero)
+        self._log: defaultdict[str, int] = defaultdict(int)
         self._error_cats: list[str] = errors
         self._error_status: bool = False
         self._totals = totals
@@ -53,10 +53,6 @@ class EventCounter:
         # init categories
         for cat in categories:
             self.log(cat, 0)
-
-    @classmethod
-    def _def_value_zero(cls) -> int:
-        return 0
 
     def add_error_categories(self, errors: list[str] = list()) -> bool:
         """Add error categories and return if an error has been logged"""
@@ -115,9 +111,9 @@ class EventCounter:
 
     def merge(self, B: "EventCounter") -> bool:
         """Merge two EventCounter instances together"""
-        assert isinstance(
-            B, EventCounter
-        ), f"input is not type of 'EventCounter' but: {type(B)}"
+        assert isinstance(B, EventCounter), (
+            f"input is not type of 'EventCounter' but: {type(B)}"
+        )
 
         try:
             if not isinstance(B, EventCounter):
@@ -136,9 +132,9 @@ class EventCounter:
 
     def merge_child(self, B: "EventCounter") -> bool:
         """Merge two EventCounter instances together"""
-        assert isinstance(
-            B, EventCounter
-        ), f"input is not type of 'EventCounter' but: {type(B)}"
+        assert isinstance(B, EventCounter), (
+            f"input is not type of 'EventCounter' but: {type(B)}"
+        )
 
         try:
             for cat in B.get_categories():
