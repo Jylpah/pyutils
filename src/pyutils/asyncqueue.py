@@ -5,6 +5,8 @@ from typing import Generic, TypeVar
 import logging
 from asyncio import sleep
 
+from deprecated import deprecated
+
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
@@ -15,6 +17,10 @@ verbose = logger.info
 error = logger.error
 
 
+@deprecated(
+    version="1.3",
+    reason="Please use queutils.AsyncQueue instead, will be removed in 1.4",
+)
 class AsyncQueue(asyncio.Queue, Generic[T]):
     """Async wrapper/interface for non-async queue.Queue."""
 

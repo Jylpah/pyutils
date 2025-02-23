@@ -3,6 +3,8 @@ from typing import TypeVar
 from .utils import Countable
 import logging
 
+from deprecated import deprecated
+
 logger = logging.getLogger()
 error = logger.error
 message = logger.warning
@@ -17,6 +19,10 @@ debug = logger.debug
 T = TypeVar("T")
 
 
+@deprecated(
+    version="1.3",
+    reason="Please use queutils.CounterQueue instead, will be removed in 1.4, will be removed in 1.4",
+)
 class CounterQueue(Queue[T], Countable):
     _counter: int
     _count_items: bool
@@ -47,6 +53,10 @@ class CounterQueue(Queue[T], Countable):
         return self._count_items
 
 
+@deprecated(
+    version="1.3",
+    reason="Please use queutils.CounterQueue instead, will be removed in 1.4, will be removed in 1.4",
+)
 class QCounter:
     def __init__(self, Q: Queue[int]):
         self._count = 0
