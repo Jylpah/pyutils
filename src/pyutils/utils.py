@@ -371,7 +371,7 @@ def set_config(
     section: str,
     option: str,
     value: str | int | float | bool | None = None,
-) -> T:
+) -> T | None:
     """Helper for setting ConfigParser config params"""
     assert isinstance(config, ConfigParser), (
         "config argument has to be instance of ConfigParser"
@@ -386,7 +386,7 @@ def set_config(
     elif fallback is not None:
         config[section][option] = str(fallback)
     else:
-        raise ValueError("value and fallback cannot both be None")
+        return None
     if isinstance(fallback, bool):
         return config.getboolean(section, option)  # type: ignore
     elif isinstance(fallback, int):
